@@ -1,9 +1,28 @@
 const map = L.map('map', { scrollWheelZoom: true }).setView([35.1595, 126.8526], 13);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 19,
+// 차분한 톤의 CARTO Positron 타일 (기본 OSM 타일보다 디자인에 잘 묻는다)
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution:
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 20,
 }).addTo(map);
+
+const pinIcon = L.divIcon({
+  className: 'pin-wrap',
+  html: '<div class="pin"></div>',
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+let activeMarker = null;
+
+function setActiveMarker(marker) {
+  const prevEl = activeMarker && activeMarker.getElement();
+  if (prevEl) prevEl.querySelector('.pin').classList.remove('pin--active');
+  activeMarker = marker;
+  const el = marker && marker.getElement();
+  if (el) el.querySelector('.pin').classList.add('pin--active');
+}
 
 const detailEl = document.getElementById('detail');
 const filterBarEl = document.getElementById('filter-bar');
@@ -69,6 +88,7 @@ function applyFilters(places) {
       marker.remove();
       if (currentPlaceId === place.id) {
         currentPlaceId = null;
+        setActiveMarker(null);
         renderEmpty();
       }
     }
@@ -134,10 +154,11 @@ fetch('data/places.json')
   .then((res) => res.json())
   .then((places) => {
     places.forEach((place) => {
-      const marker = L.marker([place.lat, place.lng]).addTo(map);
-      marker.bindTooltip(place.name, { direction: 'top', offset: [0, -8] });
+      const marker = L.marker([place.lat, place.lng], { icon: pinIcon }).addTo(map);
+      marker.bindTooltip(place.name, { direction: 'top', offset: [0, -10], className: 'place-tip' });
       marker.on('click', () => {
         currentPlaceId = place.id;
+        setActiveMarker(marker);
         renderPlace(place);
       });
       markersById.set(place.id, marker);
