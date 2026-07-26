@@ -1,0 +1,7 @@
+# OS
+Thumbs.db
+.DS_Store
+
+# 로컬 설정 / API 키 (공공데이터포털 인증키는 절대 커밋하지 마세요)
+.env
+config.local.js

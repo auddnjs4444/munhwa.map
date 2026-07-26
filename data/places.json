@@ -1,0 +1,47 @@
+[
+  {
+    "id": "chungjang-ro",
+    "name": "충장로",
+    "lat": 35.1489,
+    "lng": 126.9153,
+    "video_youtube_id": null,
+    "origin_text": "[예시] 실제 인터뷰 후 수어 이름의 유래 설명으로 교체하세요.",
+    "memory_text": "[예시] 실제 인터뷰이의 장소 기억으로 교체하세요.",
+    "tags": ["문화접근성", "20대 농인"],
+    "sensitive": false
+  },
+  {
+    "id": "mudeungsan",
+    "name": "무등산",
+    "lat": 35.1339,
+    "lng": 127.0044,
+    "video_youtube_id": null,
+    "origin_text": "[예시] 실제 인터뷰 후 교체하세요.",
+    "memory_text": "[예시] 실제 장소 기억으로 교체하세요.",
+    "tags": ["청년고립·관계단절"],
+    "sensitive": false
+  },
+  {
+    "id": "yangnim-dong",
+    "name": "양림동",
+    "lat": 35.1401,
+    "lng": 126.9145,
+    "video_youtube_id": null,
+    "origin_text": "[예시] 실제 인터뷰 후 교체하세요.",
+    "memory_text": "[예시] 실제 장소 기억으로 교체하세요.",
+    "tags": ["노인고독·문화소외"],
+    "sensitive": false
+  },
+  {
+    "id": "518-democracy-square",
+    "name": "5·18민주광장",
+    "lat": 35.1499,
+    "lng": 126.9166,
+    "video_youtube_id": null,
+    "origin_text": "",
+    "memory_text": "",
+    "tags": ["5·18"],
+    "sensitive": true,
+    "sensitive_notice": "이 지점은 5·18과 관련된 기록을 담고 있습니다. 계속 보시겠어요?"
+  }
+]
