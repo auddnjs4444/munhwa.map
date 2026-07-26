@@ -56,8 +56,9 @@ Node가 편하면 `npx serve .` 도 됩니다.
 - [ ] 모바일 레이아웃 점검 (현재 flex-wrap으로 기본 대응만 되어 있음)
 - [ ] Netlify 또는 Vercel에 배포
 
-## 배포 (나중에)
+## 배포
 
-1. 이 폴더를 깃허브 레포로 만들기
-2. https://app.netlify.com 또는 https://vercel.com 에서 "Import from GitHub"
-3. 빌드 명령 없음, publish directory는 루트(`/`)로 설정
+- **사이트 주소: https://auddnjs4444.github.io/munhwa.map/**
+- 저장소: https://github.com/auddnjs4444/munhwa.map
+- `main` 브랜치에 푸시하면 GitHub Actions가 1~2분 안에 자동으로 다시 배포합니다
+  (`.github/workflows/deploy-pages.yml`)
