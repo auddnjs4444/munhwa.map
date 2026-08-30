@@ -3,368 +3,415 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#101416">
-<meta name="description" content="광주의 농인들이 불러온 장소의 수어 이름과 그 유래, 장소 기억을 지도 위에 기록하는 인터랙티브 아카이브 프로토타입.">
-<title>손으로 부르는 광주 — 수어 지도 (프로토타입)</title>
+<meta name="theme-color" content="#F1EFEA">
+<meta name="description" content="광주의 농인들이 불러온 장소의 수어 이름과 그 유래, 장소 기억을 기록하는 인터랙티브 아카이브.">
+<title>손으로 부르는 광주 — 수어 지도</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   :root {
-    --ink: #12262E;
-    --teal-deep: #12333F;
-    --paper: #F6F3EC;
-    --line: #DCD5C6;
+    --bg: #F1EFEA;
+    --ink: #111111;
+    --muted: #6E6A61;
+    --line: #D8D4CA;
+    --media: #141414;
     --amber: #C77A2E;
-    --muted: #6B6558;
-    --frame: #101416;
-    --grid-line: #EAE4D6;
-    /* 도면 시트 여백(--pad)과 시트 안쪽 좌우 여백(--gut) — 화면 폭에 따라 함께 줄어든다 */
-    --pad: clamp(8px, 2.5vw, 28px);
-    --gut: clamp(16px, 4vw, 32px);
-    --measure: 1100px;
+    --chrome-pad: clamp(14px, 2.2vw, 24px);
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     margin: 0;
-    padding: var(--pad);
     font-family: 'Pretendard', -apple-system, sans-serif;
-    background: var(--frame);
+    background: var(--bg);
     color: var(--ink);
+    overflow: hidden; /* 각 뷰가 자기 스크롤을 가진다 (아카이브는 가로) */
     -webkit-text-size-adjust: 100%;
   }
-  /* 설계 도면 시트 컨셉: 격자 종이 + 잉크 테두리 */
-  .sheet {
-    background:
-      linear-gradient(var(--grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
-      var(--paper);
-    background-size: 28px 28px, 28px 28px, auto;
-    border: 1px solid var(--ink);
-    min-height: calc(100vh - 2 * var(--pad));
-    min-height: calc(100svh - 2 * var(--pad));
-    display: flex;
-    flex-direction: column;
-  }
-  /* 시트 안쪽 콘텐츠는 모두 같은 폭 기준선에 맞춘다 */
-  .inner {
-    width: 100%;
-    max-width: var(--measure);
-    margin: 0 auto;
-  }
+  button { font-family: inherit; }
 
-  .topbar {
-    padding: 14px var(--gut);
-    border-bottom: 1px solid var(--ink);
-  }
-  .topbar .inner {
+  /* ---------- 고정 크롬: 좌상단 콤마 내비 / 우상단 칩 / 하단 알약 내비 ---------- */
+  .chrome-top {
+    position: fixed;
+    top: 0; left: 0; right: 0;
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: var(--chrome-pad);
+    z-index: 40;
+    pointer-events: none;
   }
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-    color: var(--ink);
-  }
-  .logo-mark {
-    border: 2px solid var(--ink);
-    padding: 4px 9px;
-    font-weight: 900;
-    font-size: 16px;
-  }
-  .logo-text {
-    font-weight: 800;
-    font-size: 14px;
-    letter-spacing: 0.06em;
-    line-height: 1.2;
-  }
-  .logo-sub {
-    display: block;
-    font-size: 8.5px;
-    font-weight: 600;
-    letter-spacing: 0.28em;
+  .commas { pointer-events: auto; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+  .commas button {
+    appearance: none;
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
     color: var(--muted);
-    margin-top: 2px;
+    cursor: pointer;
   }
-  .org {
-    margin: 0;
-    font-size: 11px;
-    line-height: 1.5;
-    letter-spacing: 0.14em;
-    color: var(--muted);
-    text-align: right;
-  }
-
-  /* padding 안쪽 콘텐츠 폭이 .inner와 같은 기준선에 놓이도록 gut만큼 더 넓게 잡는다 */
-  .hero,
-  .layout {
-    width: 100%;
-    max-width: calc(var(--measure) + 2 * var(--gut));
-    margin: 0 auto;
-  }
-  .hero { padding: clamp(30px, 7vw, 52px) var(--gut) 6px; }
-  .hero h1 {
-    margin: 0 0 18px;
-    font-size: clamp(32px, 7.4vw, 62px);
-    line-height: 1.12;
-    font-weight: 900;
-    letter-spacing: -0.02em;
-    text-wrap: balance;
-  }
-  .lede {
-    margin: 0;
-    max-width: 58ch;
-    font-size: clamp(14px, 1.2vw + 11px, 16px);
-    line-height: 1.75;
-    color: var(--muted);
-  }
-  /* 도면 주석: 앰버 지시선 + 라벨 */
-  .note {
-    margin: 22px 0 0;
-    padding-left: 14px;
-    border-left: 2px solid var(--amber);
-    max-width: 52ch;
-    font-size: 12.5px;
-    line-height: 1.65;
-    color: var(--muted);
-  }
-  .note b {
-    display: block;
-    margin-bottom: 3px;
-    font-size: 10.5px;
-    font-weight: 800;
-    letter-spacing: 0.2em;
-    color: var(--ink);
-  }
-  /* 치수선 모티프: 양 끝에 작은 노드가 달린 가는 선 */
-  .rule {
-    position: relative;
-    height: 1px;
-    background: var(--ink);
-    margin-top: clamp(22px, 4vw, 30px);
-  }
-  .rule::before,
-  .rule::after {
-    content: '';
-    position: absolute;
-    top: -3.5px;
-    width: 7px;
-    height: 7px;
-    border: 1px solid var(--ink);
-    background: var(--paper);
-  }
-  .rule::before { left: 0; }
-  .rule::after { right: 0; }
-
-  .filter-bar { padding: clamp(16px, 3.5vw, 22px) var(--gut) 0; }
-  .filter-bar .inner {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .filter-label {
+  .commas button.on { color: var(--ink); }
+  .commas button:hover { color: var(--ink); }
+  .commas button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .commas .sep { color: var(--muted); }
+  .chip-top {
+    pointer-events: auto;
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.16em;
-    color: var(--muted);
-    margin-right: 6px;
-  }
-  .chip {
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    padding: 7px 14px;
+    letter-spacing: 0.08em;
+    padding: 7px 12px;
     border: 1px solid var(--ink);
-    background: transparent;
-    color: var(--ink);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
-  }
-  .chip:hover { box-shadow: 2px 2px 0 var(--ink); }
-  .chip:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
-  .chip.active {
-    background: var(--ink);
-    color: var(--paper);
+    border-radius: 999px;
+    background: var(--bg);
+    white-space: nowrap;
   }
 
-  .layout {
+  .pills {
+    position: fixed;
+    left: 50%;
+    bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
     display: flex;
-    gap: clamp(18px, 3vw, 22px);
-    padding: clamp(20px, 4vw, 26px) var(--gut) clamp(30px, 6vw, 44px);
-    flex: 1;
+    gap: 6px;
+    z-index: 40;
   }
-  .col--map { flex: 1.3 1 460px; min-width: 0; }
-  .col--detail { flex: 1 1 320px; min-width: 0; }
-  /* 도면 캡션: 번호 + 이름 + 얇은 인출선 */
-  .col-cap {
+  .pill {
+    appearance: none;
+    white-space: nowrap;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 72%, white);
+    backdrop-filter: blur(6px);
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 9px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .pill:hover { color: var(--ink); border-color: var(--ink); }
+  .pill:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .pill.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+
+  /* ---------- 초대형 타이틀: 흰 글자 + difference 블렌드 → 종이 위에선 검정, 미디어 위에선 반전 ---------- */
+  .mega {
+    position: fixed;
+    top: clamp(48px, 9vh, 84px);
+    left: 0; right: 0;
+    z-index: 30;
+    margin: 0;
+    text-align: center;
+    font-size: clamp(40px, 9.2vw, 118px);
+    line-height: 0.98;
+    font-weight: 900;
+    letter-spacing: -0.045em;
+    color: #fff;
+    mix-blend-mode: difference;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .mega .en {
+    display: block;
+    font-size: 0.24em;
+    font-weight: 800;
+    letter-spacing: 0.34em;
+    margin-top: 0.6em;
+  }
+  body[data-view="map"] .mega,
+  body[data-view="about"] .mega { display: none; }
+
+  /* ---------- 뷰 ---------- */
+  .view { position: fixed; inset: 0; visibility: hidden; }
+  .view.on { visibility: visible; }
+
+  /* ---------- 아카이브: 가로 트랙 ---------- */
+  #view-archive.on { z-index: 10; }
+  .track {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin: 0 0 10px;
+    gap: clamp(26px, 5vw, 90px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 max(38vw, 320px) 0 max(30vw, 220px);
+    scrollbar-width: none;
+    cursor: grab;
+  }
+  .track::-webkit-scrollbar { display: none; }
+  .track.dragging { cursor: grabbing; }
+
+  .work {
+    flex: none;
+    width: clamp(190px, 24vw, 330px);
+    background: none;
+    border: 0;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+    color: var(--ink);
+    transform: translateY(var(--drift, 0px));
+  }
+  .work:focus-visible { outline: 2px solid var(--amber); outline-offset: 6px; }
+  /* 카드마다 크기·높낮이에 리듬을 준다 */
+  .work:nth-child(3n)   { width: clamp(160px, 19vw, 260px); --drift: -7vh; }
+  .work:nth-child(3n+2) { width: clamp(220px, 28vw, 390px); --drift: 6vh; }
+  .work .media {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    background: var(--media);
+    color: #EDEAE2;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+  }
+  .work:nth-child(3n+2) .media { aspect-ratio: 4 / 3; }
+  .work .media img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    filter: grayscale(0.15);
+  }
+  .work .media .ph {
+    position: absolute; inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 12px 14px;
     font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    opacity: 0.85;
+  }
+  .work .media .ph .no {
+    font-size: clamp(44px, 6vw, 80px);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    opacity: 0.28;
+    line-height: 1;
+    align-self: flex-end;
+  }
+  .work .cap {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 10px;
+    font-size: 13.5px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .work .cap .idx {
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.18em;
     color: var(--muted);
   }
-  .col-cap b { color: var(--ink); font-weight: 800; }
-  .col-cap::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--line);
+
+  /* ---------- 하단 눈금자 ---------- */
+  .ruler {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 0;
+    height: 46px;
+    z-index: 20;
+    overflow: hidden;
+    pointer-events: none;
   }
-  #map {
-    height: clamp(320px, 56vh, 560px);
-    border: 1px solid var(--ink);
-    background: #fff;
+  body:not([data-view="archive"]) .ruler { display: none; }
+  .ruler-strip {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    will-change: transform;
   }
-  .card {
-    background: #fff;
-    border: 1px solid var(--ink);
-    padding: clamp(20px, 4vw, 24px) clamp(18px, 4vw, 26px);
-    box-shadow: 6px 6px 0 rgba(18, 38, 46, 0.08);
-  }
-  .card.empty { color: var(--muted); font-size: 14px; line-height: 1.7; }
-  .card h2 {
-    margin: 0 0 12px;
-    font-size: clamp(20px, 2vw + 14px, 22px);
+  .tick { flex: none; width: 14px; display: flex; flex-direction: column; align-items: center; }
+  .tick::after { content: ''; width: 1px; height: 9px; background: var(--ink); opacity: 0.55; }
+  .tick.major::after { height: 18px; opacity: 1; }
+  .tick .lab {
+    font-size: 9.5px;
     font-weight: 800;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.24em;
+    white-space: nowrap;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .needle {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    width: 1px;
+    height: 34px;
+    background: var(--amber);
+    z-index: 21;
+  }
+  body:not([data-view="archive"]) .needle { display: none; }
+
+  /* ---------- 지도 뷰 ---------- */
+  #view-map.on { z-index: 10; }
+  #map { position: absolute; inset: 0; background: var(--bg); }
+  .leaflet-tile-pane { filter: grayscale(0.9) sepia(0.1) brightness(1.06) contrast(0.9); }
+  .pin-wrap { background: transparent; border: none; }
+  .pin {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--ink);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--ink);
+    transition: transform 0.12s, background 0.12s;
+  }
+  .pin:hover { transform: scale(1.2); }
+  .pin--active { background: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+  .leaflet-marker-icon:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+  .leaflet-tooltip.place-tip {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 800;
+    font-size: 12px;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--ink);
+    border-radius: 999px;
+    box-shadow: none;
+    padding: 4px 12px;
+  }
+  .leaflet-tooltip.place-tip::before { display: none; }
+  .leaflet-bar { border-radius: 999px; overflow: hidden; border: 1px solid var(--line); box-shadow: none; }
+  .leaflet-bar a { color: var(--ink); }
+  .leaflet-control-attribution { background: color-mix(in srgb, var(--bg) 80%, white); font-size: 10px; }
+
+  /* ---------- 소개 뷰 ---------- */
+  #view-about.on { z-index: 10; }
+  .about-scroll { position: absolute; inset: 0; overflow-y: auto; }
+  .about-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: clamp(90px, 16vh, 150px) 24px 140px;
+  }
+  .about-inner h2 {
+    margin: 0 0 30px;
+    font-size: clamp(34px, 6vw, 64px);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1.02;
+  }
+  .about-inner p { font-size: 15.5px; line-height: 1.85; margin: 0 0 18px; }
+  .meta { margin-top: 44px; border-top: 1px solid var(--ink); }
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .meta-row .k { font-weight: 700; letter-spacing: 0.14em; font-size: 10.5px; color: var(--muted); }
+  .meta-row .v { font-weight: 700; text-align: right; }
+
+  /* ---------- 기록 오버레이 ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--bg);
+    overflow-y: auto;
+  }
+  .overlay[hidden] { display: none; }
+  .ov-close {
+    position: fixed;
+    top: var(--chrome-pad);
+    right: var(--chrome-pad);
+    z-index: 61;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--ink);
+    color: var(--bg);
+    font-size: 17px;
+    cursor: pointer;
+  }
+  .ov-close:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .ov-inner {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: clamp(70px, 12vh, 120px) 24px 120px;
+  }
+  .ov-kicker { font-size: 10.5px; font-weight: 800; letter-spacing: 0.28em; color: var(--muted); margin: 0 0 14px; }
+  .ov-inner h2 {
+    margin: 0 0 30px;
+    font-size: clamp(42px, 9vw, 96px);
+    font-weight: 900;
+    letter-spacing: -0.045em;
+    line-height: 0.98;
   }
   .video-box {
     position: relative;
-    background: var(--teal-deep);
+    background: var(--media);
     aspect-ratio: 16 / 9;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    margin-bottom: 16px;
+    color: #EDEAE2;
+    margin-bottom: 30px;
     overflow: hidden;
   }
   .video-box iframe { width: 100%; height: 100%; border: 0; }
   .video-box .placeholder {
-    font-size: 13px;
-    opacity: 0.85;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    opacity: 0.8;
     text-align: center;
     padding: 0 16px;
-    line-height: 1.6;
+    line-height: 2;
   }
   .section-label {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--muted);
+    letter-spacing: 0.24em;
+    margin: 26px 0 8px;
+  }
+  .section-text { font-size: 15.5px; line-height: 1.85; margin: 0; max-width: 62ch; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 30px; }
+  .tag {
     font-size: 11px;
     font-weight: 700;
-    color: var(--muted);
-    letter-spacing: 0.16em;
-    margin: 16px 0 4px;
+    letter-spacing: 0.06em;
+    padding: 5px 12px;
+    border: 1px solid var(--ink);
+    border-radius: 999px;
   }
-  .section-text { font-size: 14px; line-height: 1.75; margin: 0; }
-  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px; }
-  .tag {
-    font-size: 11.5px;
-    letter-spacing: 0.03em;
-    padding: 3px 10px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-    color: var(--ink);
-  }
-  .sensitive-gate { text-align: center; padding: 28px 6px; }
+  .sensitive-gate { text-align: center; padding: clamp(60px, 16vh, 130px) 10px; }
+  .sensitive-gate .section-text { margin: 0 auto; }
   .sensitive-gate button {
-    margin-top: 16px;
+    margin-top: 26px;
     background: transparent;
     color: var(--ink);
     border: 1px solid var(--ink);
-    padding: 11px 22px;
-    font-family: inherit;
+    border-radius: 999px;
+    padding: 13px 30px;
     font-size: 12.5px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
+    font-weight: 800;
+    letter-spacing: 0.16em;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    transition: background 0.15s, color 0.15s;
   }
-  .sensitive-gate button:hover {
-    background: var(--ink);
-    color: var(--paper);
-    box-shadow: 3px 3px 0 rgba(18, 38, 46, 0.25);
-  }
+  .sensitive-gate button:hover { background: var(--ink); color: var(--bg); }
+  .sensitive-gate button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
-  /* 지도 핀: 잉크색 도트, 선택 시 앰버 */
-  .pin-wrap { background: transparent; border: none; }
-  .pin {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--teal-deep);
-    border: 2px solid #fff;
-    box-shadow: 0 0 0 1px var(--teal-deep), 2px 2px 0 rgba(18, 38, 46, 0.2);
-    transition: transform 0.12s, background 0.12s;
-  }
-  .pin:hover { transform: scale(1.2); }
-  .pin--active {
-    background: var(--amber);
-    box-shadow: 0 0 0 1px var(--amber), 2px 2px 0 rgba(18, 38, 46, 0.2);
-  }
-  .leaflet-marker-icon:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
-  .leaflet-tooltip.place-tip {
-    font-family: 'Pretendard', sans-serif;
-    font-weight: 700;
-    font-size: 12px;
-    color: var(--ink);
-    background: #fff;
-    border: 1px solid var(--ink);
-    border-radius: 0;
-    box-shadow: 2px 2px 0 rgba(18, 38, 46, 0.15);
-    padding: 4px 10px;
-  }
-  .leaflet-tooltip.place-tip::before { display: none; }
-  /* OSM 표준 타일의 채도를 낮춰 종이 팔레트에 묻히게 한다 (타일 단위가 아닌 pane에 걸어 이음매 방지) */
-  .leaflet-tile-pane {
-    filter: grayscale(0.82) sepia(0.16) brightness(1.05) contrast(0.92);
-  }
-  .leaflet-bar { border-radius: 0; }
-  .leaflet-bar a { border-radius: 0 !important; color: var(--ink); }
-
-  footer {
-    border-top: 1px solid var(--ink);
-    padding: 14px var(--gut) 16px;
-  }
-  footer .inner {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-  }
-
-  /* 넓은 화면: 지도를 스크롤하는 동안 기록 카드가 따라온다 */
-  @media (min-width: 900px) {
-    .col--detail {
-      position: sticky;
-      top: var(--pad);
-      align-self: flex-start;
-    }
-  }
-
-  /* 태블릿·모바일: 지도 위 / 기록 아래로 쌓는다 */
-  @media (max-width: 899px) {
-    .layout { flex-direction: column; }
-    .card { box-shadow: 4px 4px 0 rgba(18, 38, 46, 0.08); }
-  }
-
-  @media (max-width: 560px) {
-    .topbar .inner { gap: 8px; }
-    .org { text-align: left; font-size: 10px; letter-spacing: 0.1em; }
-    .logo-mark { padding: 3px 8px; font-size: 15px; }
-    .chip { font-size: 12px; padding: 7px 12px; }
-    .filter-label { width: 100%; margin: 0 0 2px; }
-    footer .inner { flex-direction: column; gap: 5px; font-size: 10.5px; }
+  /* ---------- 모바일 ---------- */
+  @media (max-width: 640px) {
+    .chip-top { display: none; }
+    .mega { top: 15vh; white-space: normal; }
+    .track { padding: 0 24vw 0 8vw; gap: 34px; align-items: flex-end; padding-bottom: 24vh; }
+    .work { width: 60vw !important; --drift: 0 !important; }
+    .work:nth-child(3n+2) .media { aspect-ratio: 3 / 4; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -372,50 +419,53 @@
   }
 </style>
 </head>
-<body>
-  <div class="sheet">
-    <header class="topbar">
-      <div class="inner">
-        <a class="logo" href="./">
-          <span class="logo-mark">손</span>
-          <span class="logo-text">광주 수어 지도
-            <span class="logo-sub">GWANGJU SIGN LANGUAGE MAP</span>
-          </span>
-        </a>
-        <p class="org">청년 ESG 문화실험실<br>개발용 프로토타입</p>
-      </div>
-    </header>
+<body data-view="archive">
 
-    <section class="hero">
-      <h1>손으로 부르는,<br>광주의 이름들</h1>
-      <p class="lede">충장로, 무등산, 양림동 — 광주의 농인들은 이 장소들을 저마다의 수어 이름으로 불러왔습니다. 지도 위 핀을 누르면 그 이름의 영상과 유래, 그곳에 얽힌 기억이 열립니다.</p>
-      <p class="note"><b>NOTE</b>지금 보이는 유래·기억 텍스트는 예시입니다. 인터뷰가 진행되는 대로 실제 기록으로 교체됩니다.</p>
-      <div class="rule" aria-hidden="true"></div>
-    </section>
-
-    <nav class="filter-bar" id="filter-bar" aria-label="세대·주제 필터" hidden>
-      <div class="inner">
-        <span class="filter-label">세대·주제</span>
-      </div>
+  <header class="chrome-top">
+    <nav class="commas" aria-label="주 메뉴">
+      <button type="button" data-nav="archive" class="on">아카이브</button><span class="sep">, </span><button type="button" data-nav="map">지도</button><span class="sep">, </span><button type="button" data-nav="about">소개</button>
     </nav>
+    <span class="chip-top">청년 ESG 문화실험실</span>
+  </header>
 
-    <div class="layout">
-      <div class="col col--map">
-        <p class="col-cap"><b>DWG. 01</b> 수어 지명 분포</p>
-        <div id="map"></div>
-      </div>
-      <div class="col col--detail">
-        <p class="col-cap"><b>DWG. 02</b> 기록 카드</p>
-        <div id="detail"><div class="card empty">지도에서 핀을 누르면 이곳에 기록이 열립니다.</div></div>
+  <h1 class="mega">손으로 부르는®<br>광주의 이름들<span class="en">GWANGJU SIGN LANGUAGE MAP (GSL®/2026)</span></h1>
+
+  <section id="view-archive" class="view on" aria-label="수어 지명 아카이브">
+    <div class="track" id="track"></div>
+  </section>
+
+  <section id="view-map" class="view" aria-label="수어 지명 지도">
+    <div id="map"></div>
+  </section>
+
+  <section id="view-about" class="view" aria-label="프로젝트 소개">
+    <div class="about-scroll">
+      <div class="about-inner">
+        <h2>어디에도<br>기록되지 않은 이름</h2>
+        <p>광주의 농인들은 충장로, 무등산, 양림동 같은 장소들을 저마다의 수어 이름으로 불러왔습니다. 손끝에서 손끝으로만 전해진 이 이름들은 어디에도 기록되어 있지 않습니다.</p>
+        <p>「손으로 부르는 광주」는 그 이름들을 영상으로 담고, 이름의 유래와 장소에 얽힌 기억을 함께 수집하는 아카이브입니다. 인터뷰가 진행되는 대로 기록이 하나씩 채워집니다.</p>
+        <div class="meta">
+          <div class="meta-row"><span class="k">PROJECT</span><span class="v">광주 수어 지도 (GSL®/2026)</span></div>
+          <div class="meta-row"><span class="k">PROGRAM</span><span class="v">청년 ESG 문화실험실</span></div>
+          <div class="meta-row"><span class="k">YEAR</span><span class="v">2026</span></div>
+          <div class="meta-row"><span class="k">MAP DATA</span><span class="v">© OpenStreetMap contributors</span></div>
+        </div>
       </div>
     </div>
+  </section>
 
-    <footer>
-      <div class="inner">
-        <span>© 2026 손으로 부르는 광주 · 청년 ESG 문화실험실</span>
-        <span>지도 데이터 © OpenStreetMap contributors</span>
-      </div>
-    </footer>
+  <div class="ruler" aria-hidden="true"><div class="ruler-strip" id="ruler-strip"></div></div>
+  <div class="needle" aria-hidden="true"></div>
+
+  <nav class="pills" aria-label="화면 전환">
+    <button type="button" class="pill on" data-nav="archive">아카이브</button>
+    <button type="button" class="pill" data-nav="map">지도</button>
+    <button type="button" class="pill" data-nav="about">소개</button>
+  </nav>
+
+  <div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-label="장소 기록">
+    <button type="button" class="ov-close" id="ov-close" aria-label="닫기">✕</button>
+    <div class="ov-inner" id="detail"></div>
   </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
