@@ -1,11 +1,12 @@
 const map = L.map('map', { scrollWheelZoom: true }).setView([35.1595, 126.8526], 13);
 
-// 차분한 톤의 CARTO Positron 타일 (기본 OSM 타일보다 디자인에 잘 묻는다)
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+// 키 없이 쓸 수 있는 OSM 표준 타일.
+// (CARTO Positron은 2025년부터 API 키 없이 쓰면 타일에 워터마크가 찍혀서 교체함)
+// 원색이 강한 타일이라 index.html의 .leaflet-tile-pane 필터로 종이 톤에 맞춰 눌러준다.
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  subdomains: 'abcd',
-  maxZoom: 20,
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 19,
 }).addTo(map);
 
 const pinIcon = L.divIcon({
@@ -25,14 +26,28 @@ function setActiveMarker(marker) {
 }
 
 const detailEl = document.getElementById('detail');
+// 900px 미만에서는 지도 아래에 카드가 쌓이므로, 핀을 눌러도 카드가 화면 밖에 있을 수 있다.
+const isStackedLayout = () => window.matchMedia('(max-width: 899px)').matches;
+const prefersReducedMotion = () =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function revealDetail() {
+  if (!isStackedLayout()) return;
+  const target = detailEl.closest('.col') || detailEl;
+  target.scrollIntoView({
+    behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    block: 'start',
+  });
+}
 const filterBarEl = document.getElementById('filter-bar');
+const filterChipsEl = filterBarEl.querySelector('.inner') || filterBarEl;
 const revealedSensitive = new Set();
 const markersById = new Map();
 const activeTags = new Set();
 let currentPlaceId = null;
 
 function renderEmpty() {
-  detailEl.innerHTML = '<div class="card empty">지도에서 핀을 눌러보세요.</div>';
+  detailEl.innerHTML = '<div class="card empty">지도에서 핀을 누르면 이곳에 기록이 열립니다.</div>';
 }
 
 // FIXME: replace with the real video once footage is edited.
@@ -109,7 +124,7 @@ function buildFilterBar(places) {
   allChip.className = 'chip active';
   allChip.textContent = '전체';
   allChip.setAttribute('aria-pressed', 'true');
-  filterBarEl.appendChild(allChip);
+  filterChipsEl.appendChild(allChip);
 
   const tagChips = tags.map((tag) => {
     const chip = document.createElement('button');
@@ -126,7 +141,7 @@ function buildFilterBar(places) {
       syncChips();
       applyFilters(places);
     });
-    filterBarEl.appendChild(chip);
+    filterChipsEl.appendChild(chip);
     return { tag, chip };
   });
 
@@ -154,16 +169,26 @@ fetch('data/places.json')
   .then((res) => res.json())
   .then((places) => {
     places.forEach((place) => {
-      const marker = L.marker([place.lat, place.lng], { icon: pinIcon }).addTo(map);
+      const marker = L.marker([place.lat, place.lng], {
+        icon: pinIcon,
+        title: place.name,
+      }).addTo(map);
       marker.bindTooltip(place.name, { direction: 'top', offset: [0, -10], className: 'place-tip' });
       marker.on('click', () => {
         currentPlaceId = place.id;
         setActiveMarker(marker);
         renderPlace(place);
+        revealDetail();
       });
       markersById.set(place.id, marker);
     });
     buildFilterBar(places);
+
+    // 좁은 화면에서는 고정 setView로는 핀이 지도 밖으로 밀려난다. 처음 한 번 전체 핀에 맞춰준다.
+    const bounds = L.latLngBounds(places.map((place) => [place.lat, place.lng]));
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14, animate: false });
+    }
   })
   .catch((err) => {
     detailEl.innerHTML =
