@@ -6,6 +6,10 @@ const overlayEl = document.getElementById('overlay');
 const detailEl = document.getElementById('detail');
 const closeBtn = document.getElementById('ov-close');
 
+// 장소 고유 색 — 카드 그라디언트, 지도 마커, 눈금자 라벨에 함께 쓴다
+const PALETTE = ['#FF5A36', '#4FA3FF', '#FFC53D', '#9B7BFF', '#59C48C', '#FF7BAE'];
+const placeColor = (i) => PALETTE[i % PALETTE.length];
+
 const revealedSensitive = new Set();
 const markersById = new Map();
 let placesData = [];
@@ -74,6 +78,7 @@ function renderPlace(place) {
   }
 
   const idx = placesData.indexOf(place) + 1;
+  detailEl.style.setProperty('--kc', place._color || 'var(--muted)');
   detailEl.innerHTML = `
     <p class="ov-kicker">GSL®/${String(idx).padStart(2, '0')} — 수어 지명 기록</p>
     <h2>${place.name}</h2>
@@ -102,6 +107,7 @@ function buildTrack(places) {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'work';
+    card.style.setProperty('--c', place._color || placeColor(i));
     card.innerHTML = `
       <span class="media">${mediaHtml(place, idx)}</span>
       <span class="cap"><span>${place.name}</span><span class="idx">GSL®/${String(idx).padStart(2, '0')}</span></span>`;
@@ -166,7 +172,7 @@ function buildRuler(places) {
     for (let t = 0; t < perPlace; t++) {
       strip.push(
         t === 0
-          ? `<span class="tick major"><span class="lab">${place.name}</span></span>`
+          ? `<span class="tick major" style="--tc:${place._color}"><span class="lab">${place.name}</span></span>`
           : '<span class="tick"></span>'
       );
     }
@@ -216,14 +222,13 @@ function initMap() {
     maxZoom: 19,
   }).addTo(map);
 
-  const pinIcon = L.divIcon({
-    className: 'pin-wrap',
-    html: '<div class="pin"></div>',
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-  });
-
   placesData.forEach((place) => {
+    const pinIcon = L.divIcon({
+      className: 'pin-wrap',
+      html: `<div class="pin" style="--c:${place._color}"></div>`,
+      iconSize: [15, 15],
+      iconAnchor: [8, 8],
+    });
     const marker = L.marker([place.lat, place.lng], {
       icon: pinIcon,
       title: place.name,
@@ -247,12 +252,15 @@ fetch('data/places.json')
   .then((res) => res.json())
   .then((places) => {
     placesData = places;
+    places.forEach((p, i) => { p._color = placeColor(i); });
     buildTrack(places);
     buildRuler(places);
     syncRuler();
+    document.getElementById('loader').classList.add('done');
   })
   .catch((err) => {
     trackEl.innerHTML =
       '<p style="font-size:14px;color:var(--muted)">data/places.json을 불러오지 못했습니다. 로컬 서버로 열어주세요 (예: python3 -m http.server).</p>';
     console.error(err);
+    document.getElementById('loader').classList.add('done');
   });
