@@ -55,6 +55,16 @@ document.addEventListener('keydown', (e) => {
 // FIXME: replace with the real video once footage is edited.
 // Fill video_youtube_id in data/places.json with a YouTube "unlisted" video ID.
 function videoBoxHtml(place) {
+  // 직접 올린 수어 영상 (정면/측면 등 여러 각도). data/places.json 의 videos 배열 참고.
+  if (place.videos && place.videos.length) {
+    const first = place.videos[0];
+    const tabs = place.videos.length > 1
+      ? `<div class="angles" role="group" aria-label="촬영 각도">${place.videos
+          .map((v, i) => `<button type="button" class="angle${i === 0 ? ' on' : ''}" data-angle="${i}" aria-pressed="${i === 0}">${v.label}</button>`)
+          .join('')}</div>`
+      : '';
+    return `<div class="video-box has-video"><video id="sign-video" src="${first.src}" ${first.poster ? `poster="${first.poster}"` : ''} autoplay muted loop playsinline controls aria-label="${place.name} 수어 영상 (${first.label})"></video></div>${tabs}`;
+  }
   if (place.video_youtube_id) {
     return `<div class="video-box"><iframe src="https://www.youtube.com/embed/${place.video_youtube_id}" title="${place.name} 수어 영상" allowfullscreen></iframe></div>`;
   }
@@ -90,10 +100,29 @@ function renderPlace(place) {
     <div class="tags">
       ${(place.tags || []).map((t) => `<span class="tag">${t}</span>`).join('')}
     </div>`;
+
+  // 정면/측면 전환
+  const videoEl = document.getElementById('sign-video');
+  detailEl.querySelectorAll('.angle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const v = place.videos[Number(btn.dataset.angle)];
+      detailEl.querySelectorAll('.angle').forEach((b) => {
+        b.classList.toggle('on', b === btn);
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      videoEl.src = v.src;
+      if (v.poster) videoEl.poster = v.poster;
+      videoEl.setAttribute('aria-label', `${place.name} 수어 영상 (${v.label})`);
+      videoEl.play().catch(() => {});
+    });
+  });
 }
 
 /* ---------- 아카이브 트랙 ---------- */
 function mediaHtml(place, idx) {
+  if (place.videos && place.videos.length && place.videos[0].poster) {
+    return `<img src="${place.videos[0].poster}" alt="" loading="lazy">`;
+  }
   if (place.video_youtube_id) {
     return `<img src="https://i.ytimg.com/vi/${place.video_youtube_id}/hqdefault.jpg" alt="" loading="lazy">`;
   }

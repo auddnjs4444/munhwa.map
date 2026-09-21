@@ -198,6 +198,7 @@
     position: absolute; inset: 0;
     width: 100%; height: 100%;
     object-fit: cover;
+    object-position: 50% 58%; /* 세로 영상 썸네일: 얼굴·손이 있는 중하단에 맞춘다 */
   }
   .work .media .ph {
     position: absolute; inset: 0;
@@ -396,6 +397,32 @@
     overflow: hidden;
   }
   .video-box iframe { width: 100%; height: 100%; border: 0; }
+  /* 직접 올린 수어 영상: 세로 촬영본도 잘리지 않게 contain */
+  /* 세로 촬영본 기준: 화면 높이 안에 들어오도록 폭을 역산한다 */
+  .video-box.has-video {
+    background: #0B0B0A;
+    aspect-ratio: 9 / 16;
+    width: min(100%, calc(74vh * 9 / 16));
+    margin: 0 0 14px;
+  }
+  .video-box video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .angles { display: flex; gap: 5px; margin-bottom: 34px; }
+  .angle {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    font-size: 11.5px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    padding: 7px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .angle:hover { color: var(--ink); border-color: var(--muted); }
+  .angle:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
+  .angle.on { background: var(--kc, var(--ink)); border-color: var(--kc, var(--ink)); color: #0A0A0A; font-weight: 500; }
   .video-box .placeholder {
     font-size: 10.5px;
     font-weight: 500;
@@ -440,6 +467,17 @@
   }
   .sensitive-gate button:hover { background: var(--ink); color: var(--bg); }
   .sensitive-gate button:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
+
+  /* 세로 영상이 있는 기록: 넓은 화면에서는 영상 왼쪽 / 텍스트 오른쪽 2단 */
+  @media (min-width: 860px) {
+    #detail::after { content: ''; display: block; clear: both; }
+    .video-box.has-video { float: left; margin: 0 48px 14px 0; }
+    .angles { float: left; clear: left; margin-right: 48px; }
+    .video-box.has-video ~ .section-label:first-of-type { margin-top: 0; }
+    .video-box.has-video ~ .section-label,
+    .video-box.has-video ~ .section-text,
+    .video-box.has-video ~ .tags { overflow: hidden; }
+  }
 
   /* ---------- 모바일 ---------- */
   @media (max-width: 640px) {

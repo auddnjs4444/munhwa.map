@@ -8,3 +8,6 @@ config.local.js
 
 # Claude Code 로컬 설정
 .claude/
+
+# 촬영 원본(대용량) — 변환본만 media/ 에 커밋
+원본영상/
