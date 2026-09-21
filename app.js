@@ -63,7 +63,7 @@ function videoBoxHtml(place) {
           .map((v, i) => `<button type="button" class="angle${i === 0 ? ' on' : ''}" data-angle="${i}" aria-pressed="${i === 0}">${v.label}</button>`)
           .join('')}</div>`
       : '';
-    return `<div class="video-box has-video"><video id="sign-video" src="${first.src}" ${first.poster ? `poster="${first.poster}"` : ''} autoplay muted loop playsinline controls aria-label="${place.name} 수어 영상 (${first.label})"></video></div>${tabs}`;
+    return `<div class="video-box has-video"><video id="sign-video" src="${first.src}" ${first.poster ? `poster="${first.poster}"` : ''} autoplay muted loop playsinline controls preload="auto" aria-label="${place.name} 수어 영상 (${first.label})"></video></div>${tabs}`;
   }
   if (place.video_youtube_id) {
     return `<div class="video-box"><iframe src="https://www.youtube.com/embed/${place.video_youtube_id}" title="${place.name} 수어 영상" allowfullscreen></iframe></div>`;
@@ -120,14 +120,9 @@ function renderPlace(place) {
 
 /* ---------- 아카이브 트랙 ---------- */
 function mediaHtml(place, idx) {
-  if (place.videos && place.videos.length && place.videos[0].poster) {
-    return `<img src="${place.videos[0].poster}" alt="" loading="lazy">`;
-  }
-  if (place.video_youtube_id) {
-    return `<img src="https://i.ytimg.com/vi/${place.video_youtube_id}/hqdefault.jpg" alt="" loading="lazy">`;
-  }
-  // 영상·사진이 채워지기 전의 자리표시: 번호 + 안내
-  return `<span class="ph"><span>SIGN — SOON</span><span class="no">${String(idx).padStart(2, '0')}</span></span>`;
+  // 카드에는 영상 썸네일을 쓰지 않는다 — 장소 색 + 번호만 두고, 영상은 클릭 후 전체 화면으로.
+  const hasVideo = !!((place.videos && place.videos.length) || place.video_youtube_id);
+  return `<span class="ph${hasVideo ? ' ready' : ''}"><span>${hasVideo ? 'SIGN — PLAY' : 'SIGN — SOON'}</span><span class="no">${String(idx).padStart(2, '0')}</span></span>`;
 }
 
 function buildTrack(places) {

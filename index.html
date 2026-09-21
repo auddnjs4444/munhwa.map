@@ -194,12 +194,6 @@
   }
   .work:hover .media { transform: scale(1.015); }
   .work:nth-child(3n+2) .media { aspect-ratio: 4 / 3; }
-  .work .media img {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    object-position: 50% 58%; /* 세로 영상 썸네일: 얼굴·손이 있는 중하단에 맞춘다 */
-  }
   .work .media .ph {
     position: absolute; inset: 0;
     display: flex;
@@ -220,6 +214,14 @@
     align-self: flex-end;
     color: var(--c);
   }
+  .work .media .ph.ready { color: color-mix(in srgb, var(--c) 82%, #fff); }
+  .work .media .ph.ready > span:first-child::before {
+    content: '\25B6';
+    font-size: 8px;
+    margin-right: 7px;
+    vertical-align: 1px;
+  }
+
   .work .cap {
     display: flex;
     justify-content: space-between;
@@ -402,7 +404,7 @@
   .video-box.has-video {
     background: #0B0B0A;
     aspect-ratio: 9 / 16;
-    width: min(100%, calc(74vh * 9 / 16));
+    width: min(100%, calc(82vh * 9 / 16));
     margin: 0 0 14px;
   }
   .video-box video { width: 100%; height: 100%; object-fit: contain; display: block; }
