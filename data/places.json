@@ -11,19 +11,7 @@
       "문화접근성",
       "20대 농인"
     ],
-    "sensitive": false,
-    "videos": [
-      {
-        "label": "정면",
-        "src": "media/chungjang-ro-front.mp4",
-        "poster": "media/chungjang-ro-front.jpg"
-      },
-      {
-        "label": "측면",
-        "src": "media/chungjang-ro-side.mp4",
-        "poster": "media/chungjang-ro-side.jpg"
-      }
-    ]
+    "sensitive": false
   },
   {
     "id": "mudeungsan",
@@ -73,19 +61,101 @@
     "video_youtube_id": null,
     "videos": [
       {
-        "label": "정면",
-        "src": "media/gyerim-dong-front.mp4",
-        "poster": "media/gyerim-dong-front.jpg"
-      },
-      {
-        "label": "측면",
-        "src": "media/gyerim-dong-side.mp4",
-        "poster": "media/gyerim-dong-side.jpg"
+        "label": "수어",
+        "src": "media/gyerim-dong.mp4",
+        "poster": "media/gyerim-dong.jpg",
+        "ratio": 0.75
       }
     ],
     "origin_text": "",
     "memory_text": "",
-    "tags": [],
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "dongmyeong-dong",
+    "name": "동명동",
+    "lat": 35.1503,
+    "lng": 126.9257,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/dongmyeong-dong.mp4",
+        "poster": "media/dongmyeong-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "gung-dong",
+    "name": "궁동",
+    "lat": 35.1512,
+    "lng": 126.9186,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/gung-dong.mp4",
+        "poster": "media/gung-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "geumnam-ro",
+    "name": "금남로",
+    "lat": 35.1513,
+    "lng": 126.9147,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/geumnam-ro.mp4",
+        "poster": "media/geumnam-ro.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "daein-dong",
+    "name": "대인동",
+    "lat": 35.1543,
+    "lng": 126.9178,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/daein-dong.mp4",
+        "poster": "media/daein-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
     "sensitive": false
   }
 ]

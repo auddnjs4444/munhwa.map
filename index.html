@@ -403,8 +403,8 @@
   /* 세로 촬영본 기준: 화면 높이 안에 들어오도록 폭을 역산한다 */
   .video-box.has-video {
     background: #0B0B0A;
-    aspect-ratio: 9 / 16;
-    width: min(100%, calc(82vh * 9 / 16));
+    aspect-ratio: var(--ar, 0.5625);
+    width: min(100%, calc(82vh * var(--ar, 0.5625)));
     margin: 0 0 14px;
   }
   .video-box video { width: 100%; height: 100%; object-fit: contain; display: block; }

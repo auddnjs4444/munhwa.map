@@ -7,7 +7,10 @@ const detailEl = document.getElementById('detail');
 const closeBtn = document.getElementById('ov-close');
 
 // 장소 고유 색 — 카드 그라디언트, 지도 마커, 눈금자 라벨에 함께 쓴다
-const PALETTE = ['#FF5A36', '#4FA3FF', '#FFC53D', '#9B7BFF', '#59C48C', '#FF7BAE'];
+const PALETTE = [
+  '#FF5A36', '#4FA3FF', '#FFC53D', '#9B7BFF', '#59C48C',
+  '#FF7BAE', '#3DD6C6', '#C4E04A', '#E86BFF', '#FF9F45',
+];
 const placeColor = (i) => PALETTE[i % PALETTE.length];
 
 const revealedSensitive = new Set();
@@ -63,7 +66,7 @@ function videoBoxHtml(place) {
           .map((v, i) => `<button type="button" class="angle${i === 0 ? ' on' : ''}" data-angle="${i}" aria-pressed="${i === 0}">${v.label}</button>`)
           .join('')}</div>`
       : '';
-    return `<div class="video-box has-video"><video id="sign-video" src="${first.src}" ${first.poster ? `poster="${first.poster}"` : ''} autoplay muted loop playsinline controls preload="auto" aria-label="${place.name} 수어 영상 (${first.label})"></video></div>${tabs}`;
+    return `<div class="video-box has-video"${first.ratio ? ` style="--ar:${first.ratio}"` : ''}><video id="sign-video" src="${first.src}" ${first.poster ? `poster="${first.poster}"` : ''} autoplay muted loop playsinline controls preload="auto" aria-label="${place.name} 수어 영상 (${first.label})"></video></div>${tabs}`;
   }
   if (place.video_youtube_id) {
     return `<div class="video-box"><iframe src="https://www.youtube.com/embed/${place.video_youtube_id}" title="${place.name} 수어 영상" allowfullscreen></iframe></div>`;
@@ -103,6 +106,14 @@ function renderPlace(place) {
 
   // 정면/측면 전환
   const videoEl = document.getElementById('sign-video');
+  // 플레이어 비율을 실제 영상 비율에 맞춘다 (9:16, 3:4 등 촬영본마다 다름)
+  if (videoEl) {
+    videoEl.addEventListener('loadedmetadata', () => {
+      if (videoEl.videoWidth && videoEl.videoHeight) {
+        videoEl.parentElement.style.setProperty('--ar', videoEl.videoWidth / videoEl.videoHeight);
+      }
+    });
+  }
   detailEl.querySelectorAll('.angle').forEach((btn) => {
     btn.addEventListener('click', () => {
       const v = place.videos[Number(btn.dataset.angle)];
