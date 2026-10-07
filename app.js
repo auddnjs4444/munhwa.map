@@ -76,6 +76,52 @@ function videoBoxHtml(place) {
   return `<div class="video-box"><span class="placeholder">SIGN — COMING SOON<br>수어 영상 촬영 예정</span></div>`;
 }
 
+/* ---------- 수어 표현 구성 (places.json 의 sign_parts) ---------- */
+// 자음 한 글자(ㄱ, ㅊ 등)는 지화로 표시한다
+const isJamo = (part) => /^[ㄱ-ㅎ]$/.test(part);
+
+function signPartsHtml(place) {
+  const parts = place.sign_parts || [];
+  if (!parts.length) return '';
+  const chips = parts
+    .map((part) =>
+      isJamo(part)
+        ? `<span class="part jamo" title="지화(손가락 글자)">${part}<small>지화</small></span>`
+        : `<span class="part">${part}</span>`
+    )
+    .join('<span class="plus" aria-hidden="true">+</span>');
+  const more = place.sign_parts_note
+    ? '<span class="plus" aria-hidden="true">+</span><span class="part pending">…</span>'
+    : '';
+  const note = place.sign_parts_note ? `<p class="parts-note">${place.sign_parts_note}</p>` : '';
+  return `
+    <p class="section-label">수어 표현 구성</p>
+    <div class="parts" aria-label="${place.name} 수어 표현 구성: ${parts.join(' 더하기 ')}">${chips}${more}</div>
+    ${note}`;
+}
+
+/* 소개 화면의 수어 표현 구성 목록 — 행을 누르면 해당 기록이 열린다 */
+function buildSignIndex(places) {
+  const listEl = document.getElementById('sign-index');
+  if (!listEl) return;
+  const rows = places.filter((p) => p.sign_parts && p.sign_parts.length);
+  if (!rows.length) {
+    listEl.closest('.sign-index-wrap').hidden = true;
+    return;
+  }
+  listEl.innerHTML = '';
+  rows.forEach((place) => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'sign-row';
+    row.style.setProperty('--c', place._color);
+    const formula = place.sign_parts.join(' + ') + (place.sign_parts_note ? ' + …' : '');
+    row.innerHTML = `<span class="sr-name"><i aria-hidden="true"></i>${place.name}</span><span class="sr-parts">${formula}</span>`;
+    row.addEventListener('click', () => openOverlay(place));
+    listEl.appendChild(row);
+  });
+}
+
 function renderPlace(place) {
   // 5·18 등 민감한 지점은 자문 확보 여부와 무관하게 항상 안내 문구를 먼저 보여준다.
   // 이 게이트 로직은 임의로 지우지 말 것 — 윤리 원칙(사업제안서 XI장) 참고.
@@ -98,6 +144,7 @@ function renderPlace(place) {
     <p class="ov-kicker">GSL®/${String(idx).padStart(2, '0')} — 수어 지명 기록</p>
     <h2>${place.name}</h2>
     ${videoBoxHtml(place)}
+    ${signPartsHtml(place)}
     <p class="section-label">수어 이름의 유래</p>
     <p class="section-text">${place.origin_text || '(아직 수집되지 않음)'}</p>
     <p class="section-label">장소 기억</p>
@@ -292,6 +339,7 @@ fetch('data/places.json')
     places.forEach((p, i) => { p._color = placeColor(i); });
     buildTrack(places);
     buildRuler(places);
+    buildSignIndex(places);
     syncRuler();
     document.getElementById('loader').classList.add('done');
   })

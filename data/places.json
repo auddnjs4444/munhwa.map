@@ -11,7 +11,11 @@
       "문화접근성",
       "20대 농인"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "ㅊ",
+      "장소"
+    ]
   },
   {
     "id": "mudeungsan",
@@ -72,7 +76,10 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "닭"
+    ]
   },
   {
     "id": "dongmyeong-dong",
@@ -93,7 +100,12 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "동",
+      "맑다",
+      "장소"
+    ]
   },
   {
     "id": "gung-dong",
@@ -114,7 +126,11 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "화살",
+      "장소"
+    ]
   },
   {
     "id": "geumnam-ro",
@@ -135,7 +151,12 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "ㄱ",
+      "보성",
+      "장소"
+    ]
   },
   {
     "id": "daein-dong",
@@ -156,7 +177,12 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "대",
+      "이쁘다",
+      "장소"
+    ]
   },
   {
     "id": "seonam-dong",
@@ -198,7 +224,12 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "이쁘다",
+      "ㅋ산",
+      "장소"
+    ]
   },
   {
     "id": "unrim-dong",
@@ -219,7 +250,13 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "하얀",
+      "구름",
+      "푸른",
+      "장소"
+    ]
   },
   {
     "id": "jisan-dong",
@@ -240,7 +277,12 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "칼",
+      "산",
+      "장소"
+    ]
   },
   {
     "id": "jiwon-dong",
@@ -261,7 +303,11 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "일"
+    ],
+    "sign_parts_note": "나머지 구성은 확인 중입니다."
   },
   {
     "id": "hak-dong",
@@ -282,7 +328,11 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "ㅋ",
+      "장소"
+    ]
   },
   {
     "id": "hagun-dong",
@@ -324,7 +374,12 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "ㅅ",
+      "ㅌ",
+      "장소"
+    ]
   },
   {
     "id": "wollam-dong",
@@ -345,6 +400,11 @@
     "tags": [
       "동구"
     ],
-    "sensitive": false
+    "sensitive": false,
+    "sign_parts": [
+      "달",
+      "남",
+      "장소"
+    ]
   }
 ]

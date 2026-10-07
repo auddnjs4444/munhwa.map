@@ -336,6 +336,64 @@
   }
   .about-inner p { font-size: 15px; font-weight: 300; line-height: 1.9; margin: 0 0 18px; color: #CFCEC8; }
   .meta { margin-top: 48px; border-top: 1px solid var(--ink); }
+
+  /* ---------- 수어 표현 구성 ---------- */
+  .parts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .part {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 7px 16px;
+    border: 1px solid var(--kc, var(--line));
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--ink);
+  }
+  .part.jamo { border-style: dashed; font-weight: 400; }
+  .part small {
+    font-size: 8.5px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    color: var(--kc, var(--muted));
+  }
+  .part.pending { border-color: var(--line); color: var(--muted); }
+  .plus { font-size: 14px; font-weight: 200; color: var(--muted); }
+  .parts-note { margin: 10px 0 0; font-size: 12px; font-weight: 300; color: var(--muted); }
+
+  .sign-index-wrap { margin-top: 56px; }
+  .si-label { font-size: 9.5px; font-weight: 500; letter-spacing: 0.3em; color: var(--muted); margin: 0 0 12px; }
+  .about-inner p.si-desc { font-size: 13px; color: var(--muted); margin: 0 0 20px; }
+  .jamo-key {
+    display: inline-block;
+    padding: 0 7px;
+    border: 1px dashed var(--muted);
+    border-radius: 999px;
+    color: var(--ink);
+  }
+  .sign-index { border-top: 1px solid var(--ink); }
+  .sign-row {
+    appearance: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    width: 100%;
+    padding: 14px 0;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: none;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+    transition: padding .2s ease, color .15s;
+  }
+  .sign-row:hover { padding-left: 8px; }
+  .sign-row:hover .sr-parts { color: var(--ink); }
+  .sign-row:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+  .sr-name { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 400; white-space: nowrap; }
+  .sr-name i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+  .sr-parts { font-size: 14px; font-weight: 300; color: #CFCEC8; text-align: right; transition: color .15s; }
   .meta-row {
     display: flex;
     justify-content: space-between;
@@ -522,6 +580,11 @@
         <h2>어디에도<br>기록되지 않은 이름</h2>
         <p>광주의 농인들은 충장로, 무등산, 양림동 같은 장소들을 저마다의 수어 이름으로 불러왔습니다. 손끝에서 손끝으로만 전해진 이 이름들은 어디에도 기록되어 있지 않습니다.</p>
         <p>「손으로 부르는 광주」는 그 이름들을 영상으로 담고, 이름의 유래와 장소에 얽힌 기억을 함께 수집하는 아카이브입니다. 인터뷰가 진행되는 대로 기록이 하나씩 채워집니다.</p>
+        <div class="sign-index-wrap">
+          <p class="si-label">SIGN INDEX — 수어 표현 구성</p>
+          <p class="si-desc">각 지명의 수어가 어떤 동작들로 이루어지는지 정리했습니다. <span class="jamo-key">ㄱ</span>처럼 테두리가 점선인 글자는 지화(손가락 글자)입니다. 지명을 누르면 영상이 열립니다.</p>
+          <div class="sign-index" id="sign-index"></div>
+        </div>
         <div class="meta">
           <div class="meta-row"><span class="k">PROJECT</span><span class="v">광주 수어 지도 (GSL®/2026)</span></div>
           <div class="meta-row"><span class="k">PROGRAM</span><span class="v">청년 ESG 문화실험실</span></div>
