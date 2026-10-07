@@ -157,5 +157,194 @@
       "동구"
     ],
     "sensitive": false
+  },
+  {
+    "id": "seonam-dong",
+    "name": "서남동",
+    "lat": 35.1458,
+    "lng": 126.9215,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "지화",
+        "src": "media/seonam-dong.mp4",
+        "poster": "media/seonam-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "seoseok-dong",
+    "name": "서석동",
+    "lat": 35.1452,
+    "lng": 126.927,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/seoseok-dong.mp4",
+        "poster": "media/seoseok-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "unrim-dong",
+    "name": "운림동",
+    "lat": 35.1305,
+    "lng": 126.9565,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/unrim-dong.mp4",
+        "poster": "media/unrim-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "jisan-dong",
+    "name": "지산동",
+    "lat": 35.1468,
+    "lng": 126.94,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/jisan-dong.mp4",
+        "poster": "media/jisan-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "jiwon-dong",
+    "name": "지원동",
+    "lat": 35.12,
+    "lng": 126.942,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/jiwon-dong.mp4",
+        "poster": "media/jiwon-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "hak-dong",
+    "name": "학동",
+    "lat": 35.137,
+    "lng": 126.9325,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/hak-dong.mp4",
+        "poster": "media/hak-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "hagun-dong",
+    "name": "학운동",
+    "lat": 35.134,
+    "lng": 126.947,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "지화",
+        "src": "media/hagun-dong.mp4",
+        "poster": "media/hagun-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "sotae-dong",
+    "name": "소태동",
+    "lat": 35.1265,
+    "lng": 126.935,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/sotae-dong.mp4",
+        "poster": "media/sotae-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
+  },
+  {
+    "id": "wollam-dong",
+    "name": "월남동",
+    "lat": 35.11,
+    "lng": 126.955,
+    "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/wollam-dong.mp4",
+        "poster": "media/wollam-dong.jpg",
+        "ratio": 0.75
+      }
+    ],
+    "origin_text": "",
+    "memory_text": "",
+    "tags": [
+      "동구"
+    ],
+    "sensitive": false
   }
 ]

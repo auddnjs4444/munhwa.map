@@ -10,6 +10,8 @@ const closeBtn = document.getElementById('ov-close');
 const PALETTE = [
   '#FF5A36', '#4FA3FF', '#FFC53D', '#9B7BFF', '#59C48C',
   '#FF7BAE', '#3DD6C6', '#C4E04A', '#E86BFF', '#FF9F45',
+  '#5ED1FF', '#FFE066', '#B388FF', '#7FE0A0', '#FF6B6B',
+  '#4DD0C4', '#F4A261', '#A3E635', '#F472B6', '#60A5FA',
 ];
 const placeColor = (i) => PALETTE[i % PALETTE.length];
 
