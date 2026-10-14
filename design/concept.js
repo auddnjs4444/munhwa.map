@@ -89,7 +89,8 @@
   function focus(r, animate = !NOANIM) {
     const pw = isSheet() ? 0 : panel.getBoundingClientRect().width;
     const ph = isSheet() ? panel.getBoundingClientRect().height : 0;
-    map.flyToBounds(r.bounds, { paddingTopLeft: [isSheet() ? 24 : 80, isSheet() ? 70 : 110], paddingBottomRight: [pw + (isSheet() ? 24 : 80), ph + (isSheet() ? 30 : 140)], maxZoom: C.selectZoomMax, animate, duration: 0.9 });
+    // 모바일은 위쪽을 넉넉히 비워 사진 카드가 상단 버튼과 겹치지 않게 한다
+    map.flyToBounds(r.bounds, { paddingTopLeft: [isSheet() ? 24 : 80, isSheet() ? 210 : 110], paddingBottomRight: [pw + (isSheet() ? 24 : 80), ph + (isSheet() ? 30 : 140)], maxZoom: C.selectZoomMax, animate, duration: 0.9 });
   }
 
   /* ---------- 패널 ---------- */
