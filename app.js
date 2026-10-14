@@ -48,6 +48,8 @@ function openOverlay(place) {
   closeBtn.focus();
 }
 function closeOverlay() {
+  const playing = document.getElementById('sign-video');
+  if (playing) playing.pause();
   overlayEl.hidden = true;
   detailEl.innerHTML = '';
   if (lastFocused && lastFocused.focus) lastFocused.focus();
@@ -350,29 +352,369 @@ function initMap() {
     maxZoom: 19,
   }).addTo(map);
 
-  placesData.forEach((place) => {
-    const pinIcon = L.divIcon({
-      className: 'pin-wrap',
-      html: `<div class="pin" style="--c:${place._color}"></div>`,
-      iconSize: [15, 15],
-      iconAnchor: [8, 8],
-    });
-    const marker = L.marker([place.lat, place.lng], {
-      icon: pinIcon,
-      title: place.name,
-    }).addTo(map);
-    marker.bindTooltip(place.name, { direction: 'top', offset: [0, -10], className: 'place-tip' });
-    marker.on('click', () => {
-      setActiveMarker(marker);
-      openOverlay(place);
-    });
-    markersById.set(place.id, marker);
+  // 동구 16개 지역 경계를 먼저 올리고, 경계로 대체되지 않는 장소만 핀으로 남긴다.
+  // 경계 파일을 못 읽으면 임의 경계를 그리지 않고 안내문 + 이전처럼 전체 핀으로 돌아간다.
+  loadRegions().then((ok) => {
+    const covered = ok ? new Set(Object.values(REGION_PLACE).filter(Boolean)) : new Set();
+    placesData.filter((p) => !covered.has(p.id)).forEach(addPin);
+    const bounds = ok
+      ? regions.reduce((b, r) => (b ? b.extend(r.bounds) : L.latLngBounds(r.bounds)), null)
+      : L.latLngBounds(placesData.map((p) => [p.lat, p.lng]));
+    if (bounds && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: ok ? [40, 40] : [70, 70], maxZoom: 14, animate: false });
+    }
   });
+}
 
-  const bounds = L.latLngBounds(placesData.map((p) => [p.lat, p.lng]));
-  if (bounds.isValid()) {
-    map.fitBounds(bounds, { padding: [70, 70], maxZoom: 14, animate: false });
+function addPin(place) {
+  const pinIcon = L.divIcon({
+    className: 'pin-wrap',
+    html: `<div class="pin" style="--c:${place._color}"></div>`,
+    iconSize: [15, 15],
+    iconAnchor: [8, 8],
+  });
+  const marker = L.marker([place.lat, place.lng], {
+    icon: pinIcon,
+    title: place.name,
+  }).addTo(map);
+  marker.bindTooltip(place.name, { direction: 'top', offset: [0, -10], className: 'place-tip' });
+  marker.on('click', () => {
+    setActiveMarker(marker);
+    openOverlay(place);
+  });
+  markersById.set(place.id, marker);
+}
+
+/* ---------- 동구 16개 지역 경계 (data/gwangju_donggu_sign_16.geojson) ---------- */
+const REGION_GEOJSON = 'data/gwangju_donggu_sign_16.geojson?v=20261015';
+const REGION_COUNT = 16;
+
+// GeoJSON feature.properties.id → places.json id. 이름이 아니라 ID로 고정 연결한다.
+// 산수동(donggu_06)은 아직 장소 데이터가 없어 null — 경계만 그리고 '영상 준비 중'으로 연다.
+const REGION_PLACE = {
+  donggu_01: 'gyerim-dong',
+  donggu_02: 'gung-dong',
+  donggu_03: 'geumnam-ro',
+  donggu_04: 'daein-dong',
+  donggu_05: 'dongmyeong-dong',
+  donggu_06: null,
+  donggu_07: 'seoseok-dong',
+  donggu_08: 'sotae-dong',
+  donggu_09: 'unrim-dong',
+  donggu_10: 'wollam-dong',
+  donggu_11: 'jisan-dong',
+  donggu_12: 'jiwon-dong',
+  donggu_13: 'chungjang-ro',
+  donggu_14: 'hak-dong',
+  donggu_15: 'seonam-dong',
+  donggu_16: 'hagun-dong',
+};
+
+const regions = []; // { id, name, type, place, color, geom, bounds, area, layer }
+const regionById = new Map();
+let hoveredIds = [];
+let selectedRegionId = null;
+let chooserPopup = null;
+const regionListEl = document.getElementById('region-list');
+const regionTipEl = document.getElementById('region-tip');
+const mapErrorEl = document.getElementById('map-error');
+
+function showMapError(msg) {
+  mapErrorEl.innerHTML = `${esc(msg)}<br><code>${esc(REGION_GEOJSON.split('?')[0])}</code>`;
+  mapErrorEl.hidden = false;
+}
+
+/* --- 점-다각형 포함 판정 (Polygon 구멍, MultiPolygon 모두 처리) --- */
+function pointInRing(lng, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
   }
+  return inside;
+}
+function pointInPolygon(lng, lat, rings) {
+  if (!pointInRing(lng, lat, rings[0])) return false;
+  for (let k = 1; k < rings.length; k++) if (pointInRing(lng, lat, rings[k])) return false;
+  return true;
+}
+function pointInGeometry(lng, lat, geom) {
+  if (geom.type === 'Polygon') return pointInPolygon(lng, lat, geom.coordinates);
+  if (geom.type === 'MultiPolygon') return geom.coordinates.some((poly) => pointInPolygon(lng, lat, poly));
+  return false;
+}
+function ringArea(ring) {
+  let a = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    a += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+  }
+  return Math.abs(a) / 2;
+}
+function geometryArea(geom) {
+  const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+  return polys.reduce((sum, rings) => sum + ringArea(rings[0]), 0);
+}
+// 클릭/호버 지점을 포함하는 모든 지역 (작은 지역부터). 겹치는 법정동·행정동이 모두 잡힌다.
+function regionsAt(latlng) {
+  return regions
+    .filter((r) => r.bounds.contains(latlng) && pointInGeometry(latlng.lng, latlng.lat, r.geom))
+    .sort((a, b) => a.area - b.area);
+}
+
+/* --- 스타일: 장소 색을 아주 옅게, 행정동은 점선 --- */
+function regionStyle(r) {
+  const state = r.id === selectedRegionId ? 'selected' : hoveredIds.includes(r.id) ? 'hover' : 'base';
+  const s = {
+    className: 'region',
+    color: r.color,
+    weight: 1,
+    opacity: 0.55,
+    fillColor: r.color,
+    fillOpacity: 0.1,
+    dashArray: r.type === '행정동' ? '4 5' : null,
+    lineJoin: 'round',
+  };
+  if (state === 'hover') Object.assign(s, { weight: 1.5, opacity: 0.95, fillOpacity: 0.26 });
+  if (state === 'selected') Object.assign(s, { weight: 2, opacity: 1, fillOpacity: 0.34 });
+  return s;
+}
+// 큰 지역부터 올려 작은 지역이 항상 위에 보이게 한다 (클릭 판정은 좌표 기준이라 순서와 무관)
+function restackRegions() {
+  regions
+    .slice()
+    .sort((a, b) => b.area - a.area)
+    .forEach((r) => r.layer.bringToFront());
+}
+function restyle(ids) {
+  ids.forEach((id) => {
+    const r = regionById.get(id);
+    if (r) r.layer.setStyle(regionStyle(r));
+  });
+}
+function setHovered(ids) {
+  const prev = hoveredIds;
+  hoveredIds = ids;
+  restyle([...new Set([...prev, ...ids])]);
+  map.getContainer().classList.toggle('has-hit', ids.length > 0);
+}
+function setSelectedRegion(id) {
+  const prev = selectedRegionId;
+  selectedRegionId = id;
+  restyle([prev, id].filter(Boolean));
+  restackRegions();
+  if (id) regionById.get(id).layer.bringToFront();
+  regionListEl.querySelectorAll('.region-btn').forEach((b) => {
+    const on = b.dataset.region === id;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+}
+
+/* --- 지역 열기: 장소가 있으면 기존 오버레이, 없으면 '영상 준비 중' --- */
+function openRegion(r) {
+  if (r.place) {
+    openOverlay(r.place);
+    return;
+  }
+  lastFocused = document.activeElement;
+  overlayEl.hidden = false;
+  detailEl.style.setProperty('--kc', r.color);
+  detailEl.innerHTML = `
+    <p class="ov-kicker">동구 ${esc(r.type)} — 수어 지명 기록</p>
+    <h2>${esc(r.name)}</h2>
+    <div class="video-box"><span class="placeholder">SIGN — COMING SOON<br>영상 준비 중</span></div>
+    <p class="section-label">장소 기억</p>
+    <p class="section-text">(아직 수집되지 않음)</p>`;
+  closeBtn.focus();
+}
+
+// fly: 지역 목록에서 고른 경우 — 먼저 해당 지역으로 이동한 뒤 오버레이를 연다
+function selectRegion(r, { fly = false } = {}) {
+  setSelectedRegion(r.id);
+  if (!fly) {
+    openRegion(r);
+    return;
+  }
+  const fit = { padding: [60, 60], maxZoom: 15 };
+  if (prefersReducedMotion()) {
+    map.fitBounds(r.bounds, { ...fit, animate: false });
+    openRegion(r);
+    return;
+  }
+  let opened = false;
+  const open = () => {
+    if (opened) return;
+    opened = true;
+    map.off('moveend', open);
+    openRegion(r);
+  };
+  map.once('moveend', open);
+  setTimeout(open, 1200); // moveend가 오지 않는 경우의 안전장치
+  map.flyToBounds(r.bounds, { ...fit, duration: 0.7 });
+}
+
+/* --- 겹치는 지역 선택 팝업 --- */
+function openChooser(hits, latlng) {
+  const html = `
+    <div class="chooser" role="group" aria-label="겹치는 지역 선택">
+      <p class="chooser-cap">이 위치는 ${hits.length}개 지역에 속합니다</p>
+      ${hits
+        .map(
+          (r) =>
+            `<button type="button" class="chooser-btn" data-region="${r.id}" style="--c:${r.color}"><i aria-hidden="true"></i>${esc(r.name)} 수어 보기<small>${esc(r.type)}</small></button>`
+        )
+        .join('')}
+    </div>`;
+  chooserPopup = L.popup({
+    className: 'region-chooser',
+    closeButton: false,
+    autoPan: true,
+    offset: [0, -6],
+    maxWidth: 280,
+  })
+    .setLatLng(latlng)
+    .setContent(html)
+    .openOn(map);
+  const el = chooserPopup.getElement();
+  el.querySelectorAll('.chooser-btn').forEach((b) => {
+    b.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const r = regionById.get(b.dataset.region);
+      map.closePopup();
+      if (r) selectRegion(r);
+    });
+  });
+  el.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      ev.stopPropagation();
+      map.closePopup();
+      map.getContainer().focus();
+    }
+  });
+  el.querySelector('.chooser-btn').focus();
+}
+
+/* --- 보조 탐색: 16개 지역 목록 (키보드 선택 가능) --- */
+function buildRegionList() {
+  regionListEl.innerHTML = '<p class="rl-cap">동구 16 — 지역 선택</p>';
+  regions
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+    .forEach((r) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'region-btn';
+      b.dataset.region = r.id;
+      b.style.setProperty('--c', r.color);
+      b.setAttribute('aria-pressed', 'false');
+      const hasVideo = !!(r.place && ((r.place.videos && r.place.videos.length) || r.place.video_youtube_id));
+      b.innerHTML = `<i aria-hidden="true"></i><span>${esc(r.name)}</span>${hasVideo ? '' : '<small>준비 중</small>'}`;
+      b.addEventListener('click', () => selectRegion(r, { fly: true }));
+      regionListEl.appendChild(b);
+    });
+  regionListEl.hidden = false;
+}
+
+/* --- 호버/클릭: 레이어가 아니라 지도 좌표 기준으로 판정 (겹침·가림 없음) --- */
+function bindRegionEvents() {
+  const canHover = window.matchMedia('(hover: hover)').matches;
+  let raf = null;
+
+  if (canHover) {
+    map.on('mousemove', (e) => {
+      if (chooserPopup) return;
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const hits = regionsAt(e.latlng);
+        const ids = hits.map((r) => r.id);
+        if (ids.join() !== hoveredIds.join()) setHovered(ids);
+        if (hits.length) {
+          regionTipEl.innerHTML = hits
+            .map((r) => `<b>${esc(r.name)}</b><small>${esc(r.type)}</small>`)
+            .join('<span class="tip-sep">·</span>');
+          regionTipEl.style.transform = `translate(${e.containerPoint.x + 14}px, ${e.containerPoint.y + 14}px)`;
+          regionTipEl.hidden = false;
+        } else {
+          regionTipEl.hidden = true;
+        }
+      });
+    });
+    map.on('mouseout', () => {
+      setHovered([]);
+      regionTipEl.hidden = true;
+    });
+  }
+
+  map.on('click', (e) => {
+    if (chooserPopup) {
+      map.closePopup();
+      return;
+    }
+    const hits = regionsAt(e.latlng);
+    if (!hits.length) return;
+    regionTipEl.hidden = true;
+    if (hits.length === 1) selectRegion(hits[0]);
+    else openChooser(hits, e.latlng);
+  });
+  map.on('popupclose', () => {
+    chooserPopup = null;
+  });
+}
+
+function loadRegions() {
+  return fetch(REGION_GEOJSON)
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then((geo) => {
+      if (!geo || geo.type !== 'FeatureCollection' || !Array.isArray(geo.features)) {
+        throw new Error('FeatureCollection 형식이 아닙니다');
+      }
+      const feats = geo.features.filter((f) => f.geometry && ['Polygon', 'MultiPolygon'].includes(f.geometry.type));
+      if (feats.length !== REGION_COUNT) {
+        throw new Error(`지역 수가 ${REGION_COUNT}개가 아닙니다 (${feats.length}개)`);
+      }
+      const placeById = new Map(placesData.map((p) => [p.id, p]));
+      feats.forEach((f, i) => {
+        const props = f.properties || {};
+        const id = props.id || `feature_${i}`;
+        if (!(id in REGION_PLACE)) throw new Error(`연결 정보가 없는 지역 ID: ${id}`);
+        const placeId = REGION_PLACE[id];
+        const place = placeId ? placeById.get(placeId) || null : null;
+        if (placeId && !place) throw new Error(`places.json에 없는 장소: ${placeId}`);
+        const layer = L.geoJSON(f, { interactive: false, style: () => ({}) });
+        const r = {
+          id,
+          name: props.name || place?.name || id,
+          type: props.boundary_type || '',
+          place,
+          color: place ? place._color : '#8B8A85',
+          geom: f.geometry,
+          bounds: layer.getBounds(),
+          area: geometryArea(f.geometry),
+          layer,
+        };
+        regions.push(r);
+        regionById.set(id, r);
+      });
+      // 큰 지역을 먼저 올려 작은 지역이 위에 그려지도록 한다 (클릭 판정은 좌표 기준이라 순서와 무관)
+      regions.forEach((r) => {
+        r.layer.setStyle(regionStyle(r));
+        r.layer.addTo(map);
+      });
+      restackRegions();
+      buildRegionList();
+      bindRegionEvents();
+      mapErrorEl.hidden = true;
+      return true;
+    })
+    .catch((err) => {
+      console.error('경계 데이터 로드 실패:', err);
+      showMapError(`동구 지역 경계를 불러오지 못했습니다 (${err.message}). 경계 없이 장소 핀만 표시합니다.`);
+      return false;
+    });
 }
 
 /* ---------- 데이터 로드 ---------- */
