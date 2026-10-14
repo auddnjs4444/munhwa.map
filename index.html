@@ -800,6 +800,21 @@
   }
   .memo-more { display: none; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
   .memo.open .memo-more { display: block; }
+  /* 인터뷰 장소 기억: 메모 카드와 같은 틀, 손글씨 대신 제목·부제·긴 본문 */
+  .stories { display: flex; flex-direction: column; gap: 10px; max-width: 62ch; }
+  .memos + .stories { margin-top: 10px; }
+  .memo.story { flex: none; padding: 16px 40px 16px 18px; }
+  .memo.story.open { padding-right: 18px; }
+  .story-who { font-size: 10px; letter-spacing: 0.16em; color: var(--muted); white-space: nowrap; }
+  .story-title { margin: 8px 0 4px; font-size: 18px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.35; color: var(--ink); }
+  .story-sub { margin: 0; font-size: 12.5px; font-weight: 300; color: var(--muted); line-height: 1.6; }
+  .story-narrator { margin: 0 0 14px; font-size: 11px; letter-spacing: 0.08em; color: var(--muted); }
+  .story-text p { margin: 0 0 14px; font-size: 15px; font-weight: 300; line-height: 1.9; color: #E2DFD6; word-break: keep-all; }
+  .story-quote { margin: 20px 0 0; padding: 14px 0 0 16px; border-left: 2px solid var(--pc, var(--muted)); font-size: 16.5px; font-weight: 400; line-height: 1.7; color: var(--ink); word-break: keep-all; }
+  .story-tags { margin: 18px 0 0; font-size: 11px; letter-spacing: 0.04em; color: var(--muted); line-height: 1.8; }
+  .memo.story[data-by] { --pc: var(--muted); }
+  .memo.story.open { border-color: rgba(244, 243, 239, 0.45); }
+  .memo.story .memo-more { cursor: auto; }
   .memo-story { margin: 0 0 6px; font-size: 13.5px; font-weight: 300; line-height: 1.75; color: #CFCEC8; }
   .memo-note { margin: 0; font-size: 12.5px; font-weight: 300; line-height: 1.7; color: var(--muted); }
 
@@ -1087,6 +1102,6 @@
   </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=20261014b"></script>
+<script src="app.js?v=20261015a"></script>
 </body>
 </html>
