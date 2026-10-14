@@ -819,7 +819,7 @@ function panelVideoHtml(place) {
     return `
       <div class="pv" style="--ar:${Number(first.ratio) || 0.75}">
         <video id="panel-video" preload="metadata" playsinline ${first.poster ? `poster="${esc(first.poster)}"` : ''} src="${esc(first.src)}" aria-label="${esc(place.name)} 수어 영상 (${esc(first.label)})"></video>
-        <button type="button" class="pv-play" id="panel-play" aria-label="${esc(place.name)} 수어 영상 재생"><span class="pv-ico" aria-hidden="true"></span>수어 영상 보기</button>
+        <button type="button" class="pv-play" id="panel-play" aria-label="${esc(place.name)} 수어 영상 재생">수어 영상 보기<span class="pv-ico" aria-hidden="true"></span></button>
         <p class="pv-err" id="panel-verr" hidden role="alert"></p>
       </div>${angles}`;
   }
@@ -846,7 +846,7 @@ function panelRecordHtml(place) {
   const hasMemo = (place.memories && place.memories.length) || realText(place.memory_text);
   return `
     ${panelVideoHtml(place)}
-    <div class="pv-info"><span>GSL® / ${String(idx).padStart(2, '0')}</span><span>GWANGJU SIGN LANGUAGE</span></div>
+    <div class="pv-info"><span>GSL® / ${String(idx).padStart(2, '0')}</span><i class="pv-div" aria-hidden="true"></i><span>GWANGJU SIGN LANGUAGE</span></div>
     ${signPartsHtml(place)}
     ${origin ? `<p class="section-label">이름의 유래</p><p class="section-text">${esc(origin)}</p>` : ''}
     <p class="section-label">농인의 기억</p>
@@ -861,7 +861,9 @@ function renderPanel() {
   panelEnEl.textContent = itemEn(it);
   panelSubEl.textContent = it.kind === 'region' ? '광주 동구 수어 지명 기록' : '광주 수어 지명 기록';
   // 긴 지명도 한 줄에 들어가도록 글자 수에 따라 제목 크기를 낮춘다
-  panelNameEl.classList.toggle('long', itemName(it).length >= 6);
+  const len = itemName(it).length;
+  panelNameEl.classList.toggle('mid', len >= 4 && len <= 5);
+  panelNameEl.classList.toggle('long', len >= 6);
   const items = navItems();
   const i = items.findIndex((x) => sameItem(x, it));
   const prev = items[(i - 1 + items.length) % items.length];
@@ -892,7 +894,6 @@ function renderPanel() {
     const showPlay = (on) => { play.hidden = !on; };
     play.addEventListener('click', () => {
       v.controls = true;
-      v.closest('.pv').classList.add('started');
       v.play().catch(() => {});
     });
     v.addEventListener('playing', () => showPlay(false));
