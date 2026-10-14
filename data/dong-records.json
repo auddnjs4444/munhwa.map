@@ -186,5 +186,12 @@
         "hagun-dong"
       ]
     }
+  },
+  "places_en": {
+    "mudeungsan": "MUDEUNGSAN",
+    "yangnim-dong": "YANGNIM-DONG",
+    "518-democracy-square": "5·18 DEMOCRACY SQUARE",
+    "chungjang-ro": "CHUNGJANG-RO",
+    "geumnam-ro": "GEUMNAM-RO"
   }
 }

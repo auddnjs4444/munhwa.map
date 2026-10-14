@@ -383,7 +383,8 @@ function addPin(place) {
   marker.bindTooltip(place.name, { direction: 'top', offset: [0, -10], className: 'place-tip' });
   marker.on('click', () => {
     setActiveMarker(marker);
-    openOverlay(place);
+    if (typeof openPlacePanel === 'function' && panelEl) openPlacePanel(place);
+    else openOverlay(place);
   });
   markersById.set(place.id, marker);
 }
@@ -446,20 +447,22 @@ function regionsAt(latlng) {
 }
 
 /* --- 스타일: 장소 색을 아주 옅게, 행정동은 점선 --- */
+const MAP_HOVER = '#D5AD6A';
+const MAP_SELECTED = '#F0C576';
 function regionStyle(r) {
   const state = r.id === selectedRegionId ? 'selected' : hoveredIds.includes(r.id) ? 'hover' : 'base';
   const s = {
     className: 'region',
-    color: r.color,
+    color: 'rgba(244,243,239,0.45)',
     weight: 1,
-    opacity: 0.55,
-    fillColor: r.color,
-    fillOpacity: 0.1,
+    opacity: 1,
+    fillColor: '#F4F3EF',
+    fillOpacity: 0.035,
     dashArray: r.type === '행정동' ? '4 5' : null,
     lineJoin: 'round',
   };
-  if (state === 'hover') Object.assign(s, { weight: 1.5, opacity: 0.95, fillOpacity: 0.26 });
-  if (state === 'selected') Object.assign(s, { weight: 2, opacity: 1, fillOpacity: 0.34 });
+  if (state === 'hover') Object.assign(s, { color: MAP_HOVER, weight: 2, fillColor: MAP_HOVER, fillOpacity: 0.14 });
+  if (state === 'selected') Object.assign(s, { color: MAP_SELECTED, weight: 2.5, fillColor: MAP_SELECTED, fillOpacity: 0.18 });
   return s;
 }
 // 큰 지역부터 올려 작은 지역이 항상 위에 보이게 한다 (클릭 판정은 좌표 기준이라 순서와 무관)
@@ -509,7 +512,7 @@ function openChooser(hits, latlng) {
       ${hits
         .map(
           (r) =>
-            `<button type="button" class="chooser-btn" data-region="${r.id}" style="--c:${r.color}"><i aria-hidden="true"></i>${esc(r.name)} 수어 보기<small>${esc(r.type)}</small></button>`
+            `<button type="button" class="chooser-btn" data-region="${r.id}"><i aria-hidden="true"></i>${esc(r.name)} 수어 보기<small>${esc(r.type)}</small></button>`
         )
         .join('')}
     </div>`;
@@ -542,6 +545,39 @@ function openChooser(hits, latlng) {
   el.querySelector('.chooser-btn').focus();
 }
 
+/* --- 동 이름 레이블: 넓은 지역은 줌 13부터, 좁은 지역은 15부터 (겹침 방지) --- */
+function ringCentroid(ring) {
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const f = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+    a += f; cx += (ring[j][0] + ring[i][0]) * f; cy += (ring[j][1] + ring[i][1]) * f;
+  }
+  if (!a) return ring[0];
+  return [cx / (3 * a), cy / (3 * a)];
+}
+function buildRegionLabels() {
+  const areas = regions.map((r) => r.area).sort((a, b) => a - b);
+  const median = areas[Math.floor(areas.length / 2)];
+  regions.forEach((r) => {
+    const outer = r.geom.type === 'Polygon' ? r.geom.coordinates[0] : r.geom.coordinates[0][0];
+    const [lng, lat] = ringCentroid(outer);
+    r.label = L.tooltip({ permanent: true, direction: 'center', className: 'dong-label', interactive: false, opacity: 1 })
+      .setLatLng([lat, lng])
+      .setContent(r.name);
+    r.labelMinZoom = r.area >= median ? 13 : 15;
+  });
+  const sync = () => {
+    const z = map.getZoom();
+    regions.forEach((r) => {
+      const show = z >= r.labelMinZoom;
+      if (show && !map.hasLayer(r.label)) r.label.addTo(map);
+      if (!show && map.hasLayer(r.label)) map.removeLayer(r.label);
+    });
+  };
+  map.on('zoomend', sync);
+  sync();
+}
+
 /* --- 보조 탐색: 16개 지역 목록 (키보드 선택 가능) --- */
 function buildRegionList() {
   regionListEl.innerHTML = '<p class="rl-cap">동구 16 — 지역 선택</p>';
@@ -553,7 +589,6 @@ function buildRegionList() {
       b.type = 'button';
       b.className = 'region-btn';
       b.dataset.region = r.id;
-      b.style.setProperty('--c', r.color);
       b.setAttribute('aria-pressed', 'false');
       const hasVideo = r.records.some((pl) => (pl.videos && pl.videos.length) || pl.video_youtube_id);
       b.innerHTML = `<i aria-hidden="true"></i><span>${esc(r.name)}</span>${hasVideo ? '' : '<small>준비 중</small>'}`;
@@ -609,19 +644,35 @@ function bindRegionEvents() {
   });
 }
 
-/* ---------- 지역 상세 패널: 데스크톱 오른쪽 / 모바일 바텀시트 ---------- */
+/* ---------- 상세 패널: 데스크톱 오른쪽 / 모바일 바텀시트 ----------
+   항목(item)은 { kind:'region', region } 또는 { kind:'place', place } (경계 밖 핀 장소).
+   이전/다음은 경계 파일 순서(16개) 뒤에 핀 장소가 이어지는 순서로 돈다. */
 const panelEl = document.getElementById('dpanel');
 const panelBodyEl = document.getElementById('dpanel-body');
 const panelNameEl = document.getElementById('dp-name');
 const panelEnEl = document.getElementById('dp-en');
+const panelSubEl = document.getElementById('dp-sub');
 const viewMapEl = document.getElementById('view-map');
-let panelRegion = null;
+let placesEn = {};
+let panelItem = null;
 let panelRecordIdx = 0; // 기록이 여러 개인 지역에서 null이면 목록 화면
 let panelLastFocus = null;
 let panelHideTimer = null;
 
-const isSheetMode = () => window.matchMedia('(max-width: 760px)').matches;
+const isSheetMode = () => window.matchMedia('(max-width: 767px)').matches;
 const isPanelOpen = () => !panelEl.hidden && panelEl.classList.contains('on');
+const pinPlaces = () => placesData.filter((pl) => markersById.has(pl.id));
+const navItems = () => [
+  ...regions.map((region) => ({ kind: 'region', region })),
+  ...pinPlaces().map((place) => ({ kind: 'place', place })),
+];
+const sameItem = (a, b) => a && b && a.kind === b.kind && (a.region || a.place) === (b.region || b.place);
+const itemRecords = (it) => (it.kind === 'region' ? it.region.records : [it.place]);
+const itemName = (it) => (it.kind === 'region' ? it.region.name : it.place.name);
+const itemEn = (it) => (it.kind === 'region' ? it.region.en : placesEn[it.place.id] || '');
+const itemId = (it) => (it.kind === 'region' ? it.region.id : it.place.id);
+const itemBounds = (it) =>
+  it.kind === 'region' ? it.region.bounds : L.latLngBounds([[it.place.lat, it.place.lng]]);
 
 function stopPanelVideo() {
   const v = document.getElementById('panel-video');
@@ -631,24 +682,26 @@ function stopPanelVideo() {
   v.load();
 }
 
-/* 선택 지역이 (패널에 가려지지 않은) 지도 영역 안에 있을 때만 그대로 두고, 아니면 들어오게 맞춘다 */
-function regionInView(r) {
+/* 선택 항목이 패널에 가려지지 않은 지도 영역에 있을 때만 그대로 두고, 아니면 보이게 맞춘다 */
+function itemInView(it) {
   const size = map.getSize();
-  const w = isSheetMode() ? size.x : size.x; // 데스크톱은 지도 컨테이너 자체가 줄어든다
   const h = isSheetMode() ? size.y - panelEl.getBoundingClientRect().height : size.y;
-  const nw = map.latLngToContainerPoint(r.bounds.getNorthWest());
-  const se = map.latLngToContainerPoint(r.bounds.getSouthEast());
-  return nw.x >= 0 && nw.y >= 0 && se.x <= w && se.y <= h;
+  const b = itemBounds(it);
+  const nw = map.latLngToContainerPoint(b.getNorthWest());
+  const se = map.latLngToContainerPoint(b.getSouthEast());
+  const pad = it.kind === 'place' ? 24 : 0;
+  return nw.x - pad >= 0 && nw.y - pad >= 0 && se.x + pad <= size.x && se.y + pad <= h;
 }
-function ensureRegionVisible(r) {
-  if (regionInView(r)) return;
-  const opts = {
-    padding: [40, 40],
-    maxZoom: Math.max(map.getZoom(), 13), // 보이게만 하고 과한 줌인은 피한다
-    animate: !prefersReducedMotion(),
-  };
+function ensureItemVisible(it) {
+  if (itemInView(it)) return;
+  const animate = !prefersReducedMotion();
+  if (it.kind === 'place') {
+    map.panTo([it.place.lat, it.place.lng], { animate });
+    return;
+  }
+  const opts = { padding: [40, 40], maxZoom: Math.max(map.getZoom(), 13), animate };
   if (isSheetMode()) opts.paddingBottomRight = [40, panelEl.getBoundingClientRect().height + 40];
-  map.fitBounds(r.bounds, opts);
+  map.fitBounds(it.region.bounds, opts);
 }
 
 function setHash(id) {
@@ -660,14 +713,19 @@ function applyHash() {
   const m = location.hash.match(/^#map\/([\w-]+)/);
   if (!m || !regions.length) return;
   const id = m[1];
-  const r =
-    regions.find((x) => x.id === id) ||
-    regions.find((x) => x.records.some((pl) => pl.id === id));
-  if (!r) return;
+  const region =
+    regions.find((x) => x.id === id) || regions.find((x) => x.records.some((pl) => pl.id === id));
+  const pin = !region && pinPlaces().find((pl) => pl.id === id);
+  if (!region && !pin) return;
   if (document.body.dataset.view !== 'map') setView('map');
-  const idx = r.records.findIndex((pl) => pl.id === id);
-  setSelectedRegion(r.id);
-  openRegionPanel(r, idx >= 0 ? idx : r.records.length === 1 ? 0 : null, { fromHash: true });
+  if (region) {
+    const idx = region.records.findIndex((pl) => pl.id === id);
+    setSelectedRegion(region.id);
+    openPanel({ kind: 'region', region }, idx >= 0 ? idx : region.records.length === 1 ? 0 : null, { fromHash: true });
+  } else {
+    setActiveMarker(markersById.get(pin.id));
+    openPanel({ kind: 'place', place: pin }, 0, { fromHash: true });
+  }
 }
 window.addEventListener('hashchange', () => {
   if (!regions.length) return;
@@ -675,7 +733,16 @@ window.addEventListener('hashchange', () => {
   else if (isPanelOpen()) closePanel({ keepHash: true });
 });
 
-function openRegionPanel(r, recordIdx = r.records.length === 1 ? 0 : null, { fromHash = false } = {}) {
+function openRegionPanel(r, recordIdx = r.records.length === 1 ? 0 : null, opts) {
+  setActiveMarker(null);
+  openPanel({ kind: 'region', region: r }, recordIdx, opts);
+}
+function openPlacePanel(place) {
+  setSelectedRegion(null);
+  openPanel({ kind: 'place', place }, 0);
+}
+
+function openPanel(it, recordIdx, { fromHash = false } = {}) {
   const wasOpen = isPanelOpen();
   clearTimeout(panelHideTimer);
   stopPanelVideo();
@@ -683,25 +750,27 @@ function openRegionPanel(r, recordIdx = r.records.length === 1 ? 0 : null, { fro
   if (!wasOpen || document.activeElement?.classList.contains('region-btn')) {
     panelLastFocus = document.activeElement;
   }
-  panelRegion = r;
+  panelItem = it;
   panelRecordIdx = recordIdx;
   renderPanel();
-  const record = recordIdx !== null ? r.records[recordIdx] : null;
-  if (!fromHash) setHash(record ? record.id : r.id);
+  const record = recordIdx !== null ? itemRecords(it)[recordIdx] : null;
+  if (!fromHash) setHash(record ? record.id : itemId(it));
 
   panelEl.hidden = false;
   viewMapEl.classList.add('dpanel-open');
+  document.body.classList.add('dpanel-open');
   if (!wasOpen) {
+    panelEl.classList.remove('expanded');
     void panelEl.offsetWidth; // hidden 해제 직후 리플로우 → 슬라이드 전환이 실제로 재생된다
     panelEl.classList.add('on');
     // 데스크톱은 지도 컨테이너가 줄어들므로 전환이 끝난 뒤 크기를 다시 재고 위치를 맞춘다
     setTimeout(() => {
       map.invalidateSize({ pan: false });
-      ensureRegionVisible(r);
-    }, prefersReducedMotion() ? 0 : 360);
+      ensureItemVisible(it);
+    }, prefersReducedMotion() ? 0 : 340);
     panelEl.focus({ preventScroll: true });
   } else {
-    ensureRegionVisible(r);
+    ensureItemVisible(it);
     panelEl.scrollTop = 0;
   }
 }
@@ -709,25 +778,31 @@ function openRegionPanel(r, recordIdx = r.records.length === 1 ? 0 : null, { fro
 function closePanel({ keepHash = false } = {}) {
   if (panelEl.hidden) return;
   stopPanelVideo();
-  panelEl.classList.remove('on');
+  panelEl.classList.remove('on', 'expanded');
   viewMapEl.classList.remove('dpanel-open');
+  document.body.classList.remove('dpanel-open');
   setSelectedRegion(null);
+  setActiveMarker(null);
   if (!keepHash) setHash(null);
-  panelRegion = null;
-  const finish = () => {
+  panelItem = null;
+  panelHideTimer = setTimeout(() => {
     panelEl.hidden = true;
-    map.invalidateSize({ pan: false });
-  };
-  panelHideTimer = setTimeout(finish, prefersReducedMotion() ? 0 : 360);
+    map.invalidateSize({ pan: false }); // 사용자가 보던 중심·줌은 그대로 둔다
+  }, prefersReducedMotion() ? 0 : 340);
   if (panelLastFocus && panelLastFocus.focus && document.contains(panelLastFocus)) panelLastFocus.focus();
   else map.getContainer().focus();
 }
 
-function stepRegion(dir) {
-  if (!panelRegion) return;
-  const i = regions.indexOf(panelRegion);
-  const next = regions[(i + dir + regions.length) % regions.length];
-  selectRegion(next);
+function stepItem(dir) {
+  if (!panelItem) return;
+  const items = navItems();
+  const i = items.findIndex((x) => sameItem(x, panelItem));
+  const next = items[(i + dir + items.length) % items.length];
+  if (next.kind === 'region') selectRegion(next.region);
+  else {
+    setActiveMarker(markersById.get(next.place.id));
+    openPlacePanel(next.place);
+  }
 }
 
 /* --- 패널 내용 --- */
@@ -743,8 +818,8 @@ function panelVideoHtml(place) {
         : '';
     return `
       <div class="pv" style="--ar:${Number(first.ratio) || 0.75}">
-        <video id="panel-video" preload="metadata" playsinline controls ${first.poster ? `poster="${esc(first.poster)}"` : ''} src="${esc(first.src)}" aria-label="${esc(place.name)} 수어 영상 (${esc(first.label)})"></video>
-        <button type="button" class="pv-play" id="panel-play" aria-label="${esc(place.name)} 수어 영상 재생"><span class="pv-ico" aria-hidden="true"></span><span class="pv-txt">재생</span></button>
+        <video id="panel-video" preload="metadata" playsinline ${first.poster ? `poster="${esc(first.poster)}"` : ''} src="${esc(first.src)}" aria-label="${esc(place.name)} 수어 영상 (${esc(first.label)})"></video>
+        <button type="button" class="pv-play" id="panel-play" aria-label="${esc(place.name)} 수어 영상 재생"><span class="pv-ico" aria-hidden="true"></span>수어 영상 보기</button>
         <p class="pv-err" id="panel-verr" hidden role="alert"></p>
       </div>${angles}`;
   }
@@ -753,6 +828,9 @@ function panelVideoHtml(place) {
   }
   return `<div class="pv pv-none"><span>SIGN — COMING SOON<br>영상 준비 중</span></div>`;
 }
+
+// "[예시] …" 자리표시 문구는 기록으로 치지 않는다
+const realText = (t) => (t && !String(t).trim().startsWith('[예시]') ? String(t).trim() : '');
 
 function panelRecordHtml(place) {
   // 5·18 등 민감한 기록은 오버레이와 같은 정책: 세션에서 열람을 확인하기 전까지 안내 문구만 보여준다
@@ -763,39 +841,46 @@ function panelRecordHtml(place) {
         <button type="button" id="panel-reveal">기록 보기</button>
       </div>`;
   }
-  const hasMemo = (place.memories && place.memories.length) || place.memory_text;
+  const idx = placesData.indexOf(place) + 1;
+  const origin = realText(place.origin_text);
+  const hasMemo = (place.memories && place.memories.length) || realText(place.memory_text);
   return `
     ${panelVideoHtml(place)}
+    <div class="pv-info"><span>GSL® / ${String(idx).padStart(2, '0')}</span><span>GWANGJU SIGN LANGUAGE</span></div>
     ${signPartsHtml(place)}
-    <p class="section-label">장소 기억</p>
+    ${origin ? `<p class="section-label">이름의 유래</p><p class="section-text">${esc(origin)}</p>` : ''}
+    <p class="section-label">농인의 기억</p>
     ${hasMemo ? memoriesHtml(place) : '<p class="section-text pending">기록 준비 중</p>'}
     ${(place.tags || []).length ? `<div class="tags">${place.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}`;
 }
 
 function renderPanel() {
-  const r = panelRegion;
-  panelEl.style.setProperty('--kc', r.color);
-  panelNameEl.textContent = r.name;
-  panelEnEl.textContent = r.en || '';
-  const i = regions.indexOf(r);
-  const prev = regions[(i - 1 + regions.length) % regions.length];
-  const next = regions[(i + 1) % regions.length];
-  document.getElementById('dp-prev').setAttribute('aria-label', `이전 지역: ${prev.name}`);
-  document.getElementById('dp-next').setAttribute('aria-label', `다음 지역: ${next.name}`);
+  const it = panelItem;
+  const records = itemRecords(it);
+  panelNameEl.textContent = itemName(it);
+  panelEnEl.textContent = itemEn(it);
+  panelSubEl.textContent = it.kind === 'region' ? '광주 동구 수어 지명 기록' : '광주 수어 지명 기록';
+  // 긴 지명도 한 줄에 들어가도록 글자 수에 따라 제목 크기를 낮춘다
+  panelNameEl.classList.toggle('long', itemName(it).length >= 6);
+  const items = navItems();
+  const i = items.findIndex((x) => sameItem(x, it));
+  const prev = items[(i - 1 + items.length) % items.length];
+  const next = items[(i + 1) % items.length];
+  document.getElementById('dp-prev').setAttribute('aria-label', `이전 기록: ${itemName(prev)}`);
+  document.getElementById('dp-next').setAttribute('aria-label', `다음 기록: ${itemName(next)}`);
 
   let html = '';
-  if (!r.records.length) {
+  if (!records.length) {
     html = `<p class="dp-empty">아직 수집된 수어 기록이 없습니다.</p>
-            <p class="dp-meta">${esc(r.type)} 경계 · 기록이 모이면 이곳에 영상과 장소 기억이 실립니다.</p>`;
+            <p class="dp-meta">${esc(it.region.type)} 경계 · 기록이 모이면 이곳에 영상과 장소 기억이 실립니다.</p>`;
   } else if (panelRecordIdx === null) {
-    html = `<p class="section-label">이 지역의 기록 ${r.records.length}개</p>
-      <div class="dp-list">${r.records
+    html = `<p class="section-label">이 지역의 기록 ${records.length}개</p>
+      <div class="dp-list">${records
         .map((pl, k) => `<button type="button" class="dp-rec" data-rec="${k}"><span>${esc(pl.name)}</span><small>${(pl.videos && pl.videos.length) || pl.video_youtube_id ? '영상' : '기록'}</small></button>`)
         .join('')}</div>`;
   } else {
-    const pl = r.records[panelRecordIdx];
-    html = panelRecordHtml(pl);
-    if (r.records.length > 1) html = `<button type="button" class="dp-back" id="dp-back">‹ 이 지역의 다른 기록</button>` + html;
+    html = panelRecordHtml(records[panelRecordIdx]);
+    if (records.length > 1) html = `<button type="button" class="dp-back" id="dp-back">‹ 이 지역의 다른 기록</button>` + html;
   }
   panelBodyEl.innerHTML = html;
 
@@ -805,7 +890,11 @@ function renderPanel() {
   const err = document.getElementById('panel-verr');
   if (v && play) {
     const showPlay = (on) => { play.hidden = !on; };
-    play.addEventListener('click', () => v.play().catch(() => {}));
+    play.addEventListener('click', () => {
+      v.controls = true;
+      v.closest('.pv').classList.add('started');
+      v.play().catch(() => {});
+    });
     v.addEventListener('playing', () => showPlay(false));
     v.addEventListener('pause', () => showPlay(true));
     v.addEventListener('ended', () => showPlay(true));
@@ -816,7 +905,7 @@ function renderPanel() {
     });
     panelBodyEl.querySelectorAll('.angle').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const pl = r.records[panelRecordIdx];
+        const pl = records[panelRecordIdx];
         const vid = pl.videos[Number(btn.dataset.angle)];
         panelBodyEl.querySelectorAll('.angle').forEach((b) => {
           b.classList.toggle('on', b === btn);
@@ -832,20 +921,20 @@ function renderPanel() {
     });
   }
   document.getElementById('panel-reveal')?.addEventListener('click', () => {
-    revealedSensitive.add(r.records[panelRecordIdx].id);
+    revealedSensitive.add(records[panelRecordIdx].id);
     renderPanel();
   });
   document.getElementById('dp-back')?.addEventListener('click', () => {
     panelRecordIdx = null;
     stopPanelVideo();
     renderPanel();
-    setHash(r.id);
+    setHash(itemId(it));
   });
   panelBodyEl.querySelectorAll('.dp-rec').forEach((b) => {
     b.addEventListener('click', () => {
       panelRecordIdx = Number(b.dataset.rec);
       renderPanel();
-      setHash(r.records[panelRecordIdx].id);
+      setHash(records[panelRecordIdx].id);
     });
   });
 }
@@ -854,8 +943,25 @@ function bindPanel() {
   if (panelEl.dataset.bound) return;
   panelEl.dataset.bound = '1';
   document.getElementById('dp-close').addEventListener('click', () => closePanel());
-  document.getElementById('dp-prev').addEventListener('click', () => stepRegion(-1));
-  document.getElementById('dp-next').addEventListener('click', () => stepRegion(1));
+  document.getElementById('dp-prev').addEventListener('click', () => stepItem(-1));
+  document.getElementById('dp-next').addEventListener('click', () => stepItem(1));
+  // 모바일 시트: 핸들을 누르거나 위/아래로 끌면 펼침/접힘
+  const handle = document.getElementById('dp-handle');
+  const toggleSheet = (force) => {
+    const on = panelEl.classList.toggle('expanded', force);
+    handle.setAttribute('aria-expanded', String(on));
+    handle.setAttribute('aria-label', on ? '시트 접기' : '시트 펼치기');
+  };
+  handle.addEventListener('click', () => toggleSheet());
+  let dragY = null;
+  handle.addEventListener('pointerdown', (e) => { dragY = e.clientY; });
+  window.addEventListener('pointerup', (e) => {
+    if (dragY === null) return;
+    const dy = e.clientY - dragY;
+    dragY = null;
+    if (dy < -40) toggleSheet(true);
+    else if (dy > 40) toggleSheet(false);
+  });
   // 메모 카드 펼치기 (오버레이와 같은 위임 방식)
   panelBodyEl.addEventListener('click', (e) => {
     const memo = e.target.closest('.memo.has-more');
@@ -887,7 +993,10 @@ function loadRegions() {
   // 연결표가 없으면 경계는 그리되 기록 없음으로 처리하고, 콘솔과 안내문으로 알린다
   const recReq = fetch(DONG_RECORDS)
     .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-    .then((d) => (d && d.regions ? d.regions : {}))
+    .then((d) => {
+      placesEn = (d && d.places_en) || {};
+      return d && d.regions ? d.regions : {};
+    })
     .catch((err) => {
       console.error('지역-기록 연결표 로드 실패:', err);
       showMapError('지역과 기록의 연결표(data/dong-records.json)를 불러오지 못해 경계만 표시합니다.');
@@ -939,6 +1048,7 @@ function loadRegions() {
         r.layer.addTo(map);
       });
       restackRegions();
+      buildRegionLabels();
       buildRegionList();
       bindRegionEvents();
       bindPanel();
