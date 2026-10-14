@@ -376,7 +376,7 @@ function initMap() {
 }
 
 /* ---------- 데이터 로드 ---------- */
-fetch('data/places.json')
+fetch('data/places.json?v=20261014b')
   .then((res) => res.json())
   .then((places) => {
     placesData = places;

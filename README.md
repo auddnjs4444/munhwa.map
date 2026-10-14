@@ -98,6 +98,11 @@ Node가 편하면 `npx serve .` 도 됩니다.
 - [x] 모바일 레이아웃 점검 (900px 미만에서 지도 위 / 기록 아래로 쌓이고, 핀을 누르면 카드로 스크롤)
 - [ ] Netlify 또는 Vercel에 배포
 
+## 배포 후 화면이 그대로일 때
+
+GitHub Pages는 파일을 10분 동안 캐시합니다. 푸시 직후에 열면 이전 화면이 보일 수 있으니, **Cmd+Shift+R**(맥) / **Ctrl+Shift+R**(윈도우)로 강력 새로고침하거나 10분 뒤 다시 여세요.
+`index.html`의 `app.js?v=…`와 `app.js`의 `places.json?v=…` 버전값을 배포 때마다 바꾸면 더 빨리 반영됩니다.
+
 ## 배포
 
 - **사이트 주소: https://auddnjs4444.github.io/munhwa.map/**
