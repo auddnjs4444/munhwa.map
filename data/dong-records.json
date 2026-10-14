@@ -1,0 +1,190 @@
+{
+  "_doc": "지역 경계(GeoJSON feature.properties.id) ↔ 수어 기록(data/places.json의 id) 연결표. 새 영상·장소를 추가할 때 여기의 records 배열만 고치면 됩니다. records가 비면 '아직 수집된 수어 기록이 없습니다'로 표시됩니다.",
+  "version": "2026-10-15",
+  "boundary_file": "data/gwangju_donggu_sign_16.geojson",
+  "regions": {
+    "donggu_01": {
+      "name": "계림동",
+      "en": "GYERIM-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210109"
+      ],
+      "records": [
+        "gyerim-dong"
+      ]
+    },
+    "donggu_02": {
+      "name": "궁동",
+      "en": "GUNG-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210106"
+      ],
+      "records": [
+        "gung-dong"
+      ]
+    },
+    "donggu_03": {
+      "name": "금남로",
+      "en": "GEUMNAM-RO",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210102",
+        "12210133",
+        "12210132",
+        "12210131",
+        "12210134"
+      ],
+      "records": [
+        "geumnam-ro"
+      ]
+    },
+    "donggu_04": {
+      "name": "대인동",
+      "en": "DAEIN-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210101"
+      ],
+      "records": [
+        "daein-dong"
+      ]
+    },
+    "donggu_05": {
+      "name": "동명동",
+      "en": "DONGMYEONG-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210108"
+      ],
+      "records": [
+        "dongmyeong-dong"
+      ]
+    },
+    "donggu_06": {
+      "name": "산수동",
+      "en": "SANSU-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210110"
+      ],
+      "records": []
+    },
+    "donggu_07": {
+      "name": "서석동",
+      "en": "SEOSEOK-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210118"
+      ],
+      "records": [
+        "seoseok-dong"
+      ]
+    },
+    "donggu_08": {
+      "name": "소태동",
+      "en": "SOTAE-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210119"
+      ],
+      "records": [
+        "sotae-dong"
+      ]
+    },
+    "donggu_09": {
+      "name": "운림동",
+      "en": "UNRIM-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210121"
+      ],
+      "records": [
+        "unrim-dong"
+      ]
+    },
+    "donggu_10": {
+      "name": "월남동",
+      "en": "WOLLAM-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210123"
+      ],
+      "records": [
+        "wollam-dong"
+      ]
+    },
+    "donggu_11": {
+      "name": "지산동",
+      "en": "JISAN-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210111"
+      ],
+      "records": [
+        "jisan-dong"
+      ]
+    },
+    "donggu_12": {
+      "name": "지원동",
+      "en": "JIWON-DONG",
+      "boundary_type": "행정동",
+      "codes": [
+        "24010720",
+        "24010730"
+      ],
+      "records": [
+        "jiwon-dong"
+      ]
+    },
+    "donggu_13": {
+      "name": "충장로",
+      "en": "CHUNGJANG-RO",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210130",
+        "12210129",
+        "12210128",
+        "12210127",
+        "12210103"
+      ],
+      "records": [
+        "chungjang-ro"
+      ]
+    },
+    "donggu_14": {
+      "name": "학동",
+      "en": "HAK-DONG",
+      "boundary_type": "법정동",
+      "codes": [
+        "12210122"
+      ],
+      "records": [
+        "hak-dong"
+      ]
+    },
+    "donggu_15": {
+      "name": "서남동",
+      "en": "SEONAM-DONG",
+      "boundary_type": "행정동",
+      "codes": [
+        "24010640"
+      ],
+      "records": [
+        "seonam-dong"
+      ]
+    },
+    "donggu_16": {
+      "name": "학운동",
+      "en": "HAGUN-DONG",
+      "boundary_type": "행정동",
+      "codes": [
+        "24010710"
+      ],
+      "records": [
+        "hagun-dong"
+      ]
+    }
+  }
+}

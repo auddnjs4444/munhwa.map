@@ -56,7 +56,9 @@ function closeOverlay() {
 }
 closeBtn.addEventListener('click', closeOverlay);
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !overlayEl.hidden) closeOverlay();
+  if (e.key !== 'Escape') return;
+  if (!overlayEl.hidden) closeOverlay();
+  else if (typeof closePanel === 'function' && isPanelOpen()) closePanel();
 });
 
 // FIXME: replace with the real video once footage is edited.
@@ -355,10 +357,11 @@ function initMap() {
   // 동구 16개 지역 경계를 먼저 올리고, 경계로 대체되지 않는 장소만 핀으로 남긴다.
   // 경계 파일을 못 읽으면 임의 경계를 그리지 않고 안내문 + 이전처럼 전체 핀으로 돌아간다.
   loadRegions().then((ok) => {
-    const covered = ok ? new Set(Object.values(REGION_PLACE).filter(Boolean)) : new Set();
+    const covered = ok ? new Set(regions.flatMap((r) => r.records.map((pl) => pl.id))) : new Set();
     placesData.filter((p) => !covered.has(p.id)).forEach(addPin);
+    // L.latLngBounds(기존 bounds)는 같은 객체를 돌려주므로 복사본을 만들어 합친다 (원본 지역 bounds를 건드리지 않게)
     const bounds = ok
-      ? regions.reduce((b, r) => (b ? b.extend(r.bounds) : L.latLngBounds(r.bounds)), null)
+      ? regions.reduce((b, r) => b.extend(r.bounds), L.latLngBounds(regions[0].bounds.getSouthWest(), regions[0].bounds.getNorthEast()))
       : L.latLngBounds(placesData.map((p) => [p.lat, p.lng]));
     if (bounds && bounds.isValid()) {
       map.fitBounds(bounds, { padding: ok ? [40, 40] : [70, 70], maxZoom: 14, animate: false });
@@ -389,27 +392,7 @@ function addPin(place) {
 const REGION_GEOJSON = 'data/gwangju_donggu_sign_16.geojson?v=20261015';
 const REGION_COUNT = 16;
 
-// GeoJSON feature.properties.id → places.json id. 이름이 아니라 ID로 고정 연결한다.
-// 산수동(donggu_06)은 아직 장소 데이터가 없어 null — 경계만 그리고 '영상 준비 중'으로 연다.
-const REGION_PLACE = {
-  donggu_01: 'gyerim-dong',
-  donggu_02: 'gung-dong',
-  donggu_03: 'geumnam-ro',
-  donggu_04: 'daein-dong',
-  donggu_05: 'dongmyeong-dong',
-  donggu_06: null,
-  donggu_07: 'seoseok-dong',
-  donggu_08: 'sotae-dong',
-  donggu_09: 'unrim-dong',
-  donggu_10: 'wollam-dong',
-  donggu_11: 'jisan-dong',
-  donggu_12: 'jiwon-dong',
-  donggu_13: 'chungjang-ro',
-  donggu_14: 'hak-dong',
-  donggu_15: 'seonam-dong',
-  donggu_16: 'hagun-dong',
-};
-
+// 경계 ↔ 기록 연결은 data/dong-records.json 에서 읽는다 (코드 수정 없이 데이터만 고치면 됨)
 const regions = []; // { id, name, type, place, color, geom, bounds, area, layer }
 const regionById = new Map();
 let hoveredIds = [];
@@ -512,46 +495,10 @@ function setSelectedRegion(id) {
 }
 
 /* --- 지역 열기: 장소가 있으면 기존 오버레이, 없으면 '영상 준비 중' --- */
-function openRegion(r) {
-  if (r.place) {
-    openOverlay(r.place);
-    return;
-  }
-  lastFocused = document.activeElement;
-  overlayEl.hidden = false;
-  detailEl.style.setProperty('--kc', r.color);
-  detailEl.innerHTML = `
-    <p class="ov-kicker">동구 ${esc(r.type)} — 수어 지명 기록</p>
-    <h2>${esc(r.name)}</h2>
-    <div class="video-box"><span class="placeholder">SIGN — COMING SOON<br>영상 준비 중</span></div>
-    <p class="section-label">장소 기억</p>
-    <p class="section-text">(아직 수집되지 않음)</p>`;
-  closeBtn.focus();
-}
-
-// fly: 지역 목록에서 고른 경우 — 먼저 해당 지역으로 이동한 뒤 오버레이를 연다
-function selectRegion(r, { fly = false } = {}) {
+// 지역을 열면 전체 화면 오버레이 대신 지도 옆 패널에 기록을 보여준다 (지도는 계속 보인다)
+function selectRegion(r) {
   setSelectedRegion(r.id);
-  if (!fly) {
-    openRegion(r);
-    return;
-  }
-  const fit = { padding: [60, 60], maxZoom: 15 };
-  if (prefersReducedMotion()) {
-    map.fitBounds(r.bounds, { ...fit, animate: false });
-    openRegion(r);
-    return;
-  }
-  let opened = false;
-  const open = () => {
-    if (opened) return;
-    opened = true;
-    map.off('moveend', open);
-    openRegion(r);
-  };
-  map.once('moveend', open);
-  setTimeout(open, 1200); // moveend가 오지 않는 경우의 안전장치
-  map.flyToBounds(r.bounds, { ...fit, duration: 0.7 });
+  openRegionPanel(r);
 }
 
 /* --- 겹치는 지역 선택 팝업 --- */
@@ -608,9 +555,9 @@ function buildRegionList() {
       b.dataset.region = r.id;
       b.style.setProperty('--c', r.color);
       b.setAttribute('aria-pressed', 'false');
-      const hasVideo = !!(r.place && ((r.place.videos && r.place.videos.length) || r.place.video_youtube_id));
+      const hasVideo = r.records.some((pl) => (pl.videos && pl.videos.length) || pl.video_youtube_id);
       b.innerHTML = `<i aria-hidden="true"></i><span>${esc(r.name)}</span>${hasVideo ? '' : '<small>준비 중</small>'}`;
-      b.addEventListener('click', () => selectRegion(r, { fly: true }));
+      b.addEventListener('click', () => selectRegion(r));
       regionListEl.appendChild(b);
     });
   regionListEl.hidden = false;
@@ -662,13 +609,293 @@ function bindRegionEvents() {
   });
 }
 
+/* ---------- 지역 상세 패널: 데스크톱 오른쪽 / 모바일 바텀시트 ---------- */
+const panelEl = document.getElementById('dpanel');
+const panelBodyEl = document.getElementById('dpanel-body');
+const panelNameEl = document.getElementById('dp-name');
+const panelEnEl = document.getElementById('dp-en');
+const viewMapEl = document.getElementById('view-map');
+let panelRegion = null;
+let panelRecordIdx = 0; // 기록이 여러 개인 지역에서 null이면 목록 화면
+let panelLastFocus = null;
+let panelHideTimer = null;
+
+const isSheetMode = () => window.matchMedia('(max-width: 760px)').matches;
+const isPanelOpen = () => !panelEl.hidden && panelEl.classList.contains('on');
+
+function stopPanelVideo() {
+  const v = document.getElementById('panel-video');
+  if (!v) return;
+  v.pause();
+  v.removeAttribute('src');
+  v.load();
+}
+
+/* 선택 지역이 (패널에 가려지지 않은) 지도 영역 안에 있을 때만 그대로 두고, 아니면 들어오게 맞춘다 */
+function regionInView(r) {
+  const size = map.getSize();
+  const w = isSheetMode() ? size.x : size.x; // 데스크톱은 지도 컨테이너 자체가 줄어든다
+  const h = isSheetMode() ? size.y - panelEl.getBoundingClientRect().height : size.y;
+  const nw = map.latLngToContainerPoint(r.bounds.getNorthWest());
+  const se = map.latLngToContainerPoint(r.bounds.getSouthEast());
+  return nw.x >= 0 && nw.y >= 0 && se.x <= w && se.y <= h;
+}
+function ensureRegionVisible(r) {
+  if (regionInView(r)) return;
+  const opts = {
+    padding: [40, 40],
+    maxZoom: Math.max(map.getZoom(), 13), // 보이게만 하고 과한 줌인은 피한다
+    animate: !prefersReducedMotion(),
+  };
+  if (isSheetMode()) opts.paddingBottomRight = [40, panelEl.getBoundingClientRect().height + 40];
+  map.fitBounds(r.bounds, opts);
+}
+
+function setHash(id) {
+  const next = id ? `#map/${id}` : '';
+  if (location.hash === next) return;
+  history.replaceState(null, '', next || location.pathname + location.search);
+}
+function applyHash() {
+  const m = location.hash.match(/^#map\/([\w-]+)/);
+  if (!m || !regions.length) return;
+  const id = m[1];
+  const r =
+    regions.find((x) => x.id === id) ||
+    regions.find((x) => x.records.some((pl) => pl.id === id));
+  if (!r) return;
+  if (document.body.dataset.view !== 'map') setView('map');
+  const idx = r.records.findIndex((pl) => pl.id === id);
+  setSelectedRegion(r.id);
+  openRegionPanel(r, idx >= 0 ? idx : r.records.length === 1 ? 0 : null, { fromHash: true });
+}
+window.addEventListener('hashchange', () => {
+  if (!regions.length) return;
+  if (location.hash.startsWith('#map/')) applyHash();
+  else if (isPanelOpen()) closePanel({ keepHash: true });
+});
+
+function openRegionPanel(r, recordIdx = r.records.length === 1 ? 0 : null, { fromHash = false } = {}) {
+  const wasOpen = isPanelOpen();
+  clearTimeout(panelHideTimer);
+  stopPanelVideo();
+  // 닫을 때 돌아갈 곳: 처음 연 시점의 포커스. 목록 버튼으로 바꿔 열었으면 그 버튼으로 갱신
+  if (!wasOpen || document.activeElement?.classList.contains('region-btn')) {
+    panelLastFocus = document.activeElement;
+  }
+  panelRegion = r;
+  panelRecordIdx = recordIdx;
+  renderPanel();
+  const record = recordIdx !== null ? r.records[recordIdx] : null;
+  if (!fromHash) setHash(record ? record.id : r.id);
+
+  panelEl.hidden = false;
+  viewMapEl.classList.add('dpanel-open');
+  if (!wasOpen) {
+    void panelEl.offsetWidth; // hidden 해제 직후 리플로우 → 슬라이드 전환이 실제로 재생된다
+    panelEl.classList.add('on');
+    // 데스크톱은 지도 컨테이너가 줄어들므로 전환이 끝난 뒤 크기를 다시 재고 위치를 맞춘다
+    setTimeout(() => {
+      map.invalidateSize({ pan: false });
+      ensureRegionVisible(r);
+    }, prefersReducedMotion() ? 0 : 360);
+    panelEl.focus({ preventScroll: true });
+  } else {
+    ensureRegionVisible(r);
+    panelEl.scrollTop = 0;
+  }
+}
+
+function closePanel({ keepHash = false } = {}) {
+  if (panelEl.hidden) return;
+  stopPanelVideo();
+  panelEl.classList.remove('on');
+  viewMapEl.classList.remove('dpanel-open');
+  setSelectedRegion(null);
+  if (!keepHash) setHash(null);
+  panelRegion = null;
+  const finish = () => {
+    panelEl.hidden = true;
+    map.invalidateSize({ pan: false });
+  };
+  panelHideTimer = setTimeout(finish, prefersReducedMotion() ? 0 : 360);
+  if (panelLastFocus && panelLastFocus.focus && document.contains(panelLastFocus)) panelLastFocus.focus();
+  else map.getContainer().focus();
+}
+
+function stepRegion(dir) {
+  if (!panelRegion) return;
+  const i = regions.indexOf(panelRegion);
+  const next = regions[(i + dir + regions.length) % regions.length];
+  selectRegion(next);
+}
+
+/* --- 패널 내용 --- */
+function panelVideoHtml(place) {
+  const vids = place.videos || [];
+  if (vids.length) {
+    const first = vids[0];
+    const angles =
+      vids.length > 1
+        ? `<div class="angles" role="group" aria-label="촬영 각도">${vids
+            .map((v, i) => `<button type="button" class="angle${i === 0 ? ' on' : ''}" data-angle="${i}" aria-pressed="${i === 0}">${esc(v.label)}</button>`)
+            .join('')}</div>`
+        : '';
+    return `
+      <div class="pv" style="--ar:${Number(first.ratio) || 0.75}">
+        <video id="panel-video" preload="metadata" playsinline controls ${first.poster ? `poster="${esc(first.poster)}"` : ''} src="${esc(first.src)}" aria-label="${esc(place.name)} 수어 영상 (${esc(first.label)})"></video>
+        <button type="button" class="pv-play" id="panel-play" aria-label="${esc(place.name)} 수어 영상 재생"><span class="pv-ico" aria-hidden="true"></span><span class="pv-txt">재생</span></button>
+        <p class="pv-err" id="panel-verr" hidden role="alert"></p>
+      </div>${angles}`;
+  }
+  if (place.video_youtube_id) {
+    return `<div class="pv pv-yt"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(place.video_youtube_id)}" title="${esc(place.name)} 수어 영상" allowfullscreen></iframe></div>`;
+  }
+  return `<div class="pv pv-none"><span>SIGN — COMING SOON<br>영상 준비 중</span></div>`;
+}
+
+function panelRecordHtml(place) {
+  // 5·18 등 민감한 기록은 오버레이와 같은 정책: 세션에서 열람을 확인하기 전까지 안내 문구만 보여준다
+  if (place.sensitive && !revealedSensitive.has(place.id)) {
+    return `
+      <div class="sensitive-gate">
+        <p class="section-text">${esc(place.sensitive_notice || '이 지점은 역사적으로 민감한 기록을 담고 있습니다. 계속 보시겠어요?')}</p>
+        <button type="button" id="panel-reveal">기록 보기</button>
+      </div>`;
+  }
+  const hasMemo = (place.memories && place.memories.length) || place.memory_text;
+  return `
+    ${panelVideoHtml(place)}
+    ${signPartsHtml(place)}
+    <p class="section-label">장소 기억</p>
+    ${hasMemo ? memoriesHtml(place) : '<p class="section-text pending">기록 준비 중</p>'}
+    ${(place.tags || []).length ? `<div class="tags">${place.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}`;
+}
+
+function renderPanel() {
+  const r = panelRegion;
+  panelEl.style.setProperty('--kc', r.color);
+  panelNameEl.textContent = r.name;
+  panelEnEl.textContent = r.en || '';
+  const i = regions.indexOf(r);
+  const prev = regions[(i - 1 + regions.length) % regions.length];
+  const next = regions[(i + 1) % regions.length];
+  document.getElementById('dp-prev').setAttribute('aria-label', `이전 지역: ${prev.name}`);
+  document.getElementById('dp-next').setAttribute('aria-label', `다음 지역: ${next.name}`);
+
+  let html = '';
+  if (!r.records.length) {
+    html = `<p class="dp-empty">아직 수집된 수어 기록이 없습니다.</p>
+            <p class="dp-meta">${esc(r.type)} 경계 · 기록이 모이면 이곳에 영상과 장소 기억이 실립니다.</p>`;
+  } else if (panelRecordIdx === null) {
+    html = `<p class="section-label">이 지역의 기록 ${r.records.length}개</p>
+      <div class="dp-list">${r.records
+        .map((pl, k) => `<button type="button" class="dp-rec" data-rec="${k}"><span>${esc(pl.name)}</span><small>${(pl.videos && pl.videos.length) || pl.video_youtube_id ? '영상' : '기록'}</small></button>`)
+        .join('')}</div>`;
+  } else {
+    const pl = r.records[panelRecordIdx];
+    html = panelRecordHtml(pl);
+    if (r.records.length > 1) html = `<button type="button" class="dp-back" id="dp-back">‹ 이 지역의 다른 기록</button>` + html;
+  }
+  panelBodyEl.innerHTML = html;
+
+  // 영상: 큰 재생 버튼 → 재생. 자동 재생은 하지 않는다.
+  const v = document.getElementById('panel-video');
+  const play = document.getElementById('panel-play');
+  const err = document.getElementById('panel-verr');
+  if (v && play) {
+    const showPlay = (on) => { play.hidden = !on; };
+    play.addEventListener('click', () => v.play().catch(() => {}));
+    v.addEventListener('playing', () => showPlay(false));
+    v.addEventListener('pause', () => showPlay(true));
+    v.addEventListener('ended', () => showPlay(true));
+    v.addEventListener('error', () => {
+      showPlay(false);
+      err.textContent = `영상을 불러오지 못했습니다 (${v.currentSrc ? v.currentSrc.split('/').pop() : '파일 없음'}).`;
+      err.hidden = false;
+    });
+    panelBodyEl.querySelectorAll('.angle').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const pl = r.records[panelRecordIdx];
+        const vid = pl.videos[Number(btn.dataset.angle)];
+        panelBodyEl.querySelectorAll('.angle').forEach((b) => {
+          b.classList.toggle('on', b === btn);
+          b.setAttribute('aria-pressed', String(b === btn));
+        });
+        v.pause();
+        if (vid.poster) v.poster = vid.poster;
+        v.src = vid.src;
+        v.setAttribute('aria-label', `${pl.name} 수어 영상 (${vid.label})`);
+        err.hidden = true;
+        showPlay(true);
+      });
+    });
+  }
+  document.getElementById('panel-reveal')?.addEventListener('click', () => {
+    revealedSensitive.add(r.records[panelRecordIdx].id);
+    renderPanel();
+  });
+  document.getElementById('dp-back')?.addEventListener('click', () => {
+    panelRecordIdx = null;
+    stopPanelVideo();
+    renderPanel();
+    setHash(r.id);
+  });
+  panelBodyEl.querySelectorAll('.dp-rec').forEach((b) => {
+    b.addEventListener('click', () => {
+      panelRecordIdx = Number(b.dataset.rec);
+      renderPanel();
+      setHash(r.records[panelRecordIdx].id);
+    });
+  });
+}
+
+function bindPanel() {
+  if (panelEl.dataset.bound) return;
+  panelEl.dataset.bound = '1';
+  document.getElementById('dp-close').addEventListener('click', () => closePanel());
+  document.getElementById('dp-prev').addEventListener('click', () => stepRegion(-1));
+  document.getElementById('dp-next').addEventListener('click', () => stepRegion(1));
+  // 메모 카드 펼치기 (오버레이와 같은 위임 방식)
+  panelBodyEl.addEventListener('click', (e) => {
+    const memo = e.target.closest('.memo.has-more');
+    if (memo) toggleMemo(memo);
+  });
+  panelBodyEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const memo = e.target.closest('.memo.has-more');
+    if (memo && e.target === memo) {
+      e.preventDefault();
+      toggleMemo(memo);
+    }
+  });
+  let rt = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(rt);
+    rt = setTimeout(() => map && map.invalidateSize({ pan: false }), 150);
+  });
+}
+
+const DONG_RECORDS = 'data/dong-records.json?v=20261015';
+let dongRecords = {}; // 경계 id → { name, en, records: [placeId...] }
+
 function loadRegions() {
-  return fetch(REGION_GEOJSON)
-    .then((res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
-    .then((geo) => {
+  const geoReq = fetch(REGION_GEOJSON).then((res) => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  });
+  // 연결표가 없으면 경계는 그리되 기록 없음으로 처리하고, 콘솔과 안내문으로 알린다
+  const recReq = fetch(DONG_RECORDS)
+    .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+    .then((d) => (d && d.regions ? d.regions : {}))
+    .catch((err) => {
+      console.error('지역-기록 연결표 로드 실패:', err);
+      showMapError('지역과 기록의 연결표(data/dong-records.json)를 불러오지 못해 경계만 표시합니다.');
+      return null;
+    });
+  return Promise.all([geoReq, recReq])
+    .then(([geo, rec]) => {
+      dongRecords = rec || {};
       if (!geo || geo.type !== 'FeatureCollection' || !Array.isArray(geo.features)) {
         throw new Error('FeatureCollection 형식이 아닙니다');
       }
@@ -680,15 +907,22 @@ function loadRegions() {
       feats.forEach((f, i) => {
         const props = f.properties || {};
         const id = props.id || `feature_${i}`;
-        if (!(id in REGION_PLACE)) throw new Error(`연결 정보가 없는 지역 ID: ${id}`);
-        const placeId = REGION_PLACE[id];
-        const place = placeId ? placeById.get(placeId) || null : null;
-        if (placeId && !place) throw new Error(`places.json에 없는 장소: ${placeId}`);
+        const entry = dongRecords[id];
+        if (rec && !entry) console.warn(`dong-records.json에 항목이 없는 지역: ${id} (${props.name}) — 기록 없음으로 표시`);
+        // 연결표의 기록 id 중 places.json에 실제로 있는 것만 쓴다. 없는 id는 다른 기록으로 대체하지 않는다.
+        const records = (entry?.records || []).map((pid) => {
+          const pl = placeById.get(pid);
+          if (!pl) console.error(`dong-records.json의 기록 id가 places.json에 없습니다: ${pid} (${props.name})`);
+          return pl || null;
+        }).filter(Boolean);
+        const place = records[0] || null;
         const layer = L.geoJSON(f, { interactive: false, style: () => ({}) });
         const r = {
           id,
-          name: props.name || place?.name || id,
+          name: props.name || entry?.name || id,
+          en: entry?.en || '',
           type: props.boundary_type || '',
+          records,
           place,
           color: place ? place._color : '#8B8A85',
           geom: f.geometry,
@@ -707,7 +941,9 @@ function loadRegions() {
       restackRegions();
       buildRegionList();
       bindRegionEvents();
-      mapErrorEl.hidden = true;
+      bindPanel();
+      if (rec) mapErrorEl.hidden = true;
+      applyHash();
       return true;
     })
     .catch((err) => {
@@ -726,6 +962,7 @@ fetch('data/places.json?v=20261014b')
     buildTrack(places);
     buildRuler(places);
     buildSignIndex(places);
+    if (location.hash.startsWith('#map/')) setView('map');
     syncRuler();
     document.getElementById('loader').classList.add('done');
   })
