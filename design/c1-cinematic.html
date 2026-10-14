@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DESIGN C-1 — CINEMATIC MAP · 손으로 부르는 광주</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<style>
+  /* ===== C-1 CINEMATIC: 어두운 영화적 지도 + 선택 지역 스포트라이트 + 큰 사진·타이포 + 반투명 패널 ===== */
+  :root { --bg:#070605; --ink:#F4F3EF; --muted:#A9A398; --brass:#D5AD6A; --gold:#F0C576; --panel-w:clamp(400px,36vw,560px); --ease:cubic-bezier(.22,1,.36,1); }
+  *{box-sizing:border-box} html,body{height:100%} body{margin:0;background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pretendard,sans-serif;font-weight:300;overflow:hidden;-webkit-font-smoothing:antialiased}
+  .noanim *{transition:none!important;animation:none!important}
+  #map{position:fixed;inset:0;background:var(--bg)}
+  /* 타일: 흑백 반전 + 따뜻한 틴트로 영화 톤, 도로 디테일을 눌러서 경계가 주인공이 되게 */
+  .leaflet-tile-pane{filter:grayscale(1) invert(.93) brightness(.58) contrast(1.12) sepia(.28)}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:360;background:radial-gradient(120% 90% at 40% 45%, transparent 45%, rgba(0,0,0,.55) 100%)}
+  .grain{position:fixed;inset:0;pointer-events:none;z-index:361;opacity:.07;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.9'/></svg>")}
+  .leaflet-container.hit{cursor:pointer}
+  .rg{transition:fill-opacity .3s,stroke-opacity .3s,stroke-width .3s}
+  .shade{transition:fill-opacity .5s}
+  .leaflet-tooltip.dlabel{background:none;border:0;box-shadow:none;padding:0;font:500 10.5px/1 'Pretendard Variable',sans-serif;letter-spacing:.14em;color:rgba(244,243,239,.6);text-shadow:0 0 6px #000;pointer-events:none}
+  .leaflet-tooltip.dlabel::before{display:none}
+  .leaflet-bar{border:0;box-shadow:none;border-radius:999px;overflow:hidden}.leaflet-bar a{background:rgba(10,10,10,.8);color:var(--ink);border-color:rgba(255,255,255,.12)}
+  .leaflet-control-attribution{background:rgba(0,0,0,.55);color:#888;font-size:10px}.leaflet-control-attribution a{color:#aaa}
+
+  /* 상단 크롬: 좌 로고/부제, 중앙 탐색 버튼 (참고 사이트의 알약 클러스터) */
+  .top{position:fixed;top:0;left:0;right:0;z-index:900;display:flex;align-items:center;justify-content:space-between;padding:22px 26px;pointer-events:none}
+  .top>*{pointer-events:auto}
+  .brand{font-size:11px;letter-spacing:.22em;color:var(--muted)}.brand b{display:block;color:var(--ink);font-weight:600;letter-spacing:.06em;font-size:13px;margin-bottom:4px}
+  .cluster{display:flex;gap:6px}
+  .pill{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 20px;border:0;border-radius:999px;background:#0A0A0A;color:var(--ink);font:500 12px/1 'Pretendard Variable',sans-serif;letter-spacing:.18em;cursor:pointer;box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
+  .pill:hover{background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.3) inset}.pill:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  .pill .plus{width:18px;height:18px;border-radius:50%;background:var(--ink);color:#000;display:grid;place-items:center;font-size:14px;font-weight:600}
+  body.panel-open .cluster{transform:translateX(calc(-1 * var(--panel-w) / 2))}
+  .cluster{position:absolute;left:50%;top:22px;transform:translateX(-50%);transition:transform .32s var(--ease)}
+
+  /* 지역 선택 메뉴: 지도 위에 떠 있는 작은 탐색 메뉴 */
+  .menu{position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:950;width:min(640px,calc(100% - 32px));padding:18px 18px 16px;border-radius:18px;background:rgba(8,8,8,.9);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1)}
+  body.panel-open .menu{transform:translateX(calc(-50% - var(--panel-w) / 2))}
+  .menu[hidden]{display:none}
+  .menu-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:10.5px;letter-spacing:.24em;color:var(--muted)}
+  .menu-head button{border:0;background:none;color:var(--ink);font:inherit;cursor:pointer;letter-spacing:.1em}
+  .menu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .menu-grid button{display:flex;align-items:center;gap:8px;padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:none;color:var(--ink);font:400 13px/1 'Pretendard Variable',sans-serif;cursor:pointer;text-align:left}
+  .menu-grid button small{font-size:9px;letter-spacing:.14em;color:var(--muted)}.menu-grid button span{flex:1}
+  .menu-grid button i{width:6px;height:6px;border-radius:50%}.menu-grid i.has{background:var(--gold);box-shadow:0 0 8px var(--gold)}.menu-grid i.no{border:1px solid var(--muted)}
+  .menu-grid button:hover,.menu-grid button.on{border-color:var(--gold)}.menu-grid button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  .tip{position:fixed;left:0;top:0;z-index:800;pointer-events:none;padding:6px 12px;border-radius:999px;background:rgba(8,8,8,.85);font-size:12px;color:var(--ink)}.tip[hidden]{display:none}
+  .err{position:fixed;top:90px;left:50%;transform:translateX(-50%);z-index:999;padding:12px 16px;border:1px solid #7A3B3B;background:#111;border-radius:10px;font-size:13px}.err[hidden]{display:none}
+
+  /* ---- LAYER 2: 지도 위 사진 카드 (지역 중심에 고정, 지시선으로 연결) ---- */
+  .art-wrap{background:none;border:0}
+  .art-card{position:absolute;left:0;top:0;width:var(--w);transform:translate(-100%,calc(-100% - 70px)) translateX(-40px);animation:artin .7s var(--ease) both}
+  @keyframes artin{from{opacity:0;transform:translate(-100%,calc(-100% - 50px)) translateX(-40px)}}
+  .art-img{position:relative;width:var(--w);height:var(--h);border-radius:14px;overflow:hidden;background:#141210;box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.12)}
+  .art-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .art-ph{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:16px;border:1px dashed rgba(244,243,239,.35);border-radius:14px;margin:10px;font-size:11px;line-height:1.7;letter-spacing:.12em;color:var(--muted);background:repeating-linear-gradient(135deg,rgba(255,255,255,.03) 0 10px,transparent 10px 20px)}
+  .art-ph b{display:block;color:var(--ink);font-weight:500;letter-spacing:.06em;font-size:12.5px}.art-ph small{letter-spacing:.06em;font-size:10px}
+  .art-card.ph .art-ph,.art-img.failed .art-ph{display:grid}.art-img.failed img{display:none}
+  .art-card figcaption{display:flex;justify-content:space-between;gap:10px;margin:10px 4px 0;font-size:10.5px;letter-spacing:.16em;color:var(--muted);white-space:nowrap}.art-no{color:var(--gold)}
+  .art-leader{position:absolute;left:calc(100% + 40px);top:calc(100% + 30px);width:1px;height:40px;background:var(--gold);transform-origin:top;transform:translateX(-1px) rotate(-30deg)}
+  .art-dot{position:absolute;left:calc(100% + 40px);top:calc(100% + 70px);width:8px;height:8px;margin:-4px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(240,197,118,.25)}
+  /* 지도 위 큰 지명 — 지역 남쪽 경계 아래, 반전 블렌드 */
+  .bigname-wrap{background:none;border:0}
+  .bigname{position:absolute;left:0;top:14px;transform:translateX(-50%);white-space:nowrap;text-align:center;color:#fff;mix-blend-mode:difference;animation:artin .9s var(--ease) both}
+  .bigname span{display:block;font-size:92px;font-weight:800;letter-spacing:-.05em;line-height:1}
+  .bigname small{display:block;margin-top:8px;font-size:11px;letter-spacing:.42em}
+
+  /* ---- LAYER 3: 반투명 패널 (지도가 비쳐 보여 한 화면처럼) ---- */
+  .panel{position:fixed;top:0;right:0;bottom:0;width:var(--panel-w);z-index:1000;overflow-y:auto;padding:0 32px 60px;background:linear-gradient(90deg,rgba(7,6,5,.72),rgba(7,6,5,.92) 30%);backdrop-filter:blur(18px);border-left:1px solid rgba(255,255,255,.08);transform:translateX(100%);transition:transform .32s var(--ease)}
+  .panel.on{transform:none}.panel[hidden]{display:none}
+  .p-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:22px 0 16px;background:linear-gradient(rgba(7,6,5,.95),transparent)}
+  .p-nav{display:flex;gap:10px}
+  .circ{width:48px;height:48px;border:0;border-radius:50%;background:var(--ink);color:#111;display:grid;place-items:center;cursor:pointer}.circ svg{width:20px;height:20px}.circ:hover{background:#fff}.circ:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  .p-kicker{margin:26px 0 10px;font-size:10.5px;letter-spacing:.3em;color:var(--brass)}
+  .p-title{display:flex;align-items:baseline;gap:14px;margin:0}
+  .p-title b{font-size:54px;font-weight:800;letter-spacing:-.04em;line-height:1}.p-title span{font-size:11px;letter-spacing:.2em;color:var(--muted)}
+  .p-idx{position:absolute;right:32px;top:92px;font-size:11px;letter-spacing:.2em;color:var(--muted)}
+  /* 세로 영상: 패널 중앙, 실제 비율 유지, 어두운 프레임 */
+  .vwrap{position:relative;width:min(100%,400px);aspect-ratio:var(--ar,.75);margin:26px auto 0;border-radius:18px;overflow:hidden;background:#0D0C0A;box-shadow:0 30px 60px rgba(0,0,0,.5)}
+  .vwrap video{width:100%;height:100%;object-fit:contain;display:block;background:#0D0C0A}
+  .vwrap.none{display:grid;place-items:center;text-align:center;font-size:10.5px;letter-spacing:.3em;line-height:2.4;color:var(--muted);aspect-ratio:.75}
+  .play{position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:12px;height:48px;padding:0 10px 0 22px;border:0;border-radius:999px;background:#0A0A0A;color:var(--ink);font:500 13.5px/1 'Pretendard Variable',sans-serif;cursor:pointer;box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+  .play i{width:28px;height:28px;border-radius:50%;background:var(--ink);position:relative}.play i::after{content:'';position:absolute;left:11px;top:8px;border-style:solid;border-width:6px 0 6px 9px;border-color:transparent transparent transparent #000}
+  .play[hidden]{display:none}.play:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:22px 0 0;padding:14px 0;border-top:1px solid rgba(255,255,255,.12);border-bottom:1px solid rgba(255,255,255,.12)}
+  .meta div{padding:0 12px;border-left:1px solid rgba(255,255,255,.12)}.meta div:first-child{border-left:0;padding-left:0}
+  .meta dt{font-size:9.5px;letter-spacing:.22em;color:var(--muted);margin-bottom:6px}.meta dd{margin:0;font-size:12px;letter-spacing:.04em}
+  h3{margin:30px 0 10px;font-size:10.5px;font-weight:500;letter-spacing:.28em;color:var(--muted)}
+  .parts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.part{padding:8px 16px;border:1px solid var(--gold);border-radius:999px;font-size:15px}.part.jamo{border-style:dashed}.parts i{color:var(--muted);font-style:normal}
+  .memo{padding:14px 16px;border:1px solid rgba(255,255,255,.12);border-radius:12px;margin-bottom:8px}.memo b{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-bottom:6px}.memo p{margin:0 0 8px;font-size:22px;font-weight:300}.memo small{font-size:10px;letter-spacing:.16em;color:var(--muted)}
+  .pending{color:var(--muted);font-size:14px}
+  .tags{display:flex;gap:6px;margin-top:26px}.tags span{padding:5px 12px;border:1px solid rgba(255,255,255,.15);border-radius:999px;font-size:11px;color:var(--muted)}
+  .pills{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);z-index:900;display:flex;gap:5px;transition:transform .32s var(--ease)}
+  body.panel-open .pills{transform:translateX(calc(-50% - var(--panel-w) / 2))}
+  .pills span{padding:9px 17px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(10,10,10,.55);backdrop-filter:blur(8px);font-size:12px;color:var(--muted)}.pills span.on{background:var(--ink);color:#000;font-weight:500}
+
+  @media (max-width:767px){
+    .top{padding:16px}.brand{display:none}.cluster{left:50%;top:16px}body.panel-open .cluster{transform:translateX(-50%)}
+    .menu{top:70px}.menu-grid{grid-template-columns:repeat(2,1fr)}body.panel-open .menu{transform:translateX(-50%)}
+    .bigname span{font-size:44px}.bigname small{font-size:9px}
+    .art-card{transform:translate(-50%,calc(-100% - 46px))}.art-leader{left:50%;top:100%;height:30px;transform:none}.art-dot{left:50%;top:calc(100% + 30px)}
+    .panel{top:auto;left:0;right:0;width:auto;height:56dvh;border-left:0;border-top:1px solid rgba(255,255,255,.12);border-radius:20px 20px 0 0;padding:0 18px calc(26px + env(safe-area-inset-bottom));transform:translateY(100%)}
+    .p-head{padding-top:14px}.circ{width:44px;height:44px}.p-title b{font-size:40px}.p-idx{right:18px;top:78px}
+    .vwrap{width:min(100%,300px)}.pills{display:none}body.panel-open .leaflet-bottom{bottom:56dvh}
+  }
+</style>
+</head>
+<body>
+  <div id="map"></div><div class="vignette"></div><div class="grain"></div>
+  <header class="top">
+    <div class="brand"><b>손으로 부르는 광주</b>GWANGJU SIGN LANGUAGE — INTERACTIVE ART MAP · DESIGN C-1 CINEMATIC</div>
+    <div class="cluster"><button type="button" class="pill" id="menu-btn" aria-expanded="false" aria-controls="menu">지역 선택 <span class="plus">+</span></button></div>
+    <div></div>
+  </header>
+  <nav class="menu" id="menu" hidden aria-label="지역 선택"><div class="menu-head"><span>EXPLORE PLACES — 동구 16</span><button type="button" id="menu-close">닫기 ✕</button></div><div class="menu-grid"></div></nav>
+  <div class="tip" id="tip" hidden></div><div class="err" id="err" hidden role="alert"></div>
+  <aside class="panel" id="panel" hidden aria-label="선택한 지역의 수어 기록">
+    <header class="p-head"><div class="p-nav"><button type="button" class="circ" id="p-prev" aria-label="이전 기록"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" class="circ" id="p-next" aria-label="다음 기록"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><button type="button" class="circ" id="p-close" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></header>
+    <p class="p-kicker">광주 동구 수어 지명 기록</p><span class="p-idx">GSL® / <b id="p-idx"></b></span>
+    <h2 class="p-title"><b id="p-name"></b><span id="p-en"></span></h2>
+    <div id="panel-body"></div>
+  </aside>
+  <nav class="pills" aria-hidden="true"><span>아카이브</span><span class="on">지도</span><span>소개</span></nav>
+<script>window.CONCEPT = { id:'c1', spotlight:true, bigNameOnMap:true, photoSize:[320,220], selectZoomMax:15 };</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="concept.js"></script>
+</body>
+</html>
