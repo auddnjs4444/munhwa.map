@@ -122,6 +122,52 @@ function buildSignIndex(places) {
   });
 }
 
+/* ---------- 장소 기억: 팀 수첩 메모 카드 (places.json 의 memories) ---------- */
+const esc = (v) =>
+  String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function memoriesHtml(place) {
+  const memos = place.memories || [];
+  if (!memos.length) {
+    return `<p class="section-text">${esc(place.memory_text) || '(아직 수집되지 않음)'}</p>`;
+  }
+  const cards = memos
+    .map((m, i) => {
+      const more = m.story || m.note;
+      const detail = more
+        ? `<div class="memo-more">${m.story ? `<p class="memo-story">${esc(m.story)}</p>` : ''}${m.note ? `<p class="memo-note">${esc(m.note)}</p>` : ''}</div>`
+        : '';
+      return `
+      <article class="memo${more ? ' has-more' : ''}" data-by="${esc(m.by)}" style="--d:${(i * 0.12).toFixed(2)}s"${more ? ' role="button" tabindex="0" aria-expanded="false"' : ''}>
+        <header class="memo-head"><span class="memo-spot">${esc(m.spot)}</span><span class="memo-by">${esc(m.by)} · ${esc(m.years)}</span></header>
+        <p class="memo-hand">${esc(m.hand)}</p>
+        <p class="memo-src">팀 수첩에서 · ${esc(m.by)}님 · 광주 ${esc(m.years)}년</p>
+        ${detail}
+      </article>`;
+    })
+    .join('');
+  const extra = place.memory_text ? `<p class="section-text">${esc(place.memory_text)}</p>` : '';
+  return `<div class="memos">${cards}</div>${extra}`;
+}
+
+// 펼치기/접기 — detail 영역은 매번 innerHTML로 새로 그려지므로 위임으로 한 번만 건다
+function toggleMemo(memo) {
+  const open = memo.classList.toggle('open');
+  memo.setAttribute('aria-expanded', String(open));
+}
+detailEl.addEventListener('click', (e) => {
+  const memo = e.target.closest('.memo.has-more');
+  if (memo && detailEl.contains(memo)) toggleMemo(memo);
+});
+detailEl.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const memo = e.target.closest('.memo.has-more');
+  if (memo && e.target === memo) {
+    e.preventDefault();
+    toggleMemo(memo);
+  }
+});
+
 function renderPlace(place) {
   // 5·18 등 민감한 지점은 자문 확보 여부와 무관하게 항상 안내 문구를 먼저 보여준다.
   // 이 게이트 로직은 임의로 지우지 말 것 — 윤리 원칙(사업제안서 XI장) 참고.
@@ -145,10 +191,8 @@ function renderPlace(place) {
     <h2>${place.name}</h2>
     ${videoBoxHtml(place)}
     ${signPartsHtml(place)}
-    <p class="section-label">수어 이름의 유래</p>
-    <p class="section-text">${place.origin_text || '(아직 수집되지 않음)'}</p>
     <p class="section-label">장소 기억</p>
-    <p class="section-text">${place.memory_text || '(아직 수집되지 않음)'}</p>
+    ${memoriesHtml(place)}
     <div class="tags">
       ${(place.tags || []).map((t) => `<span class="tag">${t}</span>`).join('')}
     </div>`;

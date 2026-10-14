@@ -8,6 +8,7 @@
 <title>손으로 부르는 광주 — 수어 지도</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
 <style>
   :root {
     --bg: #050505;
@@ -361,6 +362,69 @@
   .plus { font-size: 14px; font-weight: 200; color: var(--muted); }
   .parts-note { margin: 10px 0 0; font-size: 12px; font-weight: 300; color: var(--muted); }
 
+  /* ---------- 장소 기억: 팀 수첩 메모 카드 ---------- */
+  .memos { display: flex; flex-wrap: wrap; gap: 10px; max-width: 62ch; }
+  .memo {
+    --pc: var(--muted);
+    position: relative;
+    flex: 1 1 240px;
+    min-width: 0;
+    padding: 13px 16px;
+    background: #0B0B0A;
+    border: 1px solid var(--line);
+    transition: border-color .2s;
+  }
+  .memo[data-by="A"] { --pc: #FFC53D; }
+  .memo[data-by="B"] { --pc: #3DD6C6; }
+  .memo.has-more { cursor: pointer; padding-right: 36px; }
+  .memo.has-more::after {
+    content: '+';
+    position: absolute;
+    top: 9px; right: 13px;
+    font-size: 17px;
+    font-weight: 200;
+    color: var(--muted);
+    line-height: 1;
+  }
+  .memo.has-more.open::after { content: '–'; }
+  .memo.has-more.open { border-color: var(--pc); }
+  .memo.has-more:hover { border-color: #444; }
+  .memo.has-more.open:hover { border-color: var(--pc); }
+  .memo:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
+  .memo-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .memo-by { color: var(--pc); font-weight: 500; letter-spacing: 0.1em; white-space: nowrap; }
+  .memo-hand {
+    margin: 6px 0 4px;
+    font-family: 'Nanum Pen Script', 'Pretendard Variable', cursive;
+    font-size: 27px;
+    line-height: 1.25;
+    color: var(--ink);
+    word-break: keep-all;
+    clip-path: inset(0 100% 0 0);
+    animation: handwrite 0.9s ease-out forwards;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes handwrite { to { clip-path: inset(0 0 0 0); } }
+  .memo-src {
+    margin: 0;
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+  }
+  .memo-more { display: none; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .memo.open .memo-more { display: block; }
+  .memo-story { margin: 0 0 6px; font-size: 13.5px; font-weight: 300; line-height: 1.75; color: #CFCEC8; }
+  .memo-note { margin: 0; font-size: 12.5px; font-weight: 300; line-height: 1.7; color: var(--muted); }
+
   .sign-index-wrap { margin-top: 56px; }
   .si-label { font-size: 9.5px; font-weight: 500; letter-spacing: 0.3em; color: var(--muted); margin: 0 0 12px; }
   .about-inner p.si-desc { font-size: 13px; color: var(--muted); margin: 0 0 20px; }
@@ -536,6 +600,9 @@
     .video-box.has-video ~ .section-label:first-of-type { margin-top: 0; }
     .video-box.has-video ~ .section-label,
     .video-box.has-video ~ .section-text,
+    .video-box.has-video ~ .parts,
+    .video-box.has-video ~ .parts-note,
+    .video-box.has-video ~ .memos,
     .video-box.has-video ~ .tags { overflow: hidden; }
   }
 
