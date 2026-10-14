@@ -130,9 +130,42 @@ function buildSignIndex(places) {
 const esc = (v) =>
   String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// 인터뷰 장소 기억(memory_entries): 제목·부제·장소·참여자·본문(문단)·기억의 한마디.
+// 메모 카드와 같은 .memo.has-more 구조라 펼치기/접기 위임 처리를 그대로 쓴다.
+function storyEntriesHtml(place) {
+  const entries = place.memory_entries || [];
+  if (!entries.length) return '';
+  const items = entries
+    .map((e, i) => {
+      const n = e.narrator || {};
+      const who = [n.name, n.identity, n.origin, n.years].filter(Boolean).map(esc).join(' · ');
+      const paras = String(e.text || '')
+        .split(/\n\s*\n/)
+        .map((t) => `<p>${esc(t.trim())}</p>`)
+        .join('');
+      const open = entries.length === 1; // 하나뿐이면 바로 읽을 수 있게 펼쳐 둔다
+      return `
+      <article class="memo has-more story${open ? ' open' : ''}" role="button" tabindex="0" aria-expanded="${open}">
+        <header class="memo-head"><span class="memo-spot">${String(i + 1).padStart(2, '0')} · ${esc(e.location)}</span><span class="story-who">인터뷰 · ${esc(n.name || '')}</span></header>
+        <h4 class="story-title">${esc(e.title)}</h4>
+        ${e.subtitle ? `<p class="story-sub">${esc(e.subtitle)}</p>` : ''}
+        <div class="memo-more">
+          <p class="story-narrator">인터뷰 참여자 — ${who}</p>
+          <div class="story-text">${paras}</div>
+          ${e.quote ? `<blockquote class="story-quote">“${esc(e.quote)}”</blockquote>` : ''}
+          ${(e.tags || []).length ? `<p class="story-tags">${e.tags.map((t) => `#${esc(t)}`).join(' ')}</p>` : ''}
+        </div>
+      </article>`;
+    })
+    .join('');
+  return `<div class="stories">${items}</div>`;
+}
+
 function memoriesHtml(place) {
   const memos = place.memories || [];
+  const stories = storyEntriesHtml(place);
   if (!memos.length) {
+    if (stories) return stories + (place.memory_text ? `<p class="section-text">${esc(place.memory_text)}</p>` : '');
     return `<p class="section-text">${esc(place.memory_text) || '(아직 수집되지 않음)'}</p>`;
   }
   const cards = memos
@@ -151,7 +184,7 @@ function memoriesHtml(place) {
     })
     .join('');
   const extra = place.memory_text ? `<p class="section-text">${esc(place.memory_text)}</p>` : '';
-  return `<div class="memos">${cards}</div>${extra}`;
+  return `<div class="memos">${cards}</div>${stories}${extra}`;
 }
 
 // 펼치기/접기 — detail 영역은 매번 innerHTML로 새로 그려지므로 위임으로 한 번만 건다
@@ -161,7 +194,9 @@ function toggleMemo(memo) {
 }
 detailEl.addEventListener('click', (e) => {
   const memo = e.target.closest('.memo.has-more');
-  if (memo && detailEl.contains(memo)) toggleMemo(memo);
+  if (!memo || !detailEl.contains(memo)) return;
+  if (memo.classList.contains('story') && memo.classList.contains('open') && e.target.closest('.memo-more')) return; // 펼친 본문 클릭은 접지 않음
+  toggleMemo(memo);
 });
 detailEl.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -1065,7 +1100,7 @@ function loadRegions() {
 }
 
 /* ---------- 데이터 로드 ---------- */
-fetch('data/places.json?v=20261014b')
+fetch('data/places.json?v=20261015a')
   .then((res) => res.json())
   .then((places) => {
     placesData = places;
