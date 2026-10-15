@@ -57,7 +57,6 @@
         "mudeung-gallery",
         "ewha-gallery",
         "geumnam-park",
-        "sillakwon",
         "yehyang",
         "ppyeodae",
         "sajik-park",
@@ -168,13 +167,12 @@
       "id": "palace-bakery",
       "name": "궁전제과 충장로 본점",
       "address": "광주광역시 동구 충장로 93-6",
-      "address_note": "카카오맵 장소 검색 기준(상호 표기는 '궁전제과 충장점'). 사용자 원자료의 '정확한 주소 확인 필요'를 대신 채웠으므로 확인 바람",
       "geo": {
         "lat": 35.1477242,
         "lng": 126.9176286,
         "precision": "building",
         "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
-        "note": "장소명 검색 '궁전제과 충장점' 주소 충장로 93-6(지번 충장로1가 1-9)"
+        "note": "카카오맵 장소 검색 '궁전제과 충장점'(지번 충장로1가 1-9), 사용자 확인(2026-10-16)"
       }
     },
     {
@@ -245,18 +243,6 @@
         "precision": "poi",
         "source": "OSM Nominatim 주소 검색 (2026-10-15)",
         "note": "OSM 상호명 검색(금남로공원)"
-      }
-    },
-    {
-      "id": "sillakwon",
-      "name": "신락원",
-      "address": "광주광역시 동구 충장로 45-5",
-      "geo": {
-        "lat": 35.1505587,
-        "lng": 126.9133018,
-        "precision": "building",
-        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
-        "note": "주소는 검색됨(지번 충장로5가 42)이나 해당 주소의 장소 목록에 '신락원'이 나오지 않음 — 상호·주소 재확인 필요"
       }
     },
     {
