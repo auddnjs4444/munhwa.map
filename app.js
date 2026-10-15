@@ -401,6 +401,7 @@ function initMap() {
     if (bounds && bounds.isValid()) {
       map.fitBounds(bounds, { padding: ok ? [40, 40] : [70, 70], maxZoom: 14, animate: false });
     }
+    initSpots();
   });
 }
 
@@ -640,7 +641,7 @@ function bindRegionEvents() {
 
   if (canHover) {
     map.on('mousemove', (e) => {
-      if (chooserPopup) return;
+      if (chooserPopup || mapMode !== 'signs') return;
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const hits = regionsAt(e.latlng);
@@ -664,6 +665,7 @@ function bindRegionEvents() {
   }
 
   map.on('click', (e) => {
+    if (mapMode !== 'signs') return;
     if (chooserPopup) {
       map.closePopup();
       return;
@@ -702,12 +704,15 @@ const navItems = () => [
   ...pinPlaces().map((place) => ({ kind: 'place', place })),
 ];
 const sameItem = (a, b) => a && b && a.kind === b.kind && (a.region || a.place) === (b.region || b.place);
-const itemRecords = (it) => (it.kind === 'region' ? it.region.records : [it.place]);
-const itemName = (it) => (it.kind === 'region' ? it.region.name : it.place.name);
-const itemEn = (it) => (it.kind === 'region' ? it.region.en : placesEn[it.place.id] || '');
-const itemId = (it) => (it.kind === 'region' ? it.region.id : it.place.id);
-const itemBounds = (it) =>
-  it.kind === 'region' ? it.region.bounds : L.latLngBounds([[it.place.lat, it.place.lng]]);
+const itemRecords = (it) => (it.kind === 'region' ? it.region.records : it.kind === 'spot' ? [] : [it.place]);
+const itemName = (it) => (it.kind === 'region' ? it.region.name : it.kind === 'spot' ? (spotState?.place || spotState?.hub)?.name || '' : it.place.name);
+const itemEn = (it) => (it.kind === 'region' ? it.region.en : it.kind === 'spot' ? '' : placesEn[it.place.id] || '');
+const itemId = (it) => (it.kind === 'region' ? it.region.id : it.kind === 'spot' ? spotState?.hub.id : it.place.id);
+const itemBounds = (it) => {
+  if (it.kind === 'region') return it.region.bounds;
+  if (it.kind === 'spot') { const s = spotState?.place || spotState?.hub; return L.latLngBounds([[s.geo.lat || 0, s.geo.lng || 0]]); }
+  return L.latLngBounds([[it.place.lat, it.place.lng]]);
+};
 
 function stopPanelVideo() {
   const v = document.getElementById('panel-video');
@@ -728,6 +733,7 @@ function itemInView(it) {
   return nw.x - pad >= 0 && nw.y - pad >= 0 && se.x + pad <= size.x && se.y + pad <= h;
 }
 function ensureItemVisible(it) {
+  if (it.kind === 'spot') return; // 거점·주변 장소는 spots.js가 카메라를 맡는다
   if (itemInView(it)) return;
   const animate = !prefersReducedMotion();
   if (it.kind === 'place') {
@@ -740,13 +746,15 @@ function ensureItemVisible(it) {
 }
 
 function setHash(id) {
-  const next = id ? `#map/${id}` : '';
+  // 'spot/…'는 장소 둘러보기 해시, 그 외는 지명 수어 해시
+  const next = id ? (String(id).startsWith('spot/') ? `#${id}` : `#map/${id}`) : '';
   if (location.hash === next) return;
   history.replaceState(null, '', next || location.pathname + location.search);
 }
 function applyHash() {
   const m = location.hash.match(/^#map\/([\w-]+)/);
   if (!m || !regions.length) return;
+  if (mapMode !== 'signs') setMapMode('signs');
   const id = m[1];
   const region =
     regions.find((x) => x.id === id) || regions.find((x) => x.records.some((pl) => pl.id === id));
@@ -764,7 +772,8 @@ function applyHash() {
 }
 window.addEventListener('hashchange', () => {
   if (!regions.length) return;
-  if (location.hash.startsWith('#map/')) applyHash();
+  if (location.hash.startsWith('#spot/')) { applySpotHash(); return; }
+  if (location.hash.startsWith('#map/')) { if (mapMode !== 'signs') setMapMode('signs'); applyHash(); }
   else if (isPanelOpen()) closePanel({ keepHash: true });
 });
 
@@ -819,6 +828,7 @@ function closePanel({ keepHash = false } = {}) {
   setSelectedRegion(null);
   setActiveMarker(null);
   if (!keepHash) setHash(null);
+  if (panelItem && panelItem.kind === 'spot' && typeof markSelected === 'function') { spotState = null; markSelected(); }
   panelItem = null;
   panelHideTimer = setTimeout(() => {
     panelEl.hidden = true;
@@ -830,6 +840,7 @@ function closePanel({ keepHash = false } = {}) {
 
 function stepItem(dir) {
   if (!panelItem) return;
+  if (panelItem.kind === 'spot') { stepSpot(dir); return; }
   const items = navItems();
   const i = items.findIndex((x) => sameItem(x, panelItem));
   const next = items[(i + dir + items.length) % items.length];
@@ -891,6 +902,7 @@ function panelRecordHtml(place) {
 
 function renderPanel() {
   const it = panelItem;
+  if (it.kind === 'spot') { renderSpotPanel(); return; }
   const records = itemRecords(it);
   panelNameEl.textContent = itemName(it);
   panelEnEl.textContent = itemEn(it);
@@ -1089,7 +1101,7 @@ function loadRegions() {
       bindRegionEvents();
       bindPanel();
       if (rec) mapErrorEl.hidden = true;
-      applyHash();
+      if (location.hash.startsWith('#map/')) applyHash();
       return true;
     })
     .catch((err) => {
@@ -1108,7 +1120,7 @@ fetch('data/places.json?v=20261015a')
     buildTrack(places);
     buildRuler(places);
     buildSignIndex(places);
-    if (location.hash.startsWith('#map/')) setView('map');
+    if (location.hash.startsWith('#map/') || location.hash.startsWith('#spot/')) setView('map');
     syncRuler();
     document.getElementById('loader').classList.add('done');
   })

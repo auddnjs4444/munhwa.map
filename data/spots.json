@@ -1,0 +1,310 @@
+{
+  "_doc": "거점(hubs)과 주변 장소(places). 좌표 precision: poi=지도 데이터의 해당 장소 지점, building=해당 번지 건물, street=도로 기준 근사치(핀 보류 또는 확인 중 표시), none=미확인. 사진은 photo에 경로를 넣으면 표시됩니다.",
+  "hubs": [
+    {
+      "id": "hosijeong",
+      "name": "카페 호시정",
+      "short": "호시정",
+      "address": "광주광역시 동구 동계천로 137-9 1층",
+      "explore": true,
+      "sign_place": "dongmyeong-dong",
+      "geo": {
+        "lat": 35.1497444,
+        "lng": 126.9248389,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '카페호시정' 일치(지번 동명동 154-17)"
+      },
+      "intro": "젊은 농인들이 자주 모이는 장소 중 하나로 추천받았어요.",
+      "intro_note": "인터뷰 내용 요약",
+      "contact": null,
+      "photo": null,
+      "nearby": [
+        "zip",
+        "ebre",
+        "lateam",
+        "catchs",
+        "acc",
+        "chirun"
+      ]
+    },
+    {
+      "id": "canmore",
+      "name": "충장로 캔모아",
+      "short": "캔모아",
+      "address": "광주광역시 동구 중앙로 172",
+      "explore": true,
+      "sign_place": "chungjang-ro",
+      "geo": {
+        "lat": 35.1489982,
+        "lng": 126.9142779,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과(지번 충장로3가 32-3), OSM 건물과 2 m 차이"
+      },
+      "intro": "인터뷰에서 농인들이 자주 모이는 장소로 소개됐어요.",
+      "intro_note": "인터뷰 내용 요약",
+      "contact": {
+        "text": "매장에 전화로 확인했어요. 수어 응대는 하지 않지만, 농인 손님과 필담으로 소통한다고 해요.",
+        "checked_on": "2026년 10월 9일"
+      },
+      "photo": null,
+      "nearby": [
+        "palace-bakery",
+        "chungjang-house",
+        "1215",
+        "518-archives",
+        "mudeung-gallery",
+        "ewha-gallery",
+        "geumnam-park",
+        "sillakwon",
+        "yehyang",
+        "ppyeodae",
+        "sajik-park",
+        "gwangju-park"
+      ]
+    },
+    {
+      "id": "antioch",
+      "name": "안디옥교회",
+      "short": "안디옥교회",
+      "address": "광주광역시 서구 마륵복개로 188",
+      "explore": false,
+      "sign_place": null,
+      "geo": {
+        "lat": 35.145972,
+        "lng": 126.8559222,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '광주안디옥교회' 일치(지번 쌍촌동 888-2)"
+      },
+      "intro": null,
+      "pending_note": "일반 방문 가능 여부를 확인하고 있어요.",
+      "contact": null,
+      "photo": null,
+      "nearby": []
+    }
+  ],
+  "places": [
+    {
+      "id": "zip",
+      "name": "여행자의 집(ZIP)",
+      "address": "광주광역시 동구 동계천로 137-17",
+      "geo": {
+        "lat": 35.149914,
+        "lng": 126.9251328,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '여행자의zip' 일치(지번 동명동 154-67)"
+      }
+    },
+    {
+      "id": "ebre",
+      "name": "에브르인테라스",
+      "address": "광주광역시 동구 제봉로110번길 1",
+      "geo": {
+        "lat": 35.1484519,
+        "lng": 126.9221799,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '에브르인테라스' 일치(지번 장동 98-3)"
+      }
+    },
+    {
+      "id": "lateam",
+      "name": "레이트 에이엠",
+      "address": "광주광역시 동구 제봉로98번길 11 1층",
+      "geo": {
+        "lat": 35.1475943,
+        "lng": 126.9229445,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '레이트에이엠' 일치(지번 장동 101-47)"
+      }
+    },
+    {
+      "id": "catchs",
+      "name": "캐치스피자",
+      "address": "광주광역시 동구 동명로 3",
+      "geo": {
+        "lat": 35.1498725,
+        "lng": 126.92224,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '캐치스피자 동명동1호점' 일치(지번 장동 58-15)"
+      }
+    },
+    {
+      "id": "acc",
+      "name": "국립아시아문화전당",
+      "address": "광주광역시 동구 문화전당로 38",
+      "geo": {
+        "lat": 35.1470588,
+        "lng": 126.9200303,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '국립아시아문화전당' 일치"
+      },
+      "related": [
+        {
+          "name": "진정성",
+          "note": "문화전당 안에 있는 곳으로 함께 소개할 예정이에요. 정확한 위치와 운영 여부는 확인 중입니다."
+        }
+      ]
+    },
+    {
+      "id": "chirun",
+      "name": "치른시빌",
+      "address": "광주광역시 동구 서석로85번길 10 1층",
+      "geo": {
+        "lat": 35.1501306,
+        "lng": 126.9199834,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '치른시빌' 일치(지번 대의동 8-1)"
+      }
+    },
+    {
+      "id": "palace-bakery",
+      "name": "궁전제과 충장로 본점",
+      "address": "광주광역시 동구 충장로 93-6",
+      "address_note": "카카오맵 장소 검색 기준(상호 표기는 '궁전제과 충장점'). 사용자 원자료의 '정확한 주소 확인 필요'를 대신 채웠으므로 확인 바람",
+      "geo": {
+        "lat": 35.1477242,
+        "lng": 126.9176286,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "장소명 검색 '궁전제과 충장점' 주소 충장로 93-6(지번 충장로1가 1-9)"
+      }
+    },
+    {
+      "id": "chungjang-house",
+      "name": "충장의 집",
+      "address": "광주광역시 동구 충장로 65 1층",
+      "geo": {
+        "lat": 35.1494211,
+        "lng": 126.9149019,
+        "precision": "building",
+        "source": "OSM Nominatim 주소 검색 (2026-10-15)"
+      }
+    },
+    {
+      "id": "1215",
+      "name": "일이일오",
+      "address": "광주광역시 동구 금남로 236 아송빌딩 1층",
+      "geo": {
+        "lat": 35.1484753,
+        "lng": 126.9175493,
+        "precision": "building",
+        "source": "OSM Nominatim 주소 검색 (2026-10-15)"
+      }
+    },
+    {
+      "id": "518-archives",
+      "name": "5·18민주화운동기록관",
+      "address": "광주광역시 동구 금남로 221",
+      "geo": {
+        "lat": 35.1495588,
+        "lng": 126.9167619,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '5.18민주화운동기록관' 일치"
+      }
+    },
+    {
+      "id": "mudeung-gallery",
+      "name": "무등갤러리",
+      "address": "광주광역시 동구 예술길 18-1 1층",
+      "geo": {
+        "lat": 35.150156,
+        "lng": 126.918185,
+        "precision": "poi",
+        "source": "OSM Nominatim 주소 검색 (2026-10-15)",
+        "note": "OSM 상호명 검색(무등갤러리)"
+      }
+    },
+    {
+      "id": "ewha-gallery",
+      "name": "이화갤러리",
+      "address": "광주광역시 동구 예술길 19-2",
+      "geo": {
+        "lat": 35.1502524,
+        "lng": 126.9187103,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '이화갤러리' 일치(지번 궁동 35-1)"
+      }
+    },
+    {
+      "id": "geumnam-park",
+      "name": "금남로공원",
+      "address": "광주광역시 동구 금남로3가 20-2",
+      "geo": {
+        "lat": 35.149457,
+        "lng": 126.915578,
+        "precision": "poi",
+        "source": "OSM Nominatim 주소 검색 (2026-10-15)",
+        "note": "OSM 상호명 검색(금남로공원)"
+      }
+    },
+    {
+      "id": "sillakwon",
+      "name": "신락원",
+      "address": "광주광역시 동구 충장로 45-5",
+      "geo": {
+        "lat": 35.1505587,
+        "lng": 126.9133018,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소는 검색됨(지번 충장로5가 42)이나 해당 주소의 장소 목록에 '신락원'이 나오지 않음 — 상호·주소 재확인 필요"
+      }
+    },
+    {
+      "id": "yehyang",
+      "name": "예향식당",
+      "address": "광주광역시 동구 중앙로 150-4 1층",
+      "geo": {
+        "lat": 35.1474573,
+        "lng": 126.9126535,
+        "precision": "poi",
+        "source": "OSM Nominatim 주소 검색 (2026-10-15)"
+      }
+    },
+    {
+      "id": "ppyeodae",
+      "name": "뼈대있는집 충장점",
+      "address": "광주광역시 동구 충장로 97-2 1층",
+      "geo": {
+        "lat": 35.14756,
+        "lng": 126.917687,
+        "precision": "building",
+        "source": "OSM Photon 주소 검색 (2026-10-15)",
+        "note": "충장로 97 건물 기준"
+      }
+    },
+    {
+      "id": "sajik-park",
+      "name": "사직공원",
+      "address": "광주광역시 남구 사직길 49",
+      "geo": {
+        "lat": 35.1426672,
+        "lng": 126.9148484,
+        "precision": "poi",
+        "source": "OSM Nominatim 주소 검색 (2026-10-15)",
+        "note": "사직공원 양파정 지점"
+      }
+    },
+    {
+      "id": "gwangju-park",
+      "name": "광주공원",
+      "address": "광주광역시 남구 중앙로107번길 15",
+      "geo": {
+        "lat": 35.147036,
+        "lng": 126.909536,
+        "precision": "poi",
+        "source": "OSM Nominatim 주소 검색 (2026-10-15)",
+        "note": "OSM 상호명 검색(광주공원)"
+      }
+    }
+  ]
+}

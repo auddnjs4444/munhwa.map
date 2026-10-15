@@ -110,6 +110,15 @@ Node가 편하면 `npx serve .` 도 됩니다.
 - 경계 밖 장소(무등산·양림동·5·18민주광장)는 전처럼 핀으로 표시되고, 전체 화면 기록으로 열립니다.
 - `#map/gyerim-dong`처럼 주소에 기록 id를 붙이면 그 기록이 열린 상태로 시작합니다.
 
+## 장소 둘러보기 (거점과 주변 장소) — `data/spots.json`
+
+지도 화면은 **장소 둘러보기**(기본)와 **지명 수어**(동 경계·동 목록·수어 영상) 두 보기로 전환합니다. 장소 둘러보기의 거점 3곳과 주변 장소는 `data/spots.json`에서 관리합니다.
+
+- `hubs[]` — 거점. `explore: true`면 '주변 둘러보기' 버튼이 생기고 `nearby[]`의 id가 작은 핀과 목록으로 나옵니다. `intro`(소개), `contact`(확인한 소통 정보 + 확인일), `pending_note`(안내문), `photo`(사진 경로, 없으면 영역 생략), `sign_place`(지명 수어의 장소 id, 정확히 대응될 때만).
+- `places[]` — 주변 장소. `address`, `geo{lat,lng,precision,source,note}`, `related[]`(함께 소개할 곳), `photo`.
+- `geo.precision`이 `poi`/`building`일 때만 지도에 핀을 찍습니다. 좌표가 없으면 목록에 **위치 확인 중**으로 남습니다. 좌표 출처는 `geo.source`/`geo.note`에 남깁니다.
+- 주소는 `#spot/<거점id>`, `#spot/<거점id>/nearby`, `#spot/<거점id>/<장소id>`로 복원됩니다.
+
 ## 5·18 관련 지점 — 건드리지 말 것
 
 `sensitive: true`인 항목은 카드가 바로 열리지 않고 안내 문구 + 버튼을 먼저 보여줍니다.
