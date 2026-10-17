@@ -320,7 +320,13 @@ function renderSpotPanel() {
       <div class="sp-secondary">
         <button type="button" class="sp-link" id="sp-all">전체 거점 보기</button>
         ${hub.sign_place && placesData.some((p) => p.id === hub.sign_place) ? `<button type="button" class="sp-link" id="sp-sign" data-place="${esc(hub.sign_place)}">이 동네 지명 수어 보기 ›</button>` : ''}
-      </div>`;
+      </div>
+      ${typeof hasStory === 'function' && hasStory(hub.id) ? `
+      <button type="button" class="sp-memory" id="sp-memory" aria-label="장소 기억 — ${esc(hub.name)}의 이야기 읽기">
+        <span class="sp-memory-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M13.5 8.5l3 3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 21h16" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".55"/></svg></span>
+        <span class="sp-memory-text">장소 기억</span>
+        <span class="sp-memory-line" aria-hidden="true"></span>
+      </button>` : ''}`;
   } else if (level === 'list') {
     const items = hubNearby(hub)
       .map((p) => `<li><button type="button" class="sp-row${hasPin(p) ? '' : ' nopin'}" data-place="${esc(p.id)}"><span class="sp-no" aria-hidden="true">${nearbyNo(hub, p)}</span><span class="sp-row-text"><span class="sp-row-name">${esc(p.name)}</span><span class="sp-row-addr">${esc(p.address || '')}${hasPin(p) ? '' : ' · 위치 확인 중'}</span></span></button></li>`)
@@ -346,6 +352,11 @@ function renderSpotPanel() {
   }
   panelBodyEl.innerHTML = html;
   document.getElementById('sp-explore')?.addEventListener('click', () => openNearbyList(hub));
+  document.getElementById('sp-memory')?.addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    btn.classList.add('pressed');
+    setTimeout(() => openStory(hub.id, { trigger: btn }), spotAnim() ? 160 : 0);
+  });
   document.querySelectorAll('#sp-all').forEach((b) => b.addEventListener('click', showAllHubs));
   document.getElementById('sp-back-hub')?.addEventListener('click', () => openHub(hub));
   document.getElementById('sp-back-list')?.addEventListener('click', () => openNearbyList(hub));
@@ -375,6 +386,11 @@ function applySpotHash() {
   setMapMode('spots');
   if (!m[2]) openHub(hub, { fromHash: true });
   else if (m[2] === 'nearby') openNearbyList(hub, { fromHash: true });
+  else if (m[2] === 'story') {
+    openHub(hub, { fromHash: true });
+    if (typeof openStory === 'function' && hasStory(hub.id)) { if (!storyIsOpen()) openStory(hub.id, { fromHash: true }); }
+    else history.replaceState(null, '', `#spot/${hub.id}`); // 이야기가 없는 거점: /story 꼬리만 걷어낸다
+  }
   else {
     const p = placeById(m[2]);
     if (p && hub.nearby.includes(p.id)) openNearbyPlace(hub, p, { fromHash: true });
@@ -385,9 +401,11 @@ function applySpotHash() {
 
 /* ---------- 초기화 (initMap → loadRegions 이후) ---------- */
 function initSpots() {
-  return fetch(SPOTS_URL)
-    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-    .then((d) => {
+  return Promise.all([
+    fetch(SPOTS_URL).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))),
+    typeof loadStories === 'function' ? loadStories() : Promise.resolve(),
+  ])
+    .then(([d]) => {
       spotsData = d;
       // Leaflet 기본 접두 표기의 국기 이모지는 빼고 출처 링크만 남긴다 (출처 표기는 유지)
       map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');

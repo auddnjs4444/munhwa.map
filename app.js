@@ -57,6 +57,7 @@ function closeOverlay() {
 closeBtn.addEventListener('click', closeOverlay);
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
+  if (typeof storyIsOpen === 'function' && storyIsOpen()) { closeStory(); return; }
   if (!overlayEl.hidden) closeOverlay();
   else if (typeof closePanel === 'function' && isPanelOpen()) closePanel();
 });
@@ -772,7 +773,12 @@ function applyHash() {
 }
 window.addEventListener('hashchange', () => {
   if (!regions.length) return;
-  if (location.hash.startsWith('#spot/')) { applySpotHash(); return; }
+  if (location.hash.startsWith('#spot/')) {
+    // 장소 기억 화면이 열린 채 뒤로 가기 → 화면만 닫고 지도·패널은 그대로
+    if (typeof storyIsOpen === 'function' && storyIsOpen() && !/\/story$/.test(location.hash)) { closeStory({ fromHistory: true }); return; }
+    applySpotHash();
+    return;
+  }
   if (location.hash.startsWith('#map/')) { if (mapMode !== 'signs') setMapMode('signs'); applyHash(); }
   else if (isPanelOpen()) closePanel({ keepHash: true });
 });
@@ -889,14 +895,11 @@ function panelRecordHtml(place) {
   }
   const idx = placesData.indexOf(place) + 1;
   const origin = realText(place.origin_text);
-  const hasMemo = (place.memories && place.memories.length) || realText(place.memory_text);
   return `
     ${panelVideoHtml(place)}
     <div class="pv-info"><span>GSL® / ${String(idx).padStart(2, '0')}</span><i class="pv-div" aria-hidden="true"></i><span>GWANGJU SIGN LANGUAGE</span></div>
     ${signPartsHtml(place)}
     ${origin ? `<p class="section-label">이름의 유래</p><p class="section-text">${esc(origin)}</p>` : ''}
-    <p class="section-label">농인의 기억</p>
-    ${hasMemo ? memoriesHtml(place) : '<p class="section-text pending">기록 준비 중</p>'}
     ${(place.tags || []).length ? `<div class="tags">${place.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}`;
 }
 
