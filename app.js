@@ -540,18 +540,16 @@ function setSelectedRegion(id) {
   if (syncRegionLabels) syncRegionLabels();
 }
 
-/* ---------- 지명 수어 연출 (C-1 CINEMATIC): 선택 지역 스포트라이트 + 사진 카드 + 큰 지명 ----------
+/* ---------- 지명 수어 연출 (C-1 CINEMATIC): 선택 지역 스포트라이트 + 큰 지명 ----------
    지도 좌표에 고정한 레이어라 확대·이동에 같이 움직인다. 선택을 풀거나 장소 둘러보기로 바꾸면 걷어낸다. */
-const ART_PHOTO_SIZE = [320, 220];
 let shadeLayer = null;
-let artMarker = null;
 let bigNameMarker = null;
 const regionNo = (r) => String(regions.indexOf(r) + 1).padStart(2, '0');
 
 function clearCinematic() {
   if (!map) return;
-  [shadeLayer, artMarker, bigNameMarker].forEach((l) => l && map.removeLayer(l));
-  shadeLayer = artMarker = bigNameMarker = null;
+  [shadeLayer, bigNameMarker].forEach((l) => l && map.removeLayer(l));
+  shadeLayer = bigNameMarker = null;
 }
 function updateCinematic() {
   clearCinematic();
@@ -560,37 +558,12 @@ function updateCinematic() {
   // 1) 선택 지역 밖을 어둡게: 세계를 덮는 다각형에 선택 지역을 구멍으로 뚫는다
   const world = [[-89, -179], [-89, 179], [89, 179], [89, -179]];
   const holes = (r.geom.type === 'Polygon' ? [r.geom.coordinates] : r.geom.coordinates).map((poly) => poly[0].map(([x, y]) => [y, x]));
-  shadeLayer = L.polygon([world, ...holes], { pane: 'shade', interactive: false, stroke: false, fillColor: '#040404', fillOpacity: 0.62, className: 'cine-shade' }).addTo(map);
-  // 2) 사진 카드(데스크톱): 실제 사진(places.json의 photo)이 있을 때만 이미지, 없으면 '준비 중' 카드. 지시선 끝이 지역 중심을 가리킨다.
-  //    모바일은 시트 위 공간이 좁아 카드를 지도에 올리지 않고, 사진이 있으면 시트 안(영상 위)에 보여준다.
-  if (!isSheetMode()) {
-    const photoPlace = r.records.find((pl) => pl.photo);
-    // 패널을 뺀 지도 폭이 좁은 데스크톱(노트북)에서는 카드를 조금 줄인다
-    const panelW = Math.min(560, Math.max(400, window.innerWidth * 0.36));
-    const [w, h] = ART_PHOTO_SIZE.map((v) => Math.round(v * (window.innerWidth - panelW < 760 ? 0.7 : 1)));
-    const img = photoPlace ? `<img src="${esc(photoPlace.photo)}" alt="${esc(r.name)} 풍경">` : '';
-    const card = `
-      <figure class="art-card${img ? '' : ' ph'}" style="--w:${w}px;--h:${h}px">
-        <div class="art-img">${img}<div class="art-ph"><span>PHOTO — COMING SOON</span><b>풍경 사진 준비 중</b></div></div>
-        <figcaption><span class="art-no">PL. ${regionNo(r)}</span><span>${esc(r.name)} · ${esc(r.type)}</span></figcaption>
-        <i class="art-leader" aria-hidden="true"></i><i class="art-dot" aria-hidden="true"></i>
-      </figure>`;
-    artMarker = L.marker(r.centroid, { pane: 'art', interactive: false, keyboard: false, icon: L.divIcon({ className: 'art-wrap', html: card, iconSize: [0, 0], iconAnchor: [0, 0] }) }).addTo(map);
-    const imgEl = artMarker.getElement()?.querySelector('img');
-    if (imgEl) imgEl.addEventListener('error', () => imgEl.closest('.art-card')?.classList.add('ph'));
-  }
-  // 3) 큰 지명: 지역 남쪽 경계 아래
+  shadeLayer = L.polygon([world, ...holes], { pane: 'shade', interactive: false, stroke: false, fillColor: '#040404', fillOpacity: 0.58, className: 'cine-shade' }).addTo(map);
+  // 2) 큰 지명: 지역 남쪽 경계 아래
   bigNameMarker = L.marker([r.bounds.getSouth(), r.centroid[1]], { pane: 'art', interactive: false, keyboard: false, icon: L.divIcon({ className: 'bigname-wrap', html: `<div class="bigname"><span>${esc(r.name)}</span><small>${esc(r.en)}</small></div>`, iconSize: [0, 0], iconAnchor: [0, 0] }) }).addTo(map);
 }
-/* 카메라: 패널·시트가 가리지 않는 영역 안에 '지역 + (데스크톱) 사진 카드 + 큰 지명'이 모두 들어가는 가장 큰 줌을 고른다.
-   카드·지명은 줌과 무관한 픽셀 크기이므로 실제 DOM 상자를 재서 합치고, 안 들어가면 카드를 빼고, 그래도 안 되면 지역만 맞춘다. */
-/* 카드·큰 지명의 상자는 레이아웃 치수(offsetWidth/Height)와 CSS의 고정 오프셋으로 계산한다.
-   getBoundingClientRect는 등장 애니메이션 첫 프레임에서 % transform이 0으로 잡히는 경우(Safari)가 있어 쓰지 않는다. */
-function cardBoxOf(el) {
-  // 카드의 오른쪽 아래 모서리가 지역 중심에서 (-40px, -70px): CSS .art-card transform과 같은 값
-  if (!el) return null;
-  return { l: -(el.offsetWidth + 40), t: -(el.offsetHeight + 70), r: -40, b: -70 };
-}
+/* 카메라: 패널·시트가 가리지 않는 영역 안에 '지역 + 큰 지명'이 모두 들어가는 가장 큰 줌을 고른다.
+   큰 지명은 줌과 무관한 픽셀 크기이므로 레이아웃 치수(offsetWidth/Height)로 상자를 만들어 지역 상자와 합친다. */
 function nameBoxOf(el) {
   // 큰 지명: 앵커(남쪽 경계) 아래 14px, 가로 가운데 정렬 (CSS .bigname)
   if (!el) return null;
@@ -605,28 +578,22 @@ function frameRegion(r, animate) {
   const vis = { x0: 16, y0: sheet ? 116 : 112, x1: size.x - pw - 16, y1: size.y - ph - 16 };
   const visW = vis.x1 - vis.x0;
   const visH = vis.y1 - vis.y0;
-  const cardBox = cardBoxOf(artMarker && artMarker.getElement()?.querySelector('.art-card'));
   const nameAnchor = [r.bounds.getSouth(), r.centroid[1]];
   const nameBox = nameBoxOf(bigNameMarker && bigNameMarker.getElement()?.querySelector('.bigname'));
-  const attempt = (useCard) => {
-    let zoom = Math.min(15, map.getBoundsZoom(r.bounds, false, L.point(40, 40)));
-    for (; zoom >= 10; zoom--) {
-      const nw = map.project(r.bounds.getNorthWest(), zoom);
-      const se = map.project(r.bounds.getSouthEast(), zoom);
-      const c = map.project(r.centroid, zoom);
-      const n = map.project(nameAnchor, zoom);
-      let l = nw.x - 24, t = nw.y - 24, rt = se.x + 24, b = se.y + 24;
-      if (useCard && cardBox) { l = Math.min(l, c.x + cardBox.l); t = Math.min(t, c.y + cardBox.t); rt = Math.max(rt, c.x + cardBox.r); }
-      if (nameBox) { l = Math.min(l, n.x + nameBox.l); rt = Math.max(rt, n.x + nameBox.r); b = Math.max(b, n.y + nameBox.b); }
-      if (rt - l <= visW && b - t <= visH) {
-        // 합친 상자의 중심을 보이는 영역의 중심에 놓는다 (지도 컨테이너 중심에서 패널·시트만큼 비켜난 자리)
-        const shift = L.point(size.x / 2 - (vis.x0 + vis.x1) / 2, size.y / 2 - (vis.y0 + vis.y1) / 2);
-        return { zoom, center: map.unproject(L.point((l + rt) / 2, (t + b) / 2).add(shift), zoom) };
-      }
-    }
-    return null;
-  };
-  const fit = attempt(true) || attempt(false);
+  let zoom = Math.min(15, map.getBoundsZoom(r.bounds, false, L.point(40, 40)));
+  let fit = null;
+  while (!fit && zoom >= 10) {
+    const nw = map.project(r.bounds.getNorthWest(), zoom);
+    const se = map.project(r.bounds.getSouthEast(), zoom);
+    const n = map.project(nameAnchor, zoom);
+    let l = nw.x - 24, t = nw.y - 24, rt = se.x + 24, b = se.y + 24;
+    if (nameBox) { l = Math.min(l, n.x + nameBox.l); rt = Math.max(rt, n.x + nameBox.r); b = Math.max(b, n.y + nameBox.b); }
+    if (rt - l <= visW && b - t <= visH) {
+      // 합친 상자의 중심을 보이는 영역의 중심에 놓는다 (지도 컨테이너 중심에서 패널·시트만큼 비켜난 자리)
+      const shift = L.point(size.x / 2 - (vis.x0 + vis.x1) / 2, size.y / 2 - (vis.y0 + vis.y1) / 2);
+      fit = { zoom, center: map.unproject(L.point((l + rt) / 2, (t + b) / 2).add(shift), zoom) };
+    } else zoom -= 1;
+  }
   if (fit) {
     if (animate) map.flyTo(fit.center, fit.zoom, { duration: 0.9 });
     else map.setView(fit.center, fit.zoom, { animate: false });
@@ -1028,10 +995,8 @@ function panelRecordHtml(place) {
   const vid = (place.videos || [])[0];
   const videoFact = vid ? `${Number(vid.ratio) && Number(vid.ratio) < 1 ? '세로 3:4' : '가로'} · 무음` : place.video_youtube_id ? '유튜브' : '준비 중';
   const boundaryFact = reg ? [reg.type, ...(reg.codes || [])].filter(Boolean).join(' · ') : '경계 밖 · 핀';
-  // 모바일 시트: 지도 위 사진 카드 대신 실제 사진이 있을 때만 영상 위에 보여준다
-  const photo = place.photo && isSheetMode() ? `<figure class="dp-photo"><img src="${esc(place.photo)}" alt="${esc(place.name)} 풍경" loading="lazy"></figure>` : '';
   return `
-    ${photo}${panelVideoHtml(place)}
+    ${panelVideoHtml(place)}
     <dl class="dp-facts">
       <div><dt>기록</dt><dd>GSL® / ${String(idx).padStart(2, '0')}</dd></div>
       <div><dt>경계</dt><dd>${esc(boundaryFact)}</dd></div>

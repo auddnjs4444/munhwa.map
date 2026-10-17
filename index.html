@@ -773,45 +773,16 @@
     --panel-line: rgba(255, 255, 255, 0.12);
     --panel-video-bg: #0D0C0A;
   }
-  /* 타일: 흑백 반전 + 따뜻한 틴트의 영화 톤. 도로 디테일을 눌러 경계와 지명이 주인공이 되게 */
-  body[data-map-mode="signs"] .leaflet-tile-pane { filter: grayscale(1) invert(0.93) brightness(0.58) contrast(1.12) sepia(0.28); }
+  /* 타일: 흑백 반전 + 따뜻한 틴트의 영화 톤. 어둡되 도로·건물의 결은 읽히게 (대비를 올리지 않고 밝기만 조금 살린다) */
+  body[data-map-mode="signs"] .leaflet-tile-pane { filter: grayscale(1) invert(0.93) brightness(0.78) contrast(1.04) sepia(0.28); }
   .cine-vignette, .cine-grain { position: absolute; inset: 0; display: none; pointer-events: none; }
   body[data-map-mode="signs"] .cine-vignette, body[data-map-mode="signs"] .cine-grain { display: block; }
-  .cine-vignette { z-index: 450; background: radial-gradient(120% 90% at 40% 45%, transparent 45%, rgba(0, 0, 0, 0.55) 100%); }
-  .cine-grain { z-index: 451; opacity: 0.07; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.9'/></svg>"); }
+  .cine-vignette { z-index: 450; background: radial-gradient(120% 90% at 40% 45%, transparent 45%, rgba(0, 0, 0, 0.45) 100%); }
+  .cine-grain { z-index: 451; opacity: 0.05; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.9'/></svg>"); }
   .cine-shade { transition: fill-opacity .5s; }
   body[data-map-mode="signs"] .leaflet-tooltip.dong-label { letter-spacing: 0.14em; color: rgba(244, 243, 239, 0.62); text-shadow: 0 0 6px #000; }
 
-  /* 지도 위 사진 카드: 지역 중심(점)을 지시선으로 가리키고, 카드는 북서쪽에 떠 있다 */
-  .art-wrap, .bigname-wrap { background: none; border: 0; }
-  .art-card {
-    position: absolute; left: 0; top: 0;
-    width: var(--w);
-    margin: 0;
-    transform: translate(-100%, calc(-100% - 70px)) translateX(-40px);
-    animation: art-in .7s var(--panel-ease) both;
-  }
-  @keyframes art-in { from { opacity: 0; transform: translate(-100%, calc(-100% - 50px)) translateX(-40px); } }
-  .art-img { position: relative; width: var(--w); height: var(--h); border-radius: 14px; overflow: hidden; background: #141210; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.12); }
-  .art-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .art-ph {
-    position: absolute; inset: 10px;
-    display: none; place-items: center;
-    padding: 16px;
-    border: 1px dashed rgba(244, 243, 239, 0.3);
-    border-radius: 10px;
-    text-align: center;
-    font-size: 10.5px; font-weight: 500; letter-spacing: 0.3em; line-height: 2.2;
-    color: var(--muted);
-    background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 10px, transparent 10px 20px);
-  }
-  .art-ph b { display: block; font-size: 12.5px; font-weight: 500; letter-spacing: 0.08em; color: var(--ink); }
-  .art-card.ph .art-ph { display: grid; }
-  .art-card.ph img { display: none; }
-  .art-card figcaption { display: flex; justify-content: space-between; gap: 10px; margin: 10px 4px 0; font-size: 10.5px; letter-spacing: 0.16em; color: var(--muted); white-space: nowrap; }
-  .art-no { color: var(--cine-gold, #F0C576); }
-  .art-leader { position: absolute; left: calc(100% + 40px); top: calc(100% + 30px); width: 1px; height: 40px; background: #F0C576; transform-origin: top; transform: translateX(-1px) rotate(-30deg); }
-  .art-dot { position: absolute; left: calc(100% + 40px); top: calc(100% + 70px); width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: #F0C576; box-shadow: 0 0 0 4px rgba(240, 197, 118, 0.25); }
+  .bigname-wrap { background: none; border: 0; }
   /* 지도 위 큰 지명: 지역 남쪽 경계 아래 */
   .bigname {
     position: absolute; left: 0; top: 14px;
@@ -870,18 +841,12 @@
     body[data-map-mode="signs"] .pv { width: min(100%, 300px); }
     /* 시트가 열려도 버튼·메뉴는 화면 가운데 그대로 (데스크톱용 패널 폭 계산을 쓰지 않는다) */
     body.dpanel-open[data-view="map"] .region-menu-btn, body.dpanel-open[data-view="map"] .region-list { left: 50%; }
-    .dp-photo { margin: 18px 0 0; border-radius: 14px; overflow: hidden; background: #141210; }
-    .dp-photo img { display: block; width: 100%; height: auto; }
     .bigname span { font-size: 44px; }
     .bigname small { font-size: 9px; }
-    .art-card { transform: translate(-50%, calc(-100% - 30px)); animation-name: art-in-m; }
-    @keyframes art-in-m { from { opacity: 0; transform: translate(-50%, calc(-100% - 14px)); } }
-    .art-leader { left: 50%; top: 100%; height: 30px; transform: none; }
-    .art-dot { left: 50%; top: calc(100% + 30px); }
     .dp-facts dd { font-size: 11px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .art-card, .bigname { animation: none; }
+    .bigname { animation: none; }
   }
 
   /* ===== 장소 둘러보기 전용 색 (지명 수어 화면에는 적용되지 않음) ===== */
@@ -1720,7 +1685,7 @@
   </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=20261019b"></script>
+<script src="app.js?v=20261020"></script>
 <script src="story.js?v=20261018"></script>
 <script src="spots.js?v=20261019"></script>
 </body>
