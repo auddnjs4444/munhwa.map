@@ -32,6 +32,7 @@ function setMapMode(mode) {
     b.setAttribute('aria-pressed', String(on));
   });
   if (isPanelOpen()) closePanel({ keepHash: true });
+  if (typeof toggleRegionMenu === 'function') toggleRegionMenu(false);
   clearNearby();
   if (mode === 'spots') {
     setSelectedRegion(null);

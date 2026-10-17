@@ -377,48 +377,75 @@
   .chooser-btn small { margin-left: auto; font-size: 9px; letter-spacing: 0.14em; color: var(--muted); }
 
   /* 보조 탐색: 지역 목록 (데스크톱 세로 / 모바일 가로 스트립) */
+  /* 지역 선택: 상단 '지역 선택 +' 버튼 → 지도 위에 떠 있는 16개 지역 격자 (경계 파일 순서 = PL. 번호) */
+  .region-menu-btn {
+    position: absolute;
+    top: 66px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 1100;
+    display: inline-flex; align-items: center; gap: 10px;
+    height: 40px;
+    padding: 0 14px 0 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(10, 10, 10, 0.75);
+    backdrop-filter: blur(8px);
+    color: var(--ink);
+    font: 500 12px/1 'Pretendard Variable', sans-serif;
+    letter-spacing: 0.16em;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, left .32s var(--panel-ease);
+  }
+  .region-menu-btn[hidden], body[data-map-mode="spots"] .region-menu-btn { display: none; }
+  .region-menu-btn .plus { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: #000; font-size: 14px; font-weight: 600; transition: transform .25s var(--panel-ease); }
+  .region-menu-btn:hover, .region-menu-btn.on { border-color: var(--ink); background: #000; }
+  .region-menu-btn.on .plus { transform: rotate(45deg); }
+  .region-menu-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  body.dpanel-open[data-view="map"] .region-menu-btn { left: calc((100% - var(--dpanel-w)) / 2); }
   .region-list {
     position: absolute;
-    left: var(--chrome-pad);
-    top: 52px;
-    z-index: 1100;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    max-height: calc(100% - 150px);
+    top: 118px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 1200;
+    width: min(640px, calc(100% - 32px));
+    max-height: calc(100dvh - 140px);
     overflow-y: auto;
-    padding: 8px 0;
-    scrollbar-width: none;
+    padding: 16px 16px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    background: rgba(8, 8, 8, 0.9);
+    backdrop-filter: blur(14px);
+    scrollbar-width: thin;
   }
-  .region-list::-webkit-scrollbar { display: none; }
   .region-list[hidden] { display: none; }
-  .rl-cap { margin: 0 0 6px 10px; font-size: 9px; font-weight: 500; letter-spacing: 0.26em; color: var(--muted); }
+  body.dpanel-open[data-view="map"] .region-list { left: calc((100% - var(--dpanel-w)) / 2); }
+  .rl-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.24em; color: var(--muted); }
+  .rl-close { padding: 4px 2px; border: 0; background: none; color: var(--ink); font: inherit; letter-spacing: 0.1em; cursor: pointer; }
+  .rl-close:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+  .rl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .region-btn {
     appearance: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    padding: 6px 12px 6px 10px;
-    border: 1px solid transparent;
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 999px;
-    background: rgba(10, 10, 10, 0.55);
-    backdrop-filter: blur(6px);
-    color: var(--muted);
-    font: inherit;
-    font-size: 12.5px;
-    font-weight: 300;
-    letter-spacing: 0.02em;
+    background: none;
+    color: var(--ink);
+    font: 400 13px/1 'Pretendard Variable', sans-serif;
     text-align: left;
     white-space: nowrap;
     cursor: pointer;
-    transition: color .15s, border-color .15s;
+    transition: border-color .15s, background .15s;
   }
-  .region-btn i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: rgba(244,243,239,0.55); }
-  .region-btn.on i { background: #F0C576; }
-  .region-btn small { font-size: 9px; letter-spacing: 0.14em; color: var(--muted); opacity: 0.8; }
-  .region-btn:hover { color: var(--ink); }
-  .region-btn:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
-  .region-btn.on { color: var(--ink); border-color: var(--line); font-weight: 400; }
+  .region-btn small { font-size: 9px; letter-spacing: 0.14em; color: var(--muted); }
+  .region-btn span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .region-btn i { flex: none; width: 6px; height: 6px; border-radius: 50%; }
+  .region-btn i.has { background: #F0C576; box-shadow: 0 0 8px #F0C576; }
+  .region-btn i.no { border: 1px solid var(--muted); }
+  .region-btn:hover, .region-btn.on { border-color: #F0C576; }
+  .region-btn.on { background: rgba(240, 197, 118, 0.08); }
+  .region-btn:focus-visible { outline: 2px solid #F0C576; outline-offset: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
   .map-error {
     position: absolute;
@@ -583,19 +610,19 @@
   .dp-body .angle.on { background: var(--panel-text); border-color: var(--panel-text); color: #1A1612; }
 
   /* 04 영상 정보 줄 */
-  .pv-info {
-    display: flex;
-    align-items: stretch;
-    margin: clamp(36px, 6vh, 56px) calc(-1 * var(--dp-pad)) 40px;
+  /* 영상 아래 사실 3칸: 기록 번호 · 경계(종류·코드) · 영상 */
+  .dp-facts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 22px 0 0;
+    padding: 14px 0;
     border-top: 1px solid var(--panel-line);
     border-bottom: 1px solid var(--panel-line);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.2em;
-    color: var(--panel-text);
   }
-  .pv-info span { flex: 1; padding: 17px 12px; text-align: center; white-space: nowrap; }
-  .pv-div { flex: none; width: 1px; background: var(--panel-line); }
+  .dp-facts div { min-width: 0; padding: 0 12px; border-left: 1px solid var(--panel-line); }
+  .dp-facts div:first-child { padding-left: 0; border-left: 0; }
+  .dp-facts dt { margin-bottom: 6px; font-size: 9.5px; font-weight: 500; letter-spacing: 0.22em; color: var(--panel-muted); }
+  .dp-facts dd { margin: 0; font-size: 12px; letter-spacing: 0.04em; line-height: 1.5; color: var(--panel-text); word-break: keep-all; }
 
   /* 05·06 본문: 기존 섹션 클래스를 황동 배경에 맞게 */
   .dp-body .section-label { color: var(--panel-muted); margin: 30px 0 10px; }
@@ -693,10 +720,8 @@
     .dp-title h2.long { font-size: 30px; }
     .dp-en { margin-top: 18px; }
     .dpanel { top: auto; border-top-left-radius: 18px; }
-    .pv-info { margin: 28px calc(-1 * var(--dp-pad)) 32px; }
     body.dpanel-open[data-view="map"] .pills { display: none; }
     body.dpanel-open[data-view="map"] .leaflet-bottom { bottom: 54dvh; }
-    body.dpanel-open[data-view="map"] .region-list { display: none; }
   }
 
   /* ---------- 장소 둘러보기 / 지명 수어 보기 전환 ---------- */
@@ -738,6 +763,91 @@
   body[data-map-mode="signs"] .spots-all,
   body[data-map-mode="signs"] .hub-wrap,
   body[data-map-mode="signs"] .nb-wrap { display: none !important; }
+
+  /* ===== C-1 CINEMATIC — 지명 수어 보기 전용 연출 (장소 둘러보기의 색·배치에는 적용되지 않음) ===== */
+  body[data-map-mode="signs"] {
+    --cine-brass: #D5AD6A;
+    --cine-gold: #F0C576;
+    --cine-muted: #A9A398;
+    --panel-muted: #A9A398;
+    --panel-line: rgba(255, 255, 255, 0.12);
+    --panel-video-bg: #0D0C0A;
+  }
+  /* 타일: 흑백 반전 + 따뜻한 틴트의 영화 톤. 어둡되 도로·건물의 결은 읽히게 (대비를 올리지 않고 밝기만 조금 살린다) */
+  body[data-map-mode="signs"] .leaflet-tile-pane { filter: grayscale(1) invert(0.93) brightness(0.78) contrast(1.04) sepia(0.28); }
+  .cine-vignette, .cine-grain { position: absolute; inset: 0; display: none; pointer-events: none; }
+  body[data-map-mode="signs"] .cine-vignette, body[data-map-mode="signs"] .cine-grain { display: block; }
+  .cine-vignette { z-index: 450; background: radial-gradient(120% 90% at 40% 45%, transparent 45%, rgba(0, 0, 0, 0.45) 100%); }
+  .cine-grain { z-index: 451; opacity: 0.05; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.9'/></svg>"); }
+  .cine-shade { transition: fill-opacity .5s; }
+  body[data-map-mode="signs"] .leaflet-tooltip.dong-label { letter-spacing: 0.14em; color: rgba(244, 243, 239, 0.62); text-shadow: 0 0 6px #000; }
+
+  .bigname-wrap { background: none; border: 0; }
+  /* 지도 위 큰 지명: 지역 남쪽 경계 아래 */
+  .bigname {
+    position: absolute; left: 0; top: 14px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+    pointer-events: none;
+    animation: bigname-in .9s var(--panel-ease) both;
+  }
+  @keyframes bigname-in { from { opacity: 0; transform: translateX(-50%) translateY(14px); } }
+  .bigname span { display: block; font-size: 92px; font-weight: 800; letter-spacing: -0.05em; line-height: 1; }
+  .bigname small { display: block; margin-top: 8px; font-size: 11px; letter-spacing: 0.42em; }
+
+  /* 반투명 패널: 지도가 비쳐 보여 한 화면처럼. 데스크톱은 지도가 패널 아래까지 이어진다 */
+  body[data-map-mode="signs"] #view-map.dpanel-open #map { right: 0; }
+  body[data-map-mode="signs"] .dpanel {
+    top: 0;
+    height: 100dvh;
+    border-top-left-radius: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(90deg, rgba(7, 6, 5, 0.72), rgba(7, 6, 5, 0.92) 30%);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
+  body[data-map-mode="signs"] .dp-head { padding: 22px 24px 14px 22px; border-bottom: 0; background: linear-gradient(rgba(7, 6, 5, 0.95), rgba(7, 6, 5, 0)); }
+  body[data-map-mode="signs"] .dp-btn { width: 48px; height: 48px; }
+  body[data-map-mode="signs"] .dp-title { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 14px; padding: 18px 0 0; text-align: left; }
+  body[data-map-mode="signs"] .dp-sub { order: -1; flex-basis: 100%; margin: 0 0 12px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.3em; color: var(--cine-brass); }
+  body[data-map-mode="signs"] .dp-title h2,
+  body[data-map-mode="signs"] .dp-title h2.mid,
+  body[data-map-mode="signs"] .dp-title h2.long { font-size: 54px; letter-spacing: -0.04em; }
+  body[data-map-mode="signs"] .dp-en { margin: 0; font-size: 11px; font-weight: 500; letter-spacing: 0.2em; color: var(--cine-muted); }
+  body[data-map-mode="signs"] .dp-en::before, body[data-map-mode="signs"] .dp-en::after { content: none; }
+  .dp-idx { display: none; }
+  body[data-map-mode="signs"] .dp-idx { display: block; position: absolute; right: 0; top: 18px; font-size: 11px; letter-spacing: 0.2em; color: var(--cine-muted); }
+  body[data-map-mode="signs"] .dp-idx:empty { display: none; }
+  body[data-map-mode="signs"] .pv { width: min(100%, 400px); margin: 26px auto 0; aspect-ratio: var(--ar, 0.75); border-radius: 18px; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
+  body[data-map-mode="signs"] .pv-none { aspect-ratio: 0.75; }
+  @media (min-width: 768px) {
+    /* 패널이 지도를 덮으므로 줌·출처 컨트롤은 패널 왼쪽으로 */
+    body[data-map-mode="signs"].dpanel-open[data-view="map"] #map .leaflet-right { right: var(--dpanel-w); transition: right .32s var(--panel-ease); }
+  }
+  @media (max-width: 767px) {
+    body[data-map-mode="signs"] .dpanel { top: auto; height: 54dvh; border-left: 0; border-top: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px 20px 0 0; background: rgba(7, 6, 5, 0.9); }
+    body[data-map-mode="signs"] .dpanel.expanded { height: 88dvh; }
+    body[data-map-mode="signs"] .dp-handle { background: transparent; }
+    body[data-map-mode="signs"] .dp-head { padding: 4px 18px 8px 16px; }
+    body[data-map-mode="signs"] .dp-btn { width: 44px; height: 44px; }
+    body[data-map-mode="signs"] .dp-title { padding-top: 8px; }
+    body[data-map-mode="signs"] .dp-title h2,
+    body[data-map-mode="signs"] .dp-title h2.mid,
+    body[data-map-mode="signs"] .dp-title h2.long { font-size: 40px; }
+    body[data-map-mode="signs"] .dp-idx { top: 8px; }
+    body[data-map-mode="signs"] .pv { width: min(100%, 300px); }
+    /* 시트가 열려도 버튼·메뉴는 화면 가운데 그대로 (데스크톱용 패널 폭 계산을 쓰지 않는다) */
+    body.dpanel-open[data-view="map"] .region-menu-btn, body.dpanel-open[data-view="map"] .region-list { left: 50%; }
+    .bigname span { font-size: 44px; }
+    .bigname small { font-size: 9px; }
+    .dp-facts dd { font-size: 11px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bigname { animation: none; }
+  }
 
   /* ===== 장소 둘러보기 전용 색 (지명 수어 화면에는 적용되지 않음) ===== */
   body[data-map-mode="spots"] {
@@ -1449,19 +1559,8 @@
   /* ---------- 모바일 ---------- */
   @media (max-width: 640px) {
     .chip-top { display: none; }
-    .region-list {
-      left: 0; right: 0;
-      top: 44px;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      max-height: none;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding: 6px var(--chrome-pad);
-      gap: 6px;
-    }
-    .rl-cap { display: none; }
-    .region-btn { background: rgba(10, 10, 10, 0.7); border-color: var(--line); }
+    .region-list { top: 112px; padding: 14px 12px 12px; }
+    .rl-grid { grid-template-columns: repeat(2, 1fr); }
     .mega { top: 14vh; white-space: normal; }
     .track { padding: 0 24vw 0 8vw; gap: 34px; align-items: flex-end; padding-bottom: 24vh; }
     .work { width: 60vw !important; --drift: 0 !important; }
@@ -1492,10 +1591,13 @@
 
   <section id="view-map" class="view" aria-label="수어 지명 지도">
     <div id="map"></div>
+    <div class="cine-vignette" aria-hidden="true"></div>
+    <div class="cine-grain" aria-hidden="true"></div>
     <div class="map-modes" role="group" aria-label="지도 보기 전환">
       <button type="button" class="mode-btn" data-map-mode="spots" aria-pressed="true">장소 둘러보기</button>
       <button type="button" class="mode-btn" data-map-mode="signs" aria-pressed="false">지명 수어</button>
     </div>
+    <button type="button" class="region-menu-btn" id="region-menu-btn" aria-expanded="false" aria-controls="region-list" hidden>지역 선택 <span class="plus" aria-hidden="true">+</span></button>
     <p class="spots-intro" aria-live="polite"><b>만나는 장소에서 시작하는 광주 여행</b><span>장소를 선택하고 주변을 둘러보세요.</span></p>
     <button type="button" class="spots-all" id="spots-all">전체 거점 보기</button>
     <nav class="region-list" id="region-list" aria-label="동구 지역 선택" hidden></nav>
@@ -1511,6 +1613,7 @@
         <button type="button" class="dp-btn dp-close" id="dp-close" aria-label="패널 닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
       </header>
       <div class="dp-title">
+        <span class="dp-idx" id="dp-idx" aria-hidden="true"></span>
         <h2 id="dp-name"></h2>
         <p class="dp-en" id="dp-en"></p>
         <p class="dp-sub" id="dp-sub">광주 동구 수어 지명 기록</p>
@@ -1582,8 +1685,8 @@
   </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=20261018"></script>
+<script src="app.js?v=20261020"></script>
 <script src="story.js?v=20261018"></script>
-<script src="spots.js?v=20261018"></script>
+<script src="spots.js?v=20261019"></script>
 </body>
 </html>
