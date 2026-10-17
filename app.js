@@ -584,13 +584,17 @@ function updateCinematic() {
 }
 /* 카메라: 패널·시트가 가리지 않는 영역 안에 '지역 + (데스크톱) 사진 카드 + 큰 지명'이 모두 들어가는 가장 큰 줌을 고른다.
    카드·지명은 줌과 무관한 픽셀 크기이므로 실제 DOM 상자를 재서 합치고, 안 들어가면 카드를 빼고, 그래도 안 되면 지역만 맞춘다. */
-function overlayBox(el, anchorLatLng) {
-  // 지도 컨테이너 좌표계에서 앵커(지역 중심 등)를 원점으로 한 요소의 상자 (줌이 바뀌어도 같은 픽셀 오프셋)
+/* 카드·큰 지명의 상자는 레이아웃 치수(offsetWidth/Height)와 CSS의 고정 오프셋으로 계산한다.
+   getBoundingClientRect는 등장 애니메이션 첫 프레임에서 % transform이 0으로 잡히는 경우(Safari)가 있어 쓰지 않는다. */
+function cardBoxOf(el) {
+  // 카드의 오른쪽 아래 모서리가 지역 중심에서 (-40px, -70px): CSS .art-card transform과 같은 값
   if (!el) return null;
-  const mb = map.getContainer().getBoundingClientRect();
-  const a = map.latLngToContainerPoint(anchorLatLng);
-  const b = el.getBoundingClientRect();
-  return { l: b.left - mb.left - a.x, t: b.top - mb.top - a.y, r: b.right - mb.left - a.x, b: b.bottom - mb.top - a.y };
+  return { l: -(el.offsetWidth + 40), t: -(el.offsetHeight + 70), r: -40, b: -70 };
+}
+function nameBoxOf(el) {
+  // 큰 지명: 앵커(남쪽 경계) 아래 14px, 가로 가운데 정렬 (CSS .bigname)
+  if (!el) return null;
+  return { l: -el.offsetWidth / 2, t: 14, r: el.offsetWidth / 2, b: 14 + el.offsetHeight };
 }
 function frameRegion(r, animate) {
   const sheet = isSheetMode();
@@ -601,10 +605,9 @@ function frameRegion(r, animate) {
   const vis = { x0: 16, y0: sheet ? 116 : 112, x1: size.x - pw - 16, y1: size.y - ph - 16 };
   const visW = vis.x1 - vis.x0;
   const visH = vis.y1 - vis.y0;
-  const cardBox = overlayBox(artMarker && artMarker.getElement()?.querySelector('.art-card'), r.centroid);
-  if (cardBox) cardBox.t -= 20; // 등장 애니메이션 중에 재면 최종 위치보다 조금 아래이므로 여유를 둔다
+  const cardBox = cardBoxOf(artMarker && artMarker.getElement()?.querySelector('.art-card'));
   const nameAnchor = [r.bounds.getSouth(), r.centroid[1]];
-  const nameBox = overlayBox(bigNameMarker && bigNameMarker.getElement()?.querySelector('.bigname'), nameAnchor);
+  const nameBox = nameBoxOf(bigNameMarker && bigNameMarker.getElement()?.querySelector('.bigname'));
   const attempt = (useCard) => {
     let zoom = Math.min(15, map.getBoundsZoom(r.bounds, false, L.point(40, 40)));
     for (; zoom >= 10; zoom--) {
