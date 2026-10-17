@@ -58,6 +58,7 @@ closeBtn.addEventListener('click', closeOverlay);
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (typeof storyIsOpen === 'function' && storyIsOpen()) { closeStory(); return; }
+  if (typeof regionListEl !== 'undefined' && regionListEl && !regionListEl.hidden) { toggleRegionMenu(false); regionMenuBtn.focus(); return; }
   if (!overlayEl.hidden) closeOverlay();
   else if (typeof closePanel === 'function' && isPanelOpen()) closePanel();
 });
@@ -382,6 +383,9 @@ function initMap() {
   map = L.map('map', { scrollWheelZoom: true, zoomControl: false });
   // 좌상단은 콤마 내비가 차지하므로 줌 컨트롤은 우하단에 둔다
   L.control.zoom({ position: 'bottomright' }).addTo(map);
+  // 지명 수어(C-1): 선택 지역 밖을 덮는 그늘은 타일 위·경계 아래, 사진 카드·큰 지명은 마커 위에 그린다
+  map.createPane('shade').style.zIndex = 350;
+  map.createPane('art').style.zIndex = 650;
 
   // 키 없이 쓸 수 있는 OSM 표준 타일. 채도는 CSS 필터(.leaflet-tile-pane)로 종이 톤에 맞춘다.
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -532,11 +536,107 @@ function setSelectedRegion(id) {
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', String(on));
   });
+  updateCinematic();
+  if (syncRegionLabels) syncRegionLabels();
+}
+
+/* ---------- 지명 수어 연출 (C-1 CINEMATIC): 선택 지역 스포트라이트 + 사진 카드 + 큰 지명 ----------
+   지도 좌표에 고정한 레이어라 확대·이동에 같이 움직인다. 선택을 풀거나 장소 둘러보기로 바꾸면 걷어낸다. */
+const ART_PHOTO_SIZE = [320, 220];
+let shadeLayer = null;
+let artMarker = null;
+let bigNameMarker = null;
+const regionNo = (r) => String(regions.indexOf(r) + 1).padStart(2, '0');
+
+function clearCinematic() {
+  if (!map) return;
+  [shadeLayer, artMarker, bigNameMarker].forEach((l) => l && map.removeLayer(l));
+  shadeLayer = artMarker = bigNameMarker = null;
+}
+function updateCinematic() {
+  clearCinematic();
+  const r = selectedRegionId ? regionById.get(selectedRegionId) : null;
+  if (!r || !map || mapMode !== 'signs') return;
+  // 1) 선택 지역 밖을 어둡게: 세계를 덮는 다각형에 선택 지역을 구멍으로 뚫는다
+  const world = [[-89, -179], [-89, 179], [89, 179], [89, -179]];
+  const holes = (r.geom.type === 'Polygon' ? [r.geom.coordinates] : r.geom.coordinates).map((poly) => poly[0].map(([x, y]) => [y, x]));
+  shadeLayer = L.polygon([world, ...holes], { pane: 'shade', interactive: false, stroke: false, fillColor: '#040404', fillOpacity: 0.62, className: 'cine-shade' }).addTo(map);
+  // 2) 사진 카드(데스크톱): 실제 사진(places.json의 photo)이 있을 때만 이미지, 없으면 '준비 중' 카드. 지시선 끝이 지역 중심을 가리킨다.
+  //    모바일은 시트 위 공간이 좁아 카드를 지도에 올리지 않고, 사진이 있으면 시트 안(영상 위)에 보여준다.
+  if (!isSheetMode()) {
+    const photoPlace = r.records.find((pl) => pl.photo);
+    // 패널을 뺀 지도 폭이 좁은 데스크톱(노트북)에서는 카드를 조금 줄인다
+    const panelW = Math.min(560, Math.max(400, window.innerWidth * 0.36));
+    const [w, h] = ART_PHOTO_SIZE.map((v) => Math.round(v * (window.innerWidth - panelW < 760 ? 0.7 : 1)));
+    const img = photoPlace ? `<img src="${esc(photoPlace.photo)}" alt="${esc(r.name)} 풍경">` : '';
+    const card = `
+      <figure class="art-card${img ? '' : ' ph'}" style="--w:${w}px;--h:${h}px">
+        <div class="art-img">${img}<div class="art-ph"><span>PHOTO — COMING SOON</span><b>풍경 사진 준비 중</b></div></div>
+        <figcaption><span class="art-no">PL. ${regionNo(r)}</span><span>${esc(r.name)} · ${esc(r.type)}</span></figcaption>
+        <i class="art-leader" aria-hidden="true"></i><i class="art-dot" aria-hidden="true"></i>
+      </figure>`;
+    artMarker = L.marker(r.centroid, { pane: 'art', interactive: false, keyboard: false, icon: L.divIcon({ className: 'art-wrap', html: card, iconSize: [0, 0], iconAnchor: [0, 0] }) }).addTo(map);
+    const imgEl = artMarker.getElement()?.querySelector('img');
+    if (imgEl) imgEl.addEventListener('error', () => imgEl.closest('.art-card')?.classList.add('ph'));
+  }
+  // 3) 큰 지명: 지역 남쪽 경계 아래
+  bigNameMarker = L.marker([r.bounds.getSouth(), r.centroid[1]], { pane: 'art', interactive: false, keyboard: false, icon: L.divIcon({ className: 'bigname-wrap', html: `<div class="bigname"><span>${esc(r.name)}</span><small>${esc(r.en)}</small></div>`, iconSize: [0, 0], iconAnchor: [0, 0] }) }).addTo(map);
+}
+/* 카메라: 패널·시트가 가리지 않는 영역 안에 '지역 + (데스크톱) 사진 카드 + 큰 지명'이 모두 들어가는 가장 큰 줌을 고른다.
+   카드·지명은 줌과 무관한 픽셀 크기이므로 실제 DOM 상자를 재서 합치고, 안 들어가면 카드를 빼고, 그래도 안 되면 지역만 맞춘다. */
+function overlayBox(el, anchorLatLng) {
+  // 지도 컨테이너 좌표계에서 앵커(지역 중심 등)를 원점으로 한 요소의 상자 (줌이 바뀌어도 같은 픽셀 오프셋)
+  if (!el) return null;
+  const mb = map.getContainer().getBoundingClientRect();
+  const a = map.latLngToContainerPoint(anchorLatLng);
+  const b = el.getBoundingClientRect();
+  return { l: b.left - mb.left - a.x, t: b.top - mb.top - a.y, r: b.right - mb.left - a.x, b: b.bottom - mb.top - a.y };
+}
+function frameRegion(r, animate) {
+  const sheet = isSheetMode();
+  const size = map.getSize();
+  const pw = sheet ? 0 : panelEl.getBoundingClientRect().width;
+  const ph = sheet ? panelEl.getBoundingClientRect().height : 0;
+  // 보이는 영역: 위는 '지역 선택' 버튼 아래, 오른쪽(데스크톱)은 패널, 아래(모바일)는 시트를 뺀 만큼
+  const vis = { x0: 16, y0: sheet ? 116 : 112, x1: size.x - pw - 16, y1: size.y - ph - 16 };
+  const visW = vis.x1 - vis.x0;
+  const visH = vis.y1 - vis.y0;
+  const cardBox = overlayBox(artMarker && artMarker.getElement()?.querySelector('.art-card'), r.centroid);
+  if (cardBox) cardBox.t -= 20; // 등장 애니메이션 중에 재면 최종 위치보다 조금 아래이므로 여유를 둔다
+  const nameAnchor = [r.bounds.getSouth(), r.centroid[1]];
+  const nameBox = overlayBox(bigNameMarker && bigNameMarker.getElement()?.querySelector('.bigname'), nameAnchor);
+  const attempt = (useCard) => {
+    let zoom = Math.min(15, map.getBoundsZoom(r.bounds, false, L.point(40, 40)));
+    for (; zoom >= 10; zoom--) {
+      const nw = map.project(r.bounds.getNorthWest(), zoom);
+      const se = map.project(r.bounds.getSouthEast(), zoom);
+      const c = map.project(r.centroid, zoom);
+      const n = map.project(nameAnchor, zoom);
+      let l = nw.x - 24, t = nw.y - 24, rt = se.x + 24, b = se.y + 24;
+      if (useCard && cardBox) { l = Math.min(l, c.x + cardBox.l); t = Math.min(t, c.y + cardBox.t); rt = Math.max(rt, c.x + cardBox.r); }
+      if (nameBox) { l = Math.min(l, n.x + nameBox.l); rt = Math.max(rt, n.x + nameBox.r); b = Math.max(b, n.y + nameBox.b); }
+      if (rt - l <= visW && b - t <= visH) {
+        // 합친 상자의 중심을 보이는 영역의 중심에 놓는다 (지도 컨테이너 중심에서 패널·시트만큼 비켜난 자리)
+        const shift = L.point(size.x / 2 - (vis.x0 + vis.x1) / 2, size.y / 2 - (vis.y0 + vis.y1) / 2);
+        return { zoom, center: map.unproject(L.point((l + rt) / 2, (t + b) / 2).add(shift), zoom) };
+      }
+    }
+    return null;
+  };
+  const fit = attempt(true) || attempt(false);
+  if (fit) {
+    if (animate) map.flyTo(fit.center, fit.zoom, { duration: 0.9 });
+    else map.setView(fit.center, fit.zoom, { animate: false });
+    return;
+  }
+  // 아주 좁은 화면: 지역만이라도 보이게
+  map.fitBounds(r.bounds, { paddingTopLeft: [16, vis.y0], paddingBottomRight: [pw + 16, ph + 16], maxZoom: 15, animate });
 }
 
 /* --- 지역 열기: 장소가 있으면 기존 오버레이, 없으면 '영상 준비 중' --- */
 // 지역을 열면 전체 화면 오버레이 대신 지도 옆 패널에 기록을 보여준다 (지도는 계속 보인다)
 function selectRegion(r) {
+  toggleRegionMenu(false);
   setSelectedRegion(r.id);
   openRegionPanel(r);
 }
@@ -592,47 +692,65 @@ function ringCentroid(ring) {
   if (!a) return ring[0];
   return [cx / (3 * a), cy / (3 * a)];
 }
+let syncRegionLabels = null;
 function buildRegionLabels() {
   const areas = regions.map((r) => r.area).sort((a, b) => a - b);
   const median = areas[Math.floor(areas.length / 2)];
   regions.forEach((r) => {
-    const outer = r.geom.type === 'Polygon' ? r.geom.coordinates[0] : r.geom.coordinates[0][0];
-    const [lng, lat] = ringCentroid(outer);
     r.label = L.tooltip({ permanent: true, direction: 'center', className: 'dong-label', interactive: false, opacity: 1 })
-      .setLatLng([lat, lng])
+      .setLatLng(r.centroid)
       .setContent(r.name);
     r.labelMinZoom = r.area >= median ? 13 : 15;
   });
-  const sync = () => {
+  // 선택한 지역은 지도 위 큰 지명이 대신하므로 작은 레이블을 숨긴다
+  syncRegionLabels = () => {
     const z = map.getZoom();
     regions.forEach((r) => {
-      const show = z >= r.labelMinZoom;
+      const show = z >= r.labelMinZoom && r.id !== selectedRegionId;
       if (show && !map.hasLayer(r.label)) r.label.addTo(map);
       if (!show && map.hasLayer(r.label)) map.removeLayer(r.label);
     });
   };
-  map.on('zoomend', sync);
-  sync();
+  map.on('zoomend', syncRegionLabels);
+  syncRegionLabels();
 }
 
-/* --- 보조 탐색: 16개 지역 목록 (키보드 선택 가능) --- */
+/* --- 지역 선택 메뉴: '지역 선택 +' 버튼으로 여는 16개 지역 격자 (경계 파일 순서 = PL. 번호, 키보드 선택 가능) --- */
+const regionMenuBtn = document.getElementById('region-menu-btn');
 function buildRegionList() {
-  regionListEl.innerHTML = '<p class="rl-cap">동구 16 — 지역 선택</p>';
-  regions
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-    .forEach((r) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'region-btn';
-      b.dataset.region = r.id;
-      b.setAttribute('aria-pressed', 'false');
-      const hasVideo = r.records.some((pl) => (pl.videos && pl.videos.length) || pl.video_youtube_id);
-      b.innerHTML = `<i aria-hidden="true"></i><span>${esc(r.name)}</span>${hasVideo ? '' : '<small>준비 중</small>'}`;
-      b.addEventListener('click', () => selectRegion(r));
-      regionListEl.appendChild(b);
-    });
-  regionListEl.hidden = false;
+  regionListEl.innerHTML = `<div class="rl-head"><span>EXPLORE PLACES — 동구 16</span><button type="button" class="rl-close" id="region-menu-close">닫기 ✕</button></div><div class="rl-grid"></div>`;
+  const grid = regionListEl.querySelector('.rl-grid');
+  regions.forEach((r) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'region-btn';
+    b.dataset.region = r.id;
+    b.setAttribute('aria-pressed', 'false');
+    const hasVideo = r.records.some((pl) => (pl.videos && pl.videos.length) || pl.video_youtube_id);
+    b.innerHTML = `<small>${regionNo(r)}</small><span>${esc(r.name)}</span><i class="${hasVideo ? 'has' : 'no'}" aria-hidden="true"></i><em class="sr-only">${hasVideo ? '수어 영상 있음' : '영상 준비 중'}</em>`;
+    b.addEventListener('click', () => selectRegion(r));
+    grid.appendChild(b);
+  });
+  regionListEl.querySelector('#region-menu-close').addEventListener('click', () => { toggleRegionMenu(false); regionMenuBtn.focus(); });
+  regionMenuBtn.hidden = false;
+}
+function toggleRegionMenu(force) {
+  if (!regionMenuBtn) return;
+  const open = force ?? regionListEl.hidden;
+  if (!open && regionListEl.hidden) return;
+  regionListEl.hidden = !open;
+  regionMenuBtn.setAttribute('aria-expanded', String(open));
+  regionMenuBtn.classList.toggle('on', open);
+  if (open) regionListEl.querySelector('.region-btn.on, .region-btn')?.focus();
+}
+if (regionMenuBtn) {
+  regionMenuBtn.addEventListener('click', () => toggleRegionMenu());
+  // 메뉴 밖을 누르면 닫힌다
+  document.addEventListener('pointerdown', (e) => {
+    if (regionListEl.hidden) return;
+    if (regionListEl.contains(e.target) || regionMenuBtn.contains(e.target)) return;
+    toggleRegionMenu(false);
+  });
 }
 
 /* --- 호버/클릭: 레이어가 아니라 지도 좌표 기준으로 판정 (겹침·가림 없음) --- */
@@ -727,6 +845,8 @@ function stopPanelVideo() {
 function itemInView(it) {
   const size = map.getSize();
   const h = isSheetMode() ? size.y - panelEl.getBoundingClientRect().height : size.y;
+  // 지명 수어(데스크톱)는 지도가 반투명 패널 아래까지 이어지므로 패널에 가린 폭을 뺀다
+  size.x = !isSheetMode() && mapMode === 'signs' ? size.x - panelEl.getBoundingClientRect().width : size.x;
   const b = itemBounds(it);
   const nw = map.latLngToContainerPoint(b.getNorthWest());
   const se = map.latLngToContainerPoint(b.getSouthEast());
@@ -735,10 +855,16 @@ function itemInView(it) {
 }
 function ensureItemVisible(it) {
   if (it.kind === 'spot') return; // 거점·주변 장소는 spots.js가 카메라를 맡는다
-  if (itemInView(it)) return;
   const animate = !prefersReducedMotion();
+  if (it.kind === 'region' && mapMode === 'signs') { frameRegion(it.region, animate); return; } // 지명 수어: 항상 연출 구도로
+  if (itemInView(it)) return;
   if (it.kind === 'place') {
-    map.panTo([it.place.lat, it.place.lng], { animate });
+    if (!isSheetMode() && mapMode === 'signs') {
+      // 패널에 가리지 않는 영역의 가운데로
+      const size = map.getSize();
+      const target = L.point((size.x - panelEl.getBoundingClientRect().width) / 2, size.y / 2);
+      map.panBy(map.latLngToContainerPoint([it.place.lat, it.place.lng]).subtract(target), { animate });
+    } else map.panTo([it.place.lat, it.place.lng], { animate });
     return;
   }
   const opts = { padding: [40, 40], maxZoom: Math.max(map.getZoom(), 13), animate };
@@ -895,9 +1021,19 @@ function panelRecordHtml(place) {
   }
   const idx = placesData.indexOf(place) + 1;
   const origin = realText(place.origin_text);
+  const reg = panelItem && panelItem.kind === 'region' ? panelItem.region : null;
+  const vid = (place.videos || [])[0];
+  const videoFact = vid ? `${Number(vid.ratio) && Number(vid.ratio) < 1 ? '세로 3:4' : '가로'} · 무음` : place.video_youtube_id ? '유튜브' : '준비 중';
+  const boundaryFact = reg ? [reg.type, ...(reg.codes || [])].filter(Boolean).join(' · ') : '경계 밖 · 핀';
+  // 모바일 시트: 지도 위 사진 카드 대신 실제 사진이 있을 때만 영상 위에 보여준다
+  const photo = place.photo && isSheetMode() ? `<figure class="dp-photo"><img src="${esc(place.photo)}" alt="${esc(place.name)} 풍경" loading="lazy"></figure>` : '';
   return `
-    ${panelVideoHtml(place)}
-    <div class="pv-info"><span>GSL® / ${String(idx).padStart(2, '0')}</span><i class="pv-div" aria-hidden="true"></i><span>GWANGJU SIGN LANGUAGE</span></div>
+    ${photo}${panelVideoHtml(place)}
+    <dl class="dp-facts">
+      <div><dt>기록</dt><dd>GSL® / ${String(idx).padStart(2, '0')}</dd></div>
+      <div><dt>경계</dt><dd>${esc(boundaryFact)}</dd></div>
+      <div><dt>영상</dt><dd>${esc(videoFact)}</dd></div>
+    </dl>
     ${signPartsHtml(place)}
     ${origin ? `<p class="section-label">이름의 유래</p><p class="section-text">${esc(origin)}</p>` : ''}
     ${(place.tags || []).length ? `<div class="tags">${place.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}`;
@@ -910,6 +1046,7 @@ function renderPanel() {
   panelNameEl.textContent = itemName(it);
   panelEnEl.textContent = itemEn(it);
   panelSubEl.textContent = it.kind === 'region' ? '광주 동구 수어 지명 기록' : '광주 수어 지명 기록';
+  document.getElementById('dp-idx').textContent = it.kind === 'region' ? `PL. ${regionNo(it.region)}` : '';
   // 긴 지명도 한 줄에 들어가도록 글자 수에 따라 제목 크기를 낮춘다
   const len = itemName(it).length;
   panelNameEl.classList.toggle('mid', len >= 4 && len <= 5);
@@ -1029,7 +1166,7 @@ function bindPanel() {
   let rt = null;
   window.addEventListener('resize', () => {
     clearTimeout(rt);
-    rt = setTimeout(() => map && map.invalidateSize({ pan: false }), 150);
+    rt = setTimeout(() => { if (map) { map.invalidateSize({ pan: false }); updateCinematic(); } }, 150);
   });
 }
 
@@ -1077,17 +1214,21 @@ function loadRegions() {
         }).filter(Boolean);
         const place = records[0] || null;
         const layer = L.geoJSON(f, { interactive: false, style: () => ({}) });
+        const outer = f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : f.geometry.coordinates[0][0];
+        const [clng, clat] = ringCentroid(outer);
         const r = {
           id,
           name: props.name || entry?.name || id,
           en: entry?.en || '',
           type: props.boundary_type || '',
+          codes: props.component_codes || [],
           records,
           place,
           color: place ? place._color : '#8B8A85',
           geom: f.geometry,
           bounds: layer.getBounds(),
           area: geometryArea(f.geometry),
+          centroid: [clat, clng], // [lat, lng] — 사진 카드·지시선·레이블 기준점
           layer,
         };
         regions.push(r);
