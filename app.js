@@ -56,7 +56,10 @@ function closeOverlay() {
 }
 closeBtn.addEventListener('click', closeOverlay);
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !overlayEl.hidden) closeOverlay();
+  if (e.key !== 'Escape') return;
+  if (typeof storyIsOpen === 'function' && storyIsOpen()) { closeStory(); return; }
+  if (!overlayEl.hidden) closeOverlay();
+  else if (typeof closePanel === 'function' && isPanelOpen()) closePanel();
 });
 
 // FIXME: replace with the real video once footage is edited.
@@ -390,14 +393,16 @@ function initMap() {
   // 동구 16개 지역 경계를 먼저 올리고, 경계로 대체되지 않는 장소만 핀으로 남긴다.
   // 경계 파일을 못 읽으면 임의 경계를 그리지 않고 안내문 + 이전처럼 전체 핀으로 돌아간다.
   loadRegions().then((ok) => {
-    const covered = ok ? new Set(Object.values(REGION_PLACE).filter(Boolean)) : new Set();
+    const covered = ok ? new Set(regions.flatMap((r) => r.records.map((pl) => pl.id))) : new Set();
     placesData.filter((p) => !covered.has(p.id)).forEach(addPin);
+    // L.latLngBounds(기존 bounds)는 같은 객체를 돌려주므로 복사본을 만들어 합친다 (원본 지역 bounds를 건드리지 않게)
     const bounds = ok
-      ? regions.reduce((b, r) => (b ? b.extend(r.bounds) : L.latLngBounds(r.bounds)), null)
+      ? regions.reduce((b, r) => b.extend(r.bounds), L.latLngBounds(regions[0].bounds.getSouthWest(), regions[0].bounds.getNorthEast()))
       : L.latLngBounds(placesData.map((p) => [p.lat, p.lng]));
     if (bounds && bounds.isValid()) {
       map.fitBounds(bounds, { padding: ok ? [40, 40] : [70, 70], maxZoom: 14, animate: false });
     }
+    initSpots();
   });
 }
 
@@ -415,7 +420,8 @@ function addPin(place) {
   marker.bindTooltip(place.name, { direction: 'top', offset: [0, -10], className: 'place-tip' });
   marker.on('click', () => {
     setActiveMarker(marker);
-    openOverlay(place);
+    if (typeof openPlacePanel === 'function' && panelEl) openPlacePanel(place);
+    else openOverlay(place);
   });
   markersById.set(place.id, marker);
 }
@@ -424,27 +430,7 @@ function addPin(place) {
 const REGION_GEOJSON = 'data/gwangju_donggu_sign_16.geojson?v=20261015';
 const REGION_COUNT = 16;
 
-// GeoJSON feature.properties.id → places.json id. 이름이 아니라 ID로 고정 연결한다.
-// 산수동(donggu_06)은 아직 장소 데이터가 없어 null — 경계만 그리고 '영상 준비 중'으로 연다.
-const REGION_PLACE = {
-  donggu_01: 'gyerim-dong',
-  donggu_02: 'gung-dong',
-  donggu_03: 'geumnam-ro',
-  donggu_04: 'daein-dong',
-  donggu_05: 'dongmyeong-dong',
-  donggu_06: null,
-  donggu_07: 'seoseok-dong',
-  donggu_08: 'sotae-dong',
-  donggu_09: 'unrim-dong',
-  donggu_10: 'wollam-dong',
-  donggu_11: 'jisan-dong',
-  donggu_12: 'jiwon-dong',
-  donggu_13: 'chungjang-ro',
-  donggu_14: 'hak-dong',
-  donggu_15: 'seonam-dong',
-  donggu_16: 'hagun-dong',
-};
-
+// 경계 ↔ 기록 연결은 data/dong-records.json 에서 읽는다 (코드 수정 없이 데이터만 고치면 됨)
 const regions = []; // { id, name, type, place, color, geom, bounds, area, layer }
 const regionById = new Map();
 let hoveredIds = [];
@@ -498,20 +484,22 @@ function regionsAt(latlng) {
 }
 
 /* --- 스타일: 장소 색을 아주 옅게, 행정동은 점선 --- */
+const MAP_HOVER = '#D5AD6A';
+const MAP_SELECTED = '#F0C576';
 function regionStyle(r) {
   const state = r.id === selectedRegionId ? 'selected' : hoveredIds.includes(r.id) ? 'hover' : 'base';
   const s = {
     className: 'region',
-    color: r.color,
+    color: 'rgba(244,243,239,0.45)',
     weight: 1,
-    opacity: 0.55,
-    fillColor: r.color,
-    fillOpacity: 0.1,
+    opacity: 1,
+    fillColor: '#F4F3EF',
+    fillOpacity: 0.035,
     dashArray: r.type === '행정동' ? '4 5' : null,
     lineJoin: 'round',
   };
-  if (state === 'hover') Object.assign(s, { weight: 1.5, opacity: 0.95, fillOpacity: 0.26 });
-  if (state === 'selected') Object.assign(s, { weight: 2, opacity: 1, fillOpacity: 0.34 });
+  if (state === 'hover') Object.assign(s, { color: MAP_HOVER, weight: 2, fillColor: MAP_HOVER, fillOpacity: 0.14 });
+  if (state === 'selected') Object.assign(s, { color: MAP_SELECTED, weight: 2.5, fillColor: MAP_SELECTED, fillOpacity: 0.18 });
   return s;
 }
 // 큰 지역부터 올려 작은 지역이 항상 위에 보이게 한다 (클릭 판정은 좌표 기준이라 순서와 무관)
@@ -547,46 +535,10 @@ function setSelectedRegion(id) {
 }
 
 /* --- 지역 열기: 장소가 있으면 기존 오버레이, 없으면 '영상 준비 중' --- */
-function openRegion(r) {
-  if (r.place) {
-    openOverlay(r.place);
-    return;
-  }
-  lastFocused = document.activeElement;
-  overlayEl.hidden = false;
-  detailEl.style.setProperty('--kc', r.color);
-  detailEl.innerHTML = `
-    <p class="ov-kicker">동구 ${esc(r.type)} — 수어 지명 기록</p>
-    <h2>${esc(r.name)}</h2>
-    <div class="video-box"><span class="placeholder">SIGN — COMING SOON<br>영상 준비 중</span></div>
-    <p class="section-label">장소 기억</p>
-    <p class="section-text">(아직 수집되지 않음)</p>`;
-  closeBtn.focus();
-}
-
-// fly: 지역 목록에서 고른 경우 — 먼저 해당 지역으로 이동한 뒤 오버레이를 연다
-function selectRegion(r, { fly = false } = {}) {
+// 지역을 열면 전체 화면 오버레이 대신 지도 옆 패널에 기록을 보여준다 (지도는 계속 보인다)
+function selectRegion(r) {
   setSelectedRegion(r.id);
-  if (!fly) {
-    openRegion(r);
-    return;
-  }
-  const fit = { padding: [60, 60], maxZoom: 15 };
-  if (prefersReducedMotion()) {
-    map.fitBounds(r.bounds, { ...fit, animate: false });
-    openRegion(r);
-    return;
-  }
-  let opened = false;
-  const open = () => {
-    if (opened) return;
-    opened = true;
-    map.off('moveend', open);
-    openRegion(r);
-  };
-  map.once('moveend', open);
-  setTimeout(open, 1200); // moveend가 오지 않는 경우의 안전장치
-  map.flyToBounds(r.bounds, { ...fit, duration: 0.7 });
+  openRegionPanel(r);
 }
 
 /* --- 겹치는 지역 선택 팝업 --- */
@@ -597,7 +549,7 @@ function openChooser(hits, latlng) {
       ${hits
         .map(
           (r) =>
-            `<button type="button" class="chooser-btn" data-region="${r.id}" style="--c:${r.color}"><i aria-hidden="true"></i>${esc(r.name)} 수어 보기<small>${esc(r.type)}</small></button>`
+            `<button type="button" class="chooser-btn" data-region="${r.id}"><i aria-hidden="true"></i>${esc(r.name)} 수어 보기<small>${esc(r.type)}</small></button>`
         )
         .join('')}
     </div>`;
@@ -630,6 +582,39 @@ function openChooser(hits, latlng) {
   el.querySelector('.chooser-btn').focus();
 }
 
+/* --- 동 이름 레이블: 넓은 지역은 줌 13부터, 좁은 지역은 15부터 (겹침 방지) --- */
+function ringCentroid(ring) {
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const f = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+    a += f; cx += (ring[j][0] + ring[i][0]) * f; cy += (ring[j][1] + ring[i][1]) * f;
+  }
+  if (!a) return ring[0];
+  return [cx / (3 * a), cy / (3 * a)];
+}
+function buildRegionLabels() {
+  const areas = regions.map((r) => r.area).sort((a, b) => a - b);
+  const median = areas[Math.floor(areas.length / 2)];
+  regions.forEach((r) => {
+    const outer = r.geom.type === 'Polygon' ? r.geom.coordinates[0] : r.geom.coordinates[0][0];
+    const [lng, lat] = ringCentroid(outer);
+    r.label = L.tooltip({ permanent: true, direction: 'center', className: 'dong-label', interactive: false, opacity: 1 })
+      .setLatLng([lat, lng])
+      .setContent(r.name);
+    r.labelMinZoom = r.area >= median ? 13 : 15;
+  });
+  const sync = () => {
+    const z = map.getZoom();
+    regions.forEach((r) => {
+      const show = z >= r.labelMinZoom;
+      if (show && !map.hasLayer(r.label)) r.label.addTo(map);
+      if (!show && map.hasLayer(r.label)) map.removeLayer(r.label);
+    });
+  };
+  map.on('zoomend', sync);
+  sync();
+}
+
 /* --- 보조 탐색: 16개 지역 목록 (키보드 선택 가능) --- */
 function buildRegionList() {
   regionListEl.innerHTML = '<p class="rl-cap">동구 16 — 지역 선택</p>';
@@ -641,11 +626,10 @@ function buildRegionList() {
       b.type = 'button';
       b.className = 'region-btn';
       b.dataset.region = r.id;
-      b.style.setProperty('--c', r.color);
       b.setAttribute('aria-pressed', 'false');
-      const hasVideo = !!(r.place && ((r.place.videos && r.place.videos.length) || r.place.video_youtube_id));
+      const hasVideo = r.records.some((pl) => (pl.videos && pl.videos.length) || pl.video_youtube_id);
       b.innerHTML = `<i aria-hidden="true"></i><span>${esc(r.name)}</span>${hasVideo ? '' : '<small>준비 중</small>'}`;
-      b.addEventListener('click', () => selectRegion(r, { fly: true }));
+      b.addEventListener('click', () => selectRegion(r));
       regionListEl.appendChild(b);
     });
   regionListEl.hidden = false;
@@ -658,7 +642,7 @@ function bindRegionEvents() {
 
   if (canHover) {
     map.on('mousemove', (e) => {
-      if (chooserPopup) return;
+      if (chooserPopup || mapMode !== 'signs') return;
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const hits = regionsAt(e.latlng);
@@ -682,6 +666,7 @@ function bindRegionEvents() {
   }
 
   map.on('click', (e) => {
+    if (mapMode !== 'signs') return;
     if (chooserPopup) {
       map.closePopup();
       return;
@@ -697,13 +682,380 @@ function bindRegionEvents() {
   });
 }
 
+/* ---------- 상세 패널: 데스크톱 오른쪽 / 모바일 바텀시트 ----------
+   항목(item)은 { kind:'region', region } 또는 { kind:'place', place } (경계 밖 핀 장소).
+   이전/다음은 경계 파일 순서(16개) 뒤에 핀 장소가 이어지는 순서로 돈다. */
+const panelEl = document.getElementById('dpanel');
+const panelBodyEl = document.getElementById('dpanel-body');
+const panelNameEl = document.getElementById('dp-name');
+const panelEnEl = document.getElementById('dp-en');
+const panelSubEl = document.getElementById('dp-sub');
+const viewMapEl = document.getElementById('view-map');
+let placesEn = {};
+let panelItem = null;
+let panelRecordIdx = 0; // 기록이 여러 개인 지역에서 null이면 목록 화면
+let panelLastFocus = null;
+let panelHideTimer = null;
+
+const isSheetMode = () => window.matchMedia('(max-width: 767px)').matches;
+const isPanelOpen = () => !panelEl.hidden && panelEl.classList.contains('on');
+const pinPlaces = () => placesData.filter((pl) => markersById.has(pl.id));
+const navItems = () => [
+  ...regions.map((region) => ({ kind: 'region', region })),
+  ...pinPlaces().map((place) => ({ kind: 'place', place })),
+];
+const sameItem = (a, b) => a && b && a.kind === b.kind && (a.region || a.place) === (b.region || b.place);
+const itemRecords = (it) => (it.kind === 'region' ? it.region.records : it.kind === 'spot' ? [] : [it.place]);
+const itemName = (it) => (it.kind === 'region' ? it.region.name : it.kind === 'spot' ? (spotState?.place || spotState?.hub)?.name || '' : it.place.name);
+const itemEn = (it) => (it.kind === 'region' ? it.region.en : it.kind === 'spot' ? '' : placesEn[it.place.id] || '');
+const itemId = (it) => (it.kind === 'region' ? it.region.id : it.kind === 'spot' ? spotState?.hub.id : it.place.id);
+const itemBounds = (it) => {
+  if (it.kind === 'region') return it.region.bounds;
+  if (it.kind === 'spot') { const s = spotState?.place || spotState?.hub; return L.latLngBounds([[s.geo.lat || 0, s.geo.lng || 0]]); }
+  return L.latLngBounds([[it.place.lat, it.place.lng]]);
+};
+
+function stopPanelVideo() {
+  const v = document.getElementById('panel-video');
+  if (!v) return;
+  v.pause();
+  v.removeAttribute('src');
+  v.load();
+}
+
+/* 선택 항목이 패널에 가려지지 않은 지도 영역에 있을 때만 그대로 두고, 아니면 보이게 맞춘다 */
+function itemInView(it) {
+  const size = map.getSize();
+  const h = isSheetMode() ? size.y - panelEl.getBoundingClientRect().height : size.y;
+  const b = itemBounds(it);
+  const nw = map.latLngToContainerPoint(b.getNorthWest());
+  const se = map.latLngToContainerPoint(b.getSouthEast());
+  const pad = it.kind === 'place' ? 24 : 0;
+  return nw.x - pad >= 0 && nw.y - pad >= 0 && se.x + pad <= size.x && se.y + pad <= h;
+}
+function ensureItemVisible(it) {
+  if (it.kind === 'spot') return; // 거점·주변 장소는 spots.js가 카메라를 맡는다
+  if (itemInView(it)) return;
+  const animate = !prefersReducedMotion();
+  if (it.kind === 'place') {
+    map.panTo([it.place.lat, it.place.lng], { animate });
+    return;
+  }
+  const opts = { padding: [40, 40], maxZoom: Math.max(map.getZoom(), 13), animate };
+  if (isSheetMode()) opts.paddingBottomRight = [40, panelEl.getBoundingClientRect().height + 40];
+  map.fitBounds(it.region.bounds, opts);
+}
+
+function setHash(id) {
+  // 'spot/…'는 장소 둘러보기 해시, 그 외는 지명 수어 해시
+  const next = id ? (String(id).startsWith('spot/') ? `#${id}` : `#map/${id}`) : '';
+  if (location.hash === next) return;
+  history.replaceState(null, '', next || location.pathname + location.search);
+}
+function applyHash() {
+  const m = location.hash.match(/^#map\/([\w-]+)/);
+  if (!m || !regions.length) return;
+  if (mapMode !== 'signs') setMapMode('signs');
+  const id = m[1];
+  const region =
+    regions.find((x) => x.id === id) || regions.find((x) => x.records.some((pl) => pl.id === id));
+  const pin = !region && pinPlaces().find((pl) => pl.id === id);
+  if (!region && !pin) return;
+  if (document.body.dataset.view !== 'map') setView('map');
+  if (region) {
+    const idx = region.records.findIndex((pl) => pl.id === id);
+    setSelectedRegion(region.id);
+    openPanel({ kind: 'region', region }, idx >= 0 ? idx : region.records.length === 1 ? 0 : null, { fromHash: true });
+  } else {
+    setActiveMarker(markersById.get(pin.id));
+    openPanel({ kind: 'place', place: pin }, 0, { fromHash: true });
+  }
+}
+window.addEventListener('hashchange', () => {
+  if (!regions.length) return;
+  if (location.hash.startsWith('#spot/')) {
+    // 장소 기억 화면이 열린 채 뒤로 가기 → 화면만 닫고 지도·패널은 그대로
+    if (typeof storyIsOpen === 'function' && storyIsOpen() && !/\/story$/.test(location.hash)) { closeStory({ fromHistory: true }); return; }
+    applySpotHash();
+    return;
+  }
+  if (location.hash.startsWith('#map/')) { if (mapMode !== 'signs') setMapMode('signs'); applyHash(); }
+  else if (isPanelOpen()) closePanel({ keepHash: true });
+});
+
+function openRegionPanel(r, recordIdx = r.records.length === 1 ? 0 : null, opts) {
+  setActiveMarker(null);
+  openPanel({ kind: 'region', region: r }, recordIdx, opts);
+}
+function openPlacePanel(place) {
+  setSelectedRegion(null);
+  openPanel({ kind: 'place', place }, 0);
+}
+
+function openPanel(it, recordIdx, { fromHash = false } = {}) {
+  const wasOpen = isPanelOpen();
+  clearTimeout(panelHideTimer);
+  stopPanelVideo();
+  // 닫을 때 돌아갈 곳: 처음 연 시점의 포커스. 목록 버튼으로 바꿔 열었으면 그 버튼으로 갱신
+  if (!wasOpen || document.activeElement?.classList.contains('region-btn')) {
+    panelLastFocus = document.activeElement;
+  }
+  panelItem = it;
+  panelRecordIdx = recordIdx;
+  renderPanel();
+  const record = recordIdx !== null ? itemRecords(it)[recordIdx] : null;
+  if (!fromHash) setHash(record ? record.id : itemId(it));
+
+  panelEl.hidden = false;
+  viewMapEl.classList.add('dpanel-open');
+  document.body.classList.add('dpanel-open');
+  if (!wasOpen) {
+    panelEl.classList.remove('expanded');
+    void panelEl.offsetWidth; // hidden 해제 직후 리플로우 → 슬라이드 전환이 실제로 재생된다
+    panelEl.classList.add('on');
+    // 데스크톱은 지도 컨테이너가 줄어들므로 전환이 끝난 뒤 크기를 다시 재고 위치를 맞춘다
+    setTimeout(() => {
+      map.invalidateSize({ pan: false });
+      ensureItemVisible(it);
+    }, prefersReducedMotion() ? 0 : 340);
+    panelEl.focus({ preventScroll: true });
+  } else {
+    ensureItemVisible(it);
+    panelEl.scrollTop = 0;
+  }
+}
+
+function closePanel({ keepHash = false } = {}) {
+  if (panelEl.hidden) return;
+  stopPanelVideo();
+  panelEl.classList.remove('on', 'expanded');
+  viewMapEl.classList.remove('dpanel-open');
+  document.body.classList.remove('dpanel-open');
+  setSelectedRegion(null);
+  setActiveMarker(null);
+  if (!keepHash) setHash(null);
+  if (panelItem && panelItem.kind === 'spot' && typeof markSelected === 'function') { spotState = null; markSelected(); }
+  panelItem = null;
+  panelHideTimer = setTimeout(() => {
+    panelEl.hidden = true;
+    map.invalidateSize({ pan: false }); // 사용자가 보던 중심·줌은 그대로 둔다
+  }, prefersReducedMotion() ? 0 : 340);
+  if (panelLastFocus && panelLastFocus.focus && document.contains(panelLastFocus)) panelLastFocus.focus();
+  else map.getContainer().focus();
+}
+
+function stepItem(dir) {
+  if (!panelItem) return;
+  if (panelItem.kind === 'spot') { stepSpot(dir); return; }
+  const items = navItems();
+  const i = items.findIndex((x) => sameItem(x, panelItem));
+  const next = items[(i + dir + items.length) % items.length];
+  if (next.kind === 'region') selectRegion(next.region);
+  else {
+    setActiveMarker(markersById.get(next.place.id));
+    openPlacePanel(next.place);
+  }
+}
+
+/* --- 패널 내용 --- */
+function panelVideoHtml(place) {
+  const vids = place.videos || [];
+  if (vids.length) {
+    const first = vids[0];
+    const angles =
+      vids.length > 1
+        ? `<div class="angles" role="group" aria-label="촬영 각도">${vids
+            .map((v, i) => `<button type="button" class="angle${i === 0 ? ' on' : ''}" data-angle="${i}" aria-pressed="${i === 0}">${esc(v.label)}</button>`)
+            .join('')}</div>`
+        : '';
+    return `
+      <div class="pv" style="--ar:${Number(first.ratio) || 0.75}">
+        <video id="panel-video" preload="metadata" playsinline ${first.poster ? `poster="${esc(first.poster)}"` : ''} src="${esc(first.src)}" aria-label="${esc(place.name)} 수어 영상 (${esc(first.label)})"></video>
+        <button type="button" class="pv-play" id="panel-play" aria-label="${esc(place.name)} 수어 영상 재생">수어 영상 보기<span class="pv-ico" aria-hidden="true"></span></button>
+        <p class="pv-err" id="panel-verr" hidden role="alert"></p>
+      </div>${angles}`;
+  }
+  if (place.video_youtube_id) {
+    return `<div class="pv pv-yt"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(place.video_youtube_id)}" title="${esc(place.name)} 수어 영상" allowfullscreen></iframe></div>`;
+  }
+  return `<div class="pv pv-none"><span>SIGN — COMING SOON<br>영상 준비 중</span></div>`;
+}
+
+// "[예시] …" 자리표시 문구는 기록으로 치지 않는다
+const realText = (t) => (t && !String(t).trim().startsWith('[예시]') ? String(t).trim() : '');
+
+function panelRecordHtml(place) {
+  // 5·18 등 민감한 기록은 오버레이와 같은 정책: 세션에서 열람을 확인하기 전까지 안내 문구만 보여준다
+  if (place.sensitive && !revealedSensitive.has(place.id)) {
+    return `
+      <div class="sensitive-gate">
+        <p class="section-text">${esc(place.sensitive_notice || '이 지점은 역사적으로 민감한 기록을 담고 있습니다. 계속 보시겠어요?')}</p>
+        <button type="button" id="panel-reveal">기록 보기</button>
+      </div>`;
+  }
+  const idx = placesData.indexOf(place) + 1;
+  const origin = realText(place.origin_text);
+  return `
+    ${panelVideoHtml(place)}
+    <div class="pv-info"><span>GSL® / ${String(idx).padStart(2, '0')}</span><i class="pv-div" aria-hidden="true"></i><span>GWANGJU SIGN LANGUAGE</span></div>
+    ${signPartsHtml(place)}
+    ${origin ? `<p class="section-label">이름의 유래</p><p class="section-text">${esc(origin)}</p>` : ''}
+    ${(place.tags || []).length ? `<div class="tags">${place.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}`;
+}
+
+function renderPanel() {
+  const it = panelItem;
+  if (it.kind === 'spot') { renderSpotPanel(); return; }
+  const records = itemRecords(it);
+  panelNameEl.textContent = itemName(it);
+  panelEnEl.textContent = itemEn(it);
+  panelSubEl.textContent = it.kind === 'region' ? '광주 동구 수어 지명 기록' : '광주 수어 지명 기록';
+  // 긴 지명도 한 줄에 들어가도록 글자 수에 따라 제목 크기를 낮춘다
+  const len = itemName(it).length;
+  panelNameEl.classList.toggle('mid', len >= 4 && len <= 5);
+  panelNameEl.classList.toggle('long', len >= 6);
+  const items = navItems();
+  const i = items.findIndex((x) => sameItem(x, it));
+  const prev = items[(i - 1 + items.length) % items.length];
+  const next = items[(i + 1) % items.length];
+  document.getElementById('dp-prev').setAttribute('aria-label', `이전 기록: ${itemName(prev)}`);
+  document.getElementById('dp-next').setAttribute('aria-label', `다음 기록: ${itemName(next)}`);
+
+  let html = '';
+  if (!records.length) {
+    html = `<p class="dp-empty">아직 수집된 수어 기록이 없습니다.</p>
+            <p class="dp-meta">${esc(it.region.type)} 경계 · 기록이 모이면 이곳에 영상과 장소 기억이 실립니다.</p>`;
+  } else if (panelRecordIdx === null) {
+    html = `<p class="section-label">이 지역의 기록 ${records.length}개</p>
+      <div class="dp-list">${records
+        .map((pl, k) => `<button type="button" class="dp-rec" data-rec="${k}"><span>${esc(pl.name)}</span><small>${(pl.videos && pl.videos.length) || pl.video_youtube_id ? '영상' : '기록'}</small></button>`)
+        .join('')}</div>`;
+  } else {
+    html = panelRecordHtml(records[panelRecordIdx]);
+    if (records.length > 1) html = `<button type="button" class="dp-back" id="dp-back">‹ 이 지역의 다른 기록</button>` + html;
+  }
+  panelBodyEl.innerHTML = html;
+
+  // 영상: 큰 재생 버튼 → 재생. 자동 재생은 하지 않는다.
+  const v = document.getElementById('panel-video');
+  const play = document.getElementById('panel-play');
+  const err = document.getElementById('panel-verr');
+  if (v && play) {
+    const showPlay = (on) => { play.hidden = !on; };
+    play.addEventListener('click', () => {
+      v.controls = true;
+      v.play().catch(() => {});
+    });
+    v.addEventListener('playing', () => showPlay(false));
+    v.addEventListener('pause', () => showPlay(true));
+    v.addEventListener('ended', () => showPlay(true));
+    v.addEventListener('error', () => {
+      showPlay(false);
+      err.textContent = `영상을 불러오지 못했습니다 (${v.currentSrc ? v.currentSrc.split('/').pop() : '파일 없음'}).`;
+      err.hidden = false;
+    });
+    panelBodyEl.querySelectorAll('.angle').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const pl = records[panelRecordIdx];
+        const vid = pl.videos[Number(btn.dataset.angle)];
+        panelBodyEl.querySelectorAll('.angle').forEach((b) => {
+          b.classList.toggle('on', b === btn);
+          b.setAttribute('aria-pressed', String(b === btn));
+        });
+        v.pause();
+        if (vid.poster) v.poster = vid.poster;
+        v.src = vid.src;
+        v.setAttribute('aria-label', `${pl.name} 수어 영상 (${vid.label})`);
+        err.hidden = true;
+        showPlay(true);
+      });
+    });
+  }
+  document.getElementById('panel-reveal')?.addEventListener('click', () => {
+    revealedSensitive.add(records[panelRecordIdx].id);
+    renderPanel();
+  });
+  document.getElementById('dp-back')?.addEventListener('click', () => {
+    panelRecordIdx = null;
+    stopPanelVideo();
+    renderPanel();
+    setHash(itemId(it));
+  });
+  panelBodyEl.querySelectorAll('.dp-rec').forEach((b) => {
+    b.addEventListener('click', () => {
+      panelRecordIdx = Number(b.dataset.rec);
+      renderPanel();
+      setHash(records[panelRecordIdx].id);
+    });
+  });
+}
+
+function bindPanel() {
+  if (panelEl.dataset.bound) return;
+  panelEl.dataset.bound = '1';
+  document.getElementById('dp-close').addEventListener('click', () => closePanel());
+  document.getElementById('dp-prev').addEventListener('click', () => stepItem(-1));
+  document.getElementById('dp-next').addEventListener('click', () => stepItem(1));
+  // 모바일 시트: 핸들을 누르거나 위/아래로 끌면 펼침/접힘
+  const handle = document.getElementById('dp-handle');
+  const toggleSheet = (force) => {
+    const on = panelEl.classList.toggle('expanded', force);
+    handle.setAttribute('aria-expanded', String(on));
+    handle.setAttribute('aria-label', on ? '시트 접기' : '시트 펼치기');
+  };
+  handle.addEventListener('click', () => toggleSheet());
+  let dragY = null;
+  handle.addEventListener('pointerdown', (e) => { dragY = e.clientY; });
+  window.addEventListener('pointerup', (e) => {
+    if (dragY === null) return;
+    const dy = e.clientY - dragY;
+    dragY = null;
+    if (dy < -40) toggleSheet(true);
+    else if (dy > 40) toggleSheet(false);
+  });
+  // 메모 카드 펼치기 (오버레이와 같은 위임 방식)
+  panelBodyEl.addEventListener('click', (e) => {
+    const memo = e.target.closest('.memo.has-more');
+    if (memo) toggleMemo(memo);
+  });
+  panelBodyEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const memo = e.target.closest('.memo.has-more');
+    if (memo && e.target === memo) {
+      e.preventDefault();
+      toggleMemo(memo);
+    }
+  });
+  let rt = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(rt);
+    rt = setTimeout(() => map && map.invalidateSize({ pan: false }), 150);
+  });
+}
+
+const DONG_RECORDS = 'data/dong-records.json?v=20261015';
+let dongRecords = {}; // 경계 id → { name, en, records: [placeId...] }
+
 function loadRegions() {
-  return fetch(REGION_GEOJSON)
-    .then((res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
+  const geoReq = fetch(REGION_GEOJSON).then((res) => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  });
+  // 연결표가 없으면 경계는 그리되 기록 없음으로 처리하고, 콘솔과 안내문으로 알린다
+  const recReq = fetch(DONG_RECORDS)
+    .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+    .then((d) => {
+      placesEn = (d && d.places_en) || {};
+      return d && d.regions ? d.regions : {};
     })
-    .then((geo) => {
+    .catch((err) => {
+      console.error('지역-기록 연결표 로드 실패:', err);
+      showMapError('지역과 기록의 연결표(data/dong-records.json)를 불러오지 못해 경계만 표시합니다.');
+      return null;
+    });
+  return Promise.all([geoReq, recReq])
+    .then(([geo, rec]) => {
+      dongRecords = rec || {};
       if (!geo || geo.type !== 'FeatureCollection' || !Array.isArray(geo.features)) {
         throw new Error('FeatureCollection 형식이 아닙니다');
       }
@@ -715,15 +1067,22 @@ function loadRegions() {
       feats.forEach((f, i) => {
         const props = f.properties || {};
         const id = props.id || `feature_${i}`;
-        if (!(id in REGION_PLACE)) throw new Error(`연결 정보가 없는 지역 ID: ${id}`);
-        const placeId = REGION_PLACE[id];
-        const place = placeId ? placeById.get(placeId) || null : null;
-        if (placeId && !place) throw new Error(`places.json에 없는 장소: ${placeId}`);
+        const entry = dongRecords[id];
+        if (rec && !entry) console.warn(`dong-records.json에 항목이 없는 지역: ${id} (${props.name}) — 기록 없음으로 표시`);
+        // 연결표의 기록 id 중 places.json에 실제로 있는 것만 쓴다. 없는 id는 다른 기록으로 대체하지 않는다.
+        const records = (entry?.records || []).map((pid) => {
+          const pl = placeById.get(pid);
+          if (!pl) console.error(`dong-records.json의 기록 id가 places.json에 없습니다: ${pid} (${props.name})`);
+          return pl || null;
+        }).filter(Boolean);
+        const place = records[0] || null;
         const layer = L.geoJSON(f, { interactive: false, style: () => ({}) });
         const r = {
           id,
-          name: props.name || place?.name || id,
+          name: props.name || entry?.name || id,
+          en: entry?.en || '',
           type: props.boundary_type || '',
+          records,
           place,
           color: place ? place._color : '#8B8A85',
           geom: f.geometry,
@@ -740,9 +1099,12 @@ function loadRegions() {
         r.layer.addTo(map);
       });
       restackRegions();
+      buildRegionLabels();
       buildRegionList();
       bindRegionEvents();
-      mapErrorEl.hidden = true;
+      bindPanel();
+      if (rec) mapErrorEl.hidden = true;
+      if (location.hash.startsWith('#map/')) applyHash();
       return true;
     })
     .catch((err) => {
@@ -761,6 +1123,7 @@ fetch('data/places.json?v=20261015a')
     buildTrack(places);
     buildRuler(places);
     buildSignIndex(places);
+    if (location.hash.startsWith('#map/') || location.hash.startsWith('#spot/')) setView('map');
     syncRuler();
     document.getElementById('loader').classList.add('done');
   })
