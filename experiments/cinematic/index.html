@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Cinematic Gwangju — 손으로 부르는 광주 (시안)</title>
+<title>손으로 부르는 광주 — Cinematic 시안</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
-<link rel="stylesheet" href="cinematic.css?v=4">
+<link rel="stylesheet" href="cinematic.css?v=7">
 </head>
-<body>
-  <!-- 왼쪽: 시네마틱 도시 풍경 (사진 한 장 + 등급 보정 오버레이 + 느린 카메라) -->
+<body data-state="intro">
+  <!-- 왼쪽: 시네마틱 도시 풍경 (사진 한 장 + 블루아워 보정 오버레이 + 느린 카메라) -->
   <section class="stage" id="stage" aria-label="광주 도심 풍경">
     <div class="hero" id="hero">
       <div class="plx" id="hero-plx"><img class="hero-img" id="hero-img" alt="" draggable="false"></div>
@@ -25,35 +25,50 @@
     <div class="vignette" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
 
-    <!-- 사진이 없을 때(저장소에는 사진을 넣지 않는다) -->
     <div class="no-photo" id="no-photo" hidden>
       <p><b>배경 사진이 없습니다.</b><br>사용 권한을 확인한 사진을 <code>assets/</code>에 넣어주세요 (README 참고).</p>
     </div>
 
     <!-- 상단 -->
     <header class="top">
-      <div class="brand">
+      <a class="brand" id="brand" href="#" aria-label="처음 화면으로">
         <b>손으로 부르는 광주</b>
-        <span>GWANGJU SIGN LANGUAGE MAP · CINEMATIC 시안</span>
-      </div>
+        <span>GWANGJU SIGN LANGUAGE MAP</span>
+      </a>
       <button type="button" class="explore-btn" id="explore-btn" aria-expanded="false" aria-controls="explore-menu">지역 선택 <span class="plus" aria-hidden="true">+</span></button>
     </header>
 
     <nav class="explore-menu" id="explore-menu" hidden aria-label="장소 선택">
       <div class="em-head"><span>EXPLORE — 광주 동구</span><button type="button" class="em-close" id="explore-close">닫기 ✕</button></div>
       <div class="em-list" id="explore-list"></div>
-      <p class="em-note">사진 속 위치는 확인되지 않아 사진 위에 핀을 두지 않습니다. 실제 위치는 <a id="map-link" href="../../#map/chungjang-ro">지명 수어 지도</a>에서 봅니다.</p>
+      <p class="em-note">사진 속 위치는 확인되지 않아 사진 위에 핀을 두지 않습니다. 실제 위치는 <a href="../../#map/chungjang-ro">지명 수어 지도</a>에서 봅니다.</p>
     </nav>
 
-    <!-- 큰 타이포그래피: 손글씨 한 줄(기록 원문) + 장소 이름 -->
+    <!-- 첫 화면: 프로젝트 소개 (문구는 본 사이트 '소개' 원문) -->
+    <div class="intro-block" id="intro-block">
+      <p class="intro-hand">어디에도 기록되지 않은 이름</p>
+      <h1 class="intro-title">손으로 부르는 광주</h1>
+      <p class="intro-eyebrow">GWANGJU SIGN LANGUAGE MAP · GSL®/2026</p>
+      <p class="intro-lead">광주의 농인들은 충장로, 무등산, 양림동 같은 장소들을 저마다의 수어 이름으로 불러왔습니다. 손끝에서 손끝으로만 전해진 이 이름들은 어디에도 기록되어 있지 않습니다.</p>
+      <button type="button" class="cta" id="cta">광주 탐험하기 <span aria-hidden="true">→</span></button>
+    </div>
+
+    <!-- 탐험 화면 안내 -->
+    <div class="explore-block" id="explore-block">
+      <p class="ex-eyebrow">EXPLORE · 광주 동구</p>
+      <h2 class="ex-title">주요 장소</h2>
+      <p class="ex-hint">장소를 고르면 거리 사진과 수어 기록으로 이동합니다. 지금은 충장로만 열립니다.</p>
+    </div>
+
+    <!-- 장소 화면: 손글씨 한 줄(기록 원문) + 장소 이름 -->
     <div class="title-block" id="title-block">
       <p class="hand" id="hand"></p>
       <h1 class="place" id="place-title"></h1>
-      <svg class="rule" viewBox="0 0 320 24" aria-hidden="true"><path id="rule-path" d="M2 12 C 90 4, 180 20, 318 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <svg class="rule" viewBox="0 0 320 24" aria-hidden="true"><path d="M2 12 C 90 4, 180 20, 318 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       <p class="eyebrow" id="eyebrow"></p>
     </div>
 
-    <!-- 하단 장소 탐색 -->
+    <!-- 하단 장소 탐색 (탐험 화면부터) -->
     <nav class="spot-menu" id="spot-menu" aria-label="주요 장소"></nav>
 
     <p class="credit" id="credit"></p>
@@ -76,10 +91,10 @@
     </div>
     <div class="p-body" id="p-body"></div>
     <footer class="p-foot">
-      <p class="p-attrib">기록 원문: data/places.json · data/spots.json (변경 없음) · 사진: 내부 시안용 참고 이미지</p>
+      <p class="p-attrib">기록 원문: data/places.json · data/spots.json · data/memory-stories.json (변경 없음) · 사진: 내부 시안용 참고 이미지</p>
     </footer>
   </aside>
 
-  <script src="cinematic.js?v=2"></script>
+  <script src="cinematic.js?v=7"></script>
 </body>
 </html>
