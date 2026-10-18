@@ -409,6 +409,7 @@ function initMap() {
     initSpots();
     // 경계 밖 핀(무등산·양림동·5·18민주광장)을 주소(#map/<id>)로 열 때: 핀은 지역보다 늦게 만들어지므로 여기서 한 번 더 적용한다
     if (location.hash.startsWith('#map/')) { const id = (location.hash.slice(5).match(/^[\w-]+/) || [])[0]; if (id && markersById.has(id)) applyHash(); }
+    else if (location.hash === '#map') fitDistrict();
   });
 }
 
@@ -493,20 +494,17 @@ function regionsAt(latlng) {
 const MAP_HOVER = '#D5AD6A';
 const MAP_SELECTED = '#F0C576';
 function regionStyle(r) {
-  const state = r.id === selectedRegionId ? 'selected' : hoveredIds.includes(r.id) ? 'hover' : 'base';
-  const s = {
+  // 지명 수어 v2: 속성은 기본 모양만 두고(행정동은 점선), 호버·선택 색은 CSS 클래스(.hov/.sel)가 입힌다 → 채움·선이 부드럽게 전환된다
+  return {
     className: 'region',
-    color: 'rgba(244,243,239,0.45)',
+    color: 'rgba(236, 232, 222, 0.58)',
     weight: 1,
     opacity: 1,
     fillColor: '#F4F3EF',
-    fillOpacity: 0.035,
+    fillOpacity: 0.085,
     dashArray: r.type === '행정동' ? '4 5' : null,
     lineJoin: 'round',
   };
-  if (state === 'hover') Object.assign(s, { color: MAP_HOVER, weight: 2, fillColor: MAP_HOVER, fillOpacity: 0.14 });
-  if (state === 'selected') Object.assign(s, { color: MAP_SELECTED, weight: 2.5, fillColor: MAP_SELECTED, fillOpacity: 0.18 });
-  return s;
 }
 // 큰 지역부터 올려 작은 지역이 항상 위에 보이게 한다 (클릭 판정은 좌표 기준이라 순서와 무관)
 function restackRegions() {
@@ -518,7 +516,17 @@ function restackRegions() {
 function restyle(ids) {
   ids.forEach((id) => {
     const r = regionById.get(id);
-    if (r) r.layer.setStyle(regionStyle(r));
+    if (!r) return;
+    // 상태는 클래스로만 바꾼다. 지도가 아직 첫 화면을 잡기 전이면 path가 없으므로 추가되는 순간 현재 상태를 입힌다
+    r.layer.eachLayer((l) => {
+      const apply = () => {
+        if (!l._path) return;
+        void l._path.getBoundingClientRect(); // 방금 옮겨진 요소도 '이전 스타일'을 갖게 해 전환이 재생되게 한다
+        l._path.classList.toggle('sel', r.id === selectedRegionId);
+        l._path.classList.toggle('hov', hoveredIds.includes(r.id));
+      };
+      if (l._path) apply(); else l.once('add', apply);
+    });
   });
 }
 function setHovered(ids) {
@@ -526,13 +534,15 @@ function setHovered(ids) {
   hoveredIds = ids;
   restyle([...new Set([...prev, ...ids])]);
   map.getContainer().classList.toggle('has-hit', ids.length > 0);
+  regionListEl.querySelectorAll('.region-btn').forEach((b) => b.classList.toggle('hover', ids.includes(b.dataset.region)));
 }
 function setSelectedRegion(id) {
   const prev = selectedRegionId;
   selectedRegionId = id;
-  restyle([prev, id].filter(Boolean));
+  // 먼저 쌓는 순서를 바꾸고(요소를 옮기면 진행 중인 전환이 끊긴다) 그 다음에 상태 클래스를 바꿔 전환이 재생되게 한다
   restackRegions();
   if (id) regionById.get(id).layer.bringToFront();
+  restyle([prev, id].filter(Boolean));
   regionListEl.querySelectorAll('.region-btn').forEach((b) => {
     const on = b.dataset.region === id;
     b.classList.toggle('on', on);
@@ -554,55 +564,41 @@ function clearCinematic() {
   shadeLayer = bigNameMarker = null;
 }
 function updateCinematic() {
+  // v2: 선택 지역은 금색 채움과 동 이름 강조로 보여준다 (바깥 그늘·큰 지명 없음)
   clearCinematic();
-  const r = selectedRegionId ? regionById.get(selectedRegionId) : null;
-  if (!r || !map || mapMode !== 'signs') return;
-  // 1) 선택 지역 밖을 어둡게: 세계를 덮는 다각형에 선택 지역을 구멍으로 뚫는다
-  const world = [[-89, -179], [-89, 179], [89, 179], [89, -179]];
-  const holes = (r.geom.type === 'Polygon' ? [r.geom.coordinates] : r.geom.coordinates).map((poly) => poly[0].map(([x, y]) => [y, x]));
-  shadeLayer = L.polygon([world, ...holes], { pane: 'shade', interactive: false, stroke: false, fillColor: '#040404', fillOpacity: 0.58, className: 'cine-shade' }).addTo(map);
-  // 2) 큰 지명: 지역 남쪽 경계 아래
-  bigNameMarker = L.marker([r.bounds.getSouth(), r.centroid[1]], { pane: 'art', interactive: false, keyboard: false, icon: L.divIcon({ className: 'bigname-wrap', html: `<div class="bigname"><span>${esc(r.name)}</span><small>${esc(r.en)}</small></div>`, iconSize: [0, 0], iconAnchor: [0, 0] }) }).addTo(map);
+  if (syncRegionLabels) syncRegionLabels();
 }
-/* 카메라: 패널·시트가 가리지 않는 영역 안에 '지역 + 큰 지명'이 모두 들어가는 가장 큰 줌을 고른다.
-   큰 지명은 줌과 무관한 픽셀 크기이므로 레이아웃 치수(offsetWidth/Height)로 상자를 만들어 지역 상자와 합친다. */
-function nameBoxOf(el) {
-  // 큰 지명: 앵커(남쪽 경계) 아래 14px, 가로 가운데 정렬 (CSS .bigname)
-  if (!el) return null;
-  return { l: -el.offsetWidth / 2, t: 14, r: el.offsetWidth / 2, b: 14 + el.offsetHeight };
-}
-function frameRegion(r, animate) {
+/* 보이는 지도 영역: 왼쪽 동 목록(데스크톱)·오른쪽 패널(데스크톱)·아래 시트(모바일)를 뺀 사각형 */
+function visibleMapRect() {
   const sheet = isSheetMode();
   const size = map.getSize();
-  const pw = sheet ? 0 : panelEl.getBoundingClientRect().width;
-  const ph = sheet ? panelEl.getBoundingClientRect().height : 0;
-  // 보이는 영역: 위는 '지역 선택' 버튼 아래, 오른쪽(데스크톱)은 패널, 아래(모바일)는 시트를 뺀 만큼
-  const vis = { x0: 16, y0: sheet ? 116 : 112, x1: size.x - pw - 16, y1: size.y - ph - 16 };
-  const visW = vis.x1 - vis.x0;
-  const visH = vis.y1 - vis.y0;
-  const nameAnchor = [r.bounds.getSouth(), r.centroid[1]];
-  const nameBox = nameBoxOf(bigNameMarker && bigNameMarker.getElement()?.querySelector('.bigname'));
-  let zoom = Math.min(15, map.getBoundsZoom(r.bounds, false, L.point(40, 40)));
-  let fit = null;
-  while (!fit && zoom >= 10) {
-    const nw = map.project(r.bounds.getNorthWest(), zoom);
-    const se = map.project(r.bounds.getSouthEast(), zoom);
-    const n = map.project(nameAnchor, zoom);
-    let l = nw.x - 24, t = nw.y - 24, rt = se.x + 24, b = se.y + 24;
-    if (nameBox) { l = Math.min(l, n.x + nameBox.l); rt = Math.max(rt, n.x + nameBox.r); b = Math.max(b, n.y + nameBox.b); }
-    if (rt - l <= visW && b - t <= visH) {
-      // 합친 상자의 중심을 보이는 영역의 중심에 놓는다 (지도 컨테이너 중심에서 패널·시트만큼 비켜난 자리)
-      const shift = L.point(size.x / 2 - (vis.x0 + vis.x1) / 2, size.y / 2 - (vis.y0 + vis.y1) / 2);
-      fit = { zoom, center: map.unproject(L.point((l + rt) / 2, (t + b) / 2).add(shift), zoom) };
-    } else zoom -= 1;
-  }
-  if (fit) {
-    if (animate) map.flyTo(fit.center, fit.zoom, { duration: 0.9 });
-    else map.setView(fit.center, fit.zoom, { animate: false });
-    return;
-  }
-  // 아주 좁은 화면: 지역만이라도 보이게
-  map.fitBounds(r.bounds, { paddingTopLeft: [16, vis.y0], paddingBottomRight: [pw + 16, ph + 16], maxZoom: 15, animate });
+  const pw = !sheet && isPanelOpen() ? panelEl.getBoundingClientRect().width : 0;
+  const ph = sheet && isPanelOpen() ? panelEl.getBoundingClientRect().height : 0;
+  const listVisible = !sheet && mapMode === 'signs' && regionListEl && getComputedStyle(regionListEl).display !== 'none';
+  const lw = listVisible ? regionListEl.getBoundingClientRect().right : 0;
+  return { x0: lw + 24, y0: sheet ? 116 : 84, x1: size.x - pw - 24, y1: size.y - ph - 24, size };
+}
+/* 카메라: 선택 지역과 이웃의 윤곽이 함께 보이도록 지역 상자를 넉넉히 키운 뒤 보이는 영역 가운데에 놓는다 (정수 줌 11–14) */
+function frameRegion(r, animate) {
+  const vis = visibleMapRect();
+  const visW = Math.max(120, vis.x1 - vis.x0);
+  const visH = Math.max(120, vis.y1 - vis.y0);
+  const b = r.bounds.pad(0.6);
+  const nw = map.project(b.getNorthWest(), 14);
+  const se = map.project(b.getSouthEast(), 14);
+  const fit = Math.min(visW / Math.max(1, se.x - nw.x), visH / Math.max(1, se.y - nw.y));
+  const zoom = Math.max(11, Math.min(14, Math.floor(14 + Math.log2(fit))));
+  const shift = L.point(vis.size.x / 2 - (vis.x0 + vis.x1) / 2, vis.size.y / 2 - (vis.y0 + vis.y1) / 2);
+  const center = map.unproject(map.project(b.getCenter(), zoom).add(shift), zoom);
+  if (animate) map.flyTo(center, zoom, { duration: 1.0 });
+  else map.setView(center, zoom, { animate: false });
+}
+/* 동구 16개 동 전체가 보이는 구도 (지명 수어 보기의 시작 화면, 주소 #map) */
+function fitDistrict(animate = false) {
+  if (!map || !regions.length) return;
+  const vis = visibleMapRect();
+  const bounds = regions.reduce((bb, r) => bb.extend(r.bounds), L.latLngBounds(regions[0].bounds.getSouthWest(), regions[0].bounds.getNorthEast()));
+  map.fitBounds(bounds, { paddingTopLeft: [vis.x0, vis.y0], paddingBottomRight: [vis.size.x - vis.x1, vis.size.y - vis.y1], maxZoom: 14, animate });
 }
 
 /* --- 지역 열기: 장소가 있으면 기존 오버레이, 없으면 '영상 준비 중' --- */
@@ -672,25 +668,49 @@ function buildRegionLabels() {
     r.label = L.tooltip({ permanent: true, direction: 'center', className: 'dong-label', interactive: false, opacity: 1 })
       .setLatLng(r.centroid)
       .setContent(r.name);
-    r.labelMinZoom = r.area >= median ? 13 : 15;
+    r.labelMinZoom = r.area >= median ? 12 : 14;
   });
-  // 선택한 지역은 지도 위 큰 지명이 대신하므로 작은 레이블을 숨긴다
+  // 선택한 지역의 이름은 줌과 상관없이 항상, 금색 채움 위에 진하게 보여준다
   syncRegionLabels = () => {
     const z = map.getZoom();
     regions.forEach((r) => {
-      const show = z >= r.labelMinZoom && r.id !== selectedRegionId;
+      const sel = r.id === selectedRegionId;
+      const show = sel || z >= r.labelMinZoom;
       if (show && !map.hasLayer(r.label)) r.label.addTo(map);
       if (!show && map.hasLayer(r.label)) map.removeLayer(r.label);
+      const el = map.hasLayer(r.label) ? r.label.getElement() : null;
+      if (el) el.classList.toggle('on', sel);
     });
+    collideLabels();
   };
   map.on('zoomend', syncRegionLabels);
   syncRegionLabels();
+}
+// 라벨 겹침 정리: 선택 지역 → 넓은 지역 순으로 자리를 잡고, 이미 놓인 라벨과 겹치거나 지역 폭보다 훨씬 넓은 라벨은 숨긴다
+function collideLabels() {
+  if (!map) return;
+  const placed = [];
+  const order = regions.slice().sort((a, b) => (b.id === selectedRegionId) - (a.id === selectedRegionId) || b.area - a.area);
+  order.forEach((r) => {
+    if (!map.hasLayer(r.label)) return;
+    const el = r.label.getElement();
+    if (!el) return;
+    el.style.visibility = 'visible';
+    const rect = el.getBoundingClientRect();
+    const box = { l: rect.left - 6, t: rect.top - 3, r: rect.right + 6, b: rect.bottom + 3 };
+    const sel = r.id === selectedRegionId;
+    const bw = Math.abs(map.latLngToContainerPoint(r.bounds.getNorthEast()).x - map.latLngToContainerPoint(r.bounds.getSouthWest()).x);
+    const tooWide = !sel && rect.width > bw * 1.3;
+    const hit = placed.some((p) => !(box.r < p.l || box.l > p.r || box.b < p.t || box.t > p.b));
+    if (tooWide || hit) el.style.visibility = 'hidden';
+    else placed.push(box);
+  });
 }
 
 /* --- 지역 선택 메뉴: '지역 선택 +' 버튼으로 여는 16개 지역 격자 (경계 파일 순서 = PL. 번호, 키보드 선택 가능) --- */
 const regionMenuBtn = document.getElementById('region-menu-btn');
 function buildRegionList() {
-  regionListEl.innerHTML = `<div class="rl-head"><span>EXPLORE PLACES — 동구 16</span><button type="button" class="rl-close" id="region-menu-close">닫기 ✕</button></div><div class="rl-grid"></div>`;
+  regionListEl.innerHTML = `<div class="rl-head"><span>광주 동구 <em>${regions.length}</em></span><button type="button" class="rl-close" id="region-menu-close">닫기 ✕</button></div><div class="rl-grid"></div>`;
   const grid = regionListEl.querySelector('.rl-grid');
   regions.forEach((r) => {
     const b = document.createElement('button');
@@ -699,8 +719,10 @@ function buildRegionList() {
     b.dataset.region = r.id;
     b.setAttribute('aria-pressed', 'false');
     const hasVideo = r.records.some((pl) => (pl.videos && pl.videos.length) || pl.video_youtube_id);
-    b.innerHTML = `<small>${regionNo(r)}</small><span>${esc(r.name)}</span><i class="${hasVideo ? 'has' : 'no'}" aria-hidden="true"></i><em class="sr-only">${hasVideo ? '수어 영상 있음' : '영상 준비 중'}</em>`;
+    b.innerHTML = `<small>${regionNo(r)}</small><span>${esc(r.name)}</span><i class="${hasVideo ? 'has' : 'no'}" aria-hidden="true"></i><em class="sr-only">${hasVideo ? '수어 영상 있음' : '영상 준비 중'}</em><b class="chev" aria-hidden="true">›</b>`;
     b.addEventListener('click', () => selectRegion(r));
+    b.addEventListener('mouseenter', () => { if (mapMode === 'signs' && !isSheetMode()) setHovered([r.id]); });
+    b.addEventListener('mouseleave', () => { if (hoveredIds.includes(r.id)) setHovered([]); });
     grid.appendChild(b);
   });
   regionListEl.querySelector('#region-menu-close').addEventListener('click', () => { toggleRegionMenu(false); regionMenuBtn.focus(); });
@@ -878,6 +900,7 @@ window.addEventListener('hashchange', () => {
     return;
   }
   if (location.hash.startsWith('#map/')) { if (mapMode !== 'signs') setMapMode('signs'); applyHash(); }
+  else if (location.hash === '#map') { if (mapMode !== 'signs') setMapMode('signs'); if (isPanelOpen()) closePanel({ keepHash: true }); fitDistrict(!prefersReducedMotion()); } // 지명 수어 보기 시작 화면(동구 전체)
   else if (isPanelOpen()) closePanel({ keepHash: true });
 });
 
@@ -997,7 +1020,11 @@ function panelRecordHtml(place) {
   const vid = (place.videos || [])[0];
   const videoFact = vid ? `${Number(vid.ratio) && Number(vid.ratio) < 1 ? '세로 3:4' : '가로'} · 무음` : place.video_youtube_id ? '유튜브' : '준비 중';
   const boundaryFact = reg ? [reg.type, ...(reg.codes || [])].filter(Boolean).join(' · ') : '경계 밖 · 핀';
+  // 손글씨 한 줄: 데이터의 sign_parts 그대로 (문장을 지어내지 않는다). 유래 설명이 없으면 '아직 없음'으로 둔다
+  const parts = (place.sign_parts || []).filter(Boolean);
+  const gloss = parts.length ? `<p class="dp-gloss" aria-label="수어 표현 구성: ${esc(parts.join(', '))}">${parts.map(esc).join('<span aria-hidden="true"> · </span>')}</p>` : '';
   return `
+    ${gloss}
     ${panelVideoHtml(place)}
     <dl class="dp-facts">
       <div><dt>기록</dt><dd>GSL® / ${String(idx).padStart(2, '0')}</dd></div>
@@ -1005,7 +1032,8 @@ function panelRecordHtml(place) {
       <div><dt>영상</dt><dd>${esc(videoFact)}</dd></div>
     </dl>
     ${signPartsHtml(place)}
-    ${origin ? `<p class="section-label">이름의 유래</p><p class="section-text">${esc(origin)}</p>` : ''}
+    <p class="section-label">이름의 유래</p>
+    ${origin ? `<p class="section-text">${esc(origin)}</p>` : `<p class="section-text pending">수어 이름의 유래는 인터뷰를 거쳐 기록합니다. 아직 확인된 설명이 없습니다.</p>`}
     ${(place.tags || []).length ? `<div class="tags">${place.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}`;
 }
 
@@ -1214,6 +1242,7 @@ function loadRegions() {
       buildRegionList();
       bindRegionEvents();
       bindPanel();
+      map.whenReady(() => { restyle(regions.map((r) => r.id)); if (syncRegionLabels) syncRegionLabels(); });
       if (rec) mapErrorEl.hidden = true;
       if (location.hash.startsWith('#map/')) applyHash();
       return true;
@@ -1234,7 +1263,7 @@ fetch('data/places.json?v=20261021')
     buildTrack(places);
     buildRuler(places);
     buildSignIndex(places);
-    if (location.hash.startsWith('#map/') || location.hash.startsWith('#spot/')) setView('map');
+    if (location.hash.startsWith('#map') || location.hash.startsWith('#spot/')) setView('map');
     else { const v = new URLSearchParams(location.search).get('view'); if (v && v !== 'archive' && document.getElementById(`view-${v}`)) setView(v); } // explore.html에서 ?view=map|about 으로 들어올 때
     syncRuler();
     document.getElementById('loader').classList.add('done');
