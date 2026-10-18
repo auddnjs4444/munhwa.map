@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
-<link rel="stylesheet" href="cinematic.css?v=7">
+<link rel="stylesheet" href="cinematic.css?v=11">
 </head>
 <body data-state="intro">
   <!-- 왼쪽: 시네마틱 도시 풍경 (사진 한 장 + 블루아워 보정 오버레이 + 느린 카메라) -->
@@ -28,6 +28,9 @@
     <div class="no-photo" id="no-photo" hidden>
       <p><b>배경 사진이 없습니다.</b><br>사용 권한을 확인한 사진을 <code>assets/</code>에 넣어주세요 (README 참고).</p>
     </div>
+    <div class="no-photo" id="no-data" hidden>
+      <p><b>장소 데이터를 불러오지 못했습니다.</b><br>저장소 루트에서 서버를 띄워 <code>data/spots.json</code>·<code>places.json</code>·<code>memory-stories.json</code>을 읽을 수 있어야 합니다.</p>
+    </div>
 
     <!-- 상단 -->
     <header class="top">
@@ -39,25 +42,18 @@
     </header>
 
     <nav class="explore-menu" id="explore-menu" hidden aria-label="장소 선택">
-      <div class="em-head"><span>EXPLORE — 광주 동구</span><button type="button" class="em-close" id="explore-close">닫기 ✕</button></div>
+      <div class="em-head"><span>EXPLORE — 캔모아에서 시작</span><button type="button" class="em-close" id="explore-close">닫기 ✕</button></div>
       <div class="em-list" id="explore-list"></div>
-      <p class="em-note">사진 속 위치는 확인되지 않아 사진 위에 핀을 두지 않습니다. 실제 위치는 <a href="../../#map/chungjang-ro">지명 수어 지도</a>에서 봅니다.</p>
+      <p class="em-note">사진 위에는 위치 핀을 두지 않습니다. 실제 위치는 각 장소의 <b>본 사이트에서 보기</b>로 지도에서 확인합니다.</p>
     </nav>
 
-    <!-- 첫 화면: 프로젝트 소개 (문구는 본 사이트 '소개' 원문) -->
+    <!-- 첫 화면: 프로젝트 소개 (문구는 본 사이트 '소개' 원문 + 사용자가 정한 보조 문구) -->
     <div class="intro-block" id="intro-block">
-      <p class="intro-hand">어디에도 기록되지 않은 이름</p>
-      <h1 class="intro-title">손으로 부르는 광주</h1>
       <p class="intro-eyebrow">GWANGJU SIGN LANGUAGE MAP · GSL®/2026</p>
+      <h1 class="intro-title">손으로 부르는 광주</h1>
+      <p class="intro-hand">농인의 기억으로 다시 만나는 광주</p>
       <p class="intro-lead">광주의 농인들은 충장로, 무등산, 양림동 같은 장소들을 저마다의 수어 이름으로 불러왔습니다. 손끝에서 손끝으로만 전해진 이 이름들은 어디에도 기록되어 있지 않습니다.</p>
       <button type="button" class="cta" id="cta">광주 탐험하기 <span aria-hidden="true">→</span></button>
-    </div>
-
-    <!-- 탐험 화면 안내 -->
-    <div class="explore-block" id="explore-block">
-      <p class="ex-eyebrow">EXPLORE · 광주 동구</p>
-      <h2 class="ex-title">주요 장소</h2>
-      <p class="ex-hint">장소를 고르면 거리 사진과 수어 기록으로 이동합니다. 지금은 충장로만 열립니다.</p>
     </div>
 
     <!-- 장소 화면: 손글씨 한 줄(기록 원문) + 장소 이름 -->
@@ -68,21 +64,22 @@
       <p class="eyebrow" id="eyebrow"></p>
     </div>
 
-    <!-- 하단 장소 탐색 (탐험 화면부터) -->
-    <nav class="spot-menu" id="spot-menu" aria-label="주요 장소"></nav>
+    <!-- 하단: 거점과 우선 탐색 장소 (전체 목록은 패널의 '함께 둘러볼 장소') -->
+    <nav class="spot-menu" id="spot-menu" aria-label="탐험 장소"></nav>
 
     <p class="credit" id="credit"></p>
   </section>
 
   <!-- 오른쪽: 황금색 기록 패널 (모바일은 바텀시트) -->
-  <aside class="panel" id="panel" hidden tabindex="-1" role="region" aria-label="선택한 장소의 수어 기록">
+  <aside class="panel" id="panel" hidden tabindex="-1" role="region" aria-label="선택한 장소의 기록">
     <button type="button" class="sheet-handle" id="sheet-handle" aria-label="시트 펼치기" aria-expanded="false"><span aria-hidden="true"></span></button>
     <header class="p-head">
       <div class="p-nav">
         <button type="button" class="circ" id="p-prev" aria-label="이전 장소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button type="button" class="circ" id="p-next" aria-label="다음 장소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" class="home-pill" id="p-home" hidden><span aria-hidden="true">←</span> 캔모아로 돌아가기</button>
       </div>
-      <button type="button" class="circ" id="p-close" aria-label="패널 닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      <button type="button" class="circ" id="p-close" aria-label="패널 닫고 첫 화면으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
     </header>
     <div class="p-title">
       <p class="p-en" id="p-en"></p>
@@ -91,10 +88,10 @@
     </div>
     <div class="p-body" id="p-body"></div>
     <footer class="p-foot">
-      <p class="p-attrib">기록 원문: data/places.json · data/spots.json · data/memory-stories.json (변경 없음) · 사진: 내부 시안용 참고 이미지</p>
+      <p class="p-attrib">기록 원문: data/spots.json · data/places.json · data/memory-stories.json (원본을 그대로 읽음, 변경 없음) · 사진: 내부 시안용 참고 이미지</p>
     </footer>
   </aside>
 
-  <script src="cinematic.js?v=7"></script>
+  <script src="cinematic.js?v=11"></script>
 </body>
 </html>
