@@ -171,6 +171,24 @@ Node가 편하면 `npx serve .` 도 됩니다.
 GitHub Pages는 파일을 10분 동안 캐시합니다. 푸시 직후에 열면 이전 화면이 보일 수 있으니, **Cmd+Shift+R**(맥) / **Ctrl+Shift+R**(윈도우)로 강력 새로고침하거나 10분 뒤 다시 여세요.
 `index.html`의 `app.js?v=…`와 `app.js`의 `places.json?v=…` 버전값을 배포 때마다 바꾸면 더 빨리 반영됩니다.
 
+## 첫 화면 · 광주 탐험하기 — `explore.html`
+
+사이트 주소를 해시 없이 열면(`/`, `/index.html`) `explore.html`로 이동합니다. `#map/…`·`#spot/…`·`?view=map|about`가 붙은 주소는 그대로 본 화면(`index.html`)이 열리므로 기존 링크는 모두 유지됩니다.
+
+- **첫 화면**: 광주 도심·무등산 사진(`assets/explore/overlook-mountains.jpg`, 사용 허락을 받은 블로그 사진, CSS로 해질녘 톤 보정) 위에 「손으로 부르는 광주」·「농인의 기억으로 다시 만나는 광주」·소개 첫 문단·「광주 탐험하기 →」. 상단에 지명 수어 지도·아카이브·소개 링크.
+- **광주 탐험하기 → 충장로 → 캔모아**: 충장로 거리 사진(`assets/explore/chungjang-night.jpg`)으로 장면 전환, 오른쪽 황금 패널에 캔모아 장소 기억 원고(`data/memory-stories.json`)와 수첩 메모(`data/places.json` 충장로 `memories`).
+- **함께 둘러볼 장소 →**: `data/spots.json`의 캔모아 거점 `nearby`(11곳)와 동명동 호시정 거점·주변(6곳), `places.json`의 장소 기억(충우 앞·궁전제과·전일빌딩/금남로·ACC), 5·18민주광장을 한 목록으로. **가까운 장소** = 캔모아에서 직선 450 m 이내이며 좌표가 확인된 곳, **더 둘러볼 곳** = 그 밖(거리순). 거리는 직선거리만 표시하고 도보 시간은 표시하지 않습니다. 「캔모아로 돌아가기」는 머리글과 본문에 항상 있습니다.
+- 장면 사진 규칙: 충장로에 있는 장소는 충장로 거리 사진(장소 자체 사진 아님을 크레딧에 표기), ACC는 `assets/explore/acc-night.jpg`, 그 밖은 도심 조망 배경 + "이 장소의 사진은 아직 없음". 다른 지역 사진을 그 장소 사진으로 쓰지 않습니다. 사진 위에 핀·경계선은 그리지 않습니다.
+- 지명 수어 영상은 이 화면에 넣지 않고(장소 기억과 혼동 방지) 「지명 수어 지도에서 보기」로 연결합니다. 영상 플레이어는 해당 장소의 영상이 생길 때만 표시합니다.
+- 주소: `explore.html#place/<id>` (예: `#place/canmore`, `#place/chungu`, `#place/palace-bakery`, `#place/geumnam-park`, `#place/518-democracy-square`, `#place/acc`). 본 화면 링크는 `index.html#spot/…`·`index.html#map/…`.
+- 새 장소 추가: `data/spots.json`(거점·주변 장소)과 `data/places.json`(`memory_entries`)에 넣으면 자동으로 목록에 들어옵니다. 데이터 파일에 좌표가 없는 곳의 확인된 좌표와 영문 표기만 `explore.js`의 `PRESENT`에 둡니다(출처 명시).
+- 파일: `explore.html`, `explore.css`, `explore.js`, `assets/explore/`(사진 3장).
+
+### 좌표 보정 (2026-10-19)
+
+- `data/places.json` 5·18민주광장: 35.1499, 126.9166(5·18기록관 부근, 실제 광장과 약 387 m 차이) → **35.14746, 126.91985** (OSM 5.18민주광장 relation/19102230 중심; 분수대 way/860571290은 그 45 m 서쪽). 주소 「광주광역시 동구 문화전당로 38 (광산동)」의 지오코딩은 전당 구역(약 100 m 동쪽)을 가리켜 광장 중심을 기준으로 했습니다. 민감 기록 열람 안내는 그대로입니다. 경계 밖 핀(무등산·양림동·5·18민주광장)을 `#map/<id>`로 열면 패널이 열리도록 `app.js`를 고쳤습니다(핀이 지역보다 늦게 만들어지던 순서 문제).
+- 금남로공원: `data/spots.json`의 지점(금남로3가 20-2)이 OSM 공원 폴리곤(way/452261523) 중심과 25 m 차이로 확인됨. 장소명은 **금남로공원**으로 통일하고, 빛의 나비 미디어아트 「금남나비정원」은 시설 별칭으로만 적습니다.
+
 ## 배포
 
 - **사이트 주소: https://auddnjs4444.github.io/munhwa.map/**
