@@ -407,6 +407,8 @@ function initMap() {
       map.fitBounds(bounds, { padding: ok ? [40, 40] : [70, 70], maxZoom: 14, animate: false });
     }
     initSpots();
+    // 경계 밖 핀(무등산·양림동·5·18민주광장)을 주소(#map/<id>)로 열 때: 핀은 지역보다 늦게 만들어지므로 여기서 한 번 더 적용한다
+    if (location.hash.startsWith('#map/')) { const id = (location.hash.slice(5).match(/^[\w-]+/) || [])[0]; if (id && markersById.has(id)) applyHash(); }
   });
 }
 
@@ -1224,7 +1226,7 @@ function loadRegions() {
 }
 
 /* ---------- 데이터 로드 ---------- */
-fetch('data/places.json?v=20261015a')
+fetch('data/places.json?v=20261021')
   .then((res) => res.json())
   .then((places) => {
     placesData = places;
@@ -1233,6 +1235,7 @@ fetch('data/places.json?v=20261015a')
     buildRuler(places);
     buildSignIndex(places);
     if (location.hash.startsWith('#map/') || location.hash.startsWith('#spot/')) setView('map');
+    else { const v = new URLSearchParams(location.search).get('view'); if (v && v !== 'archive' && document.getElementById(`view-${v}`)) setView(v); } // explore.html에서 ?view=map|about 으로 들어올 때
     syncRuler();
     document.getElementById('loader').classList.add('done');
   })

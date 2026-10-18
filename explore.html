@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#070a12">
+<meta name="description" content="손으로 부르는 광주 — 농인의 기억으로 다시 만나는 광주. 충장로 캔모아에서 시작하는 장소 탐험.">
+<title>손으로 부르는 광주 — 광주 탐험하기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="explore.css?v=20261021">
+</head>
+<body data-state="intro">
+  <!-- 왼쪽: 시네마틱 도시 풍경 (사진 한 장 + 블루아워 보정 오버레이 + 느린 카메라) -->
+  <section class="stage" id="stage" aria-label="광주 도심 풍경">
+    <div class="hero" id="hero">
+      <div class="plx" id="hero-plx"><img class="hero-img" id="hero-img" alt="" draggable="false"></div>
+      <div class="grade" aria-hidden="true"></div>
+    </div>
+    <div class="scene" id="scene" aria-hidden="true">
+      <div class="plx" id="scene-plx"><img class="scene-img" id="scene-img" alt="" draggable="false"></div>
+      <div class="grade" aria-hidden="true"></div>
+    </div>
+    <div class="glow" id="glow" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <div class="no-photo" id="no-photo" hidden>
+      <p><b>배경 사진을 불러오지 못했습니다.</b><br><code>assets/explore/</code>의 사진 파일을 확인해주세요.</p>
+    </div>
+    <div class="no-photo" id="no-data" hidden>
+      <p><b>장소 데이터를 불러오지 못했습니다.</b><br><code>data/spots.json</code>·<code>places.json</code>·<code>memory-stories.json</code>을 읽을 수 있어야 합니다.</p>
+    </div>
+
+    <!-- 상단 -->
+    <header class="top">
+      <a class="brand" id="brand" href="#" aria-label="처음 화면으로">
+        <b>손으로 부르는 광주</b>
+        <span>GWANGJU SIGN LANGUAGE MAP</span>
+      </a>
+      <nav class="site-nav" aria-label="사이트">
+        <a href="index.html?view=map">지명 수어 지도</a>
+        <a href="index.html?view=archive">아카이브</a>
+        <a href="index.html?view=about">소개</a>
+      </nav>
+      <button type="button" class="explore-btn" id="explore-btn" aria-expanded="false" aria-controls="explore-menu">지역 선택 <span class="plus" aria-hidden="true">+</span></button>
+    </header>
+
+    <nav class="explore-menu" id="explore-menu" hidden aria-label="장소 선택">
+      <div class="em-head"><span>EXPLORE — 캔모아에서 시작</span><button type="button" class="em-close" id="explore-close">닫기 ✕</button></div>
+      <div class="em-list" id="explore-list"></div>
+      <p class="em-note">사진 위에는 위치 핀을 두지 않습니다. 실제 위치는 각 장소의 <b>지도에서 이 장소 보기</b>로 확인합니다.</p>
+    </nav>
+
+    <!-- 첫 화면: 프로젝트 소개 (문구는 본 사이트 '소개' 원문 + 보조 문구) -->
+    <div class="intro-block" id="intro-block">
+      <p class="intro-eyebrow">GWANGJU SIGN LANGUAGE MAP · GSL®/2026</p>
+      <h1 class="intro-title">손으로 부르는 광주</h1>
+      <p class="intro-hand">농인의 기억으로 다시 만나는 광주</p>
+      <p class="intro-lead">광주의 농인들은 충장로, 무등산, 양림동 같은 장소들을 저마다의 수어 이름으로 불러왔습니다. 손끝에서 손끝으로만 전해진 이 이름들은 어디에도 기록되어 있지 않습니다.</p>
+      <button type="button" class="cta" id="cta">광주 탐험하기 <span aria-hidden="true">→</span></button>
+    </div>
+
+    <!-- 장소 화면: 손글씨 한 줄(기록 원문) + 장소 이름 -->
+    <div class="title-block" id="title-block">
+      <p class="hand" id="hand"></p>
+      <h1 class="place" id="place-title"></h1>
+      <svg class="rule" viewBox="0 0 320 24" aria-hidden="true"><path d="M2 12 C 90 4, 180 20, 318 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <p class="eyebrow" id="eyebrow"></p>
+    </div>
+
+    <!-- 하단: 거점과 우선 탐색 장소 (전체 목록은 패널의 '함께 둘러볼 장소') -->
+    <nav class="spot-menu" id="spot-menu" aria-label="탐험 장소"></nav>
+
+    <p class="credit" id="credit"></p>
+  </section>
+
+  <!-- 오른쪽: 황금색 기록 패널 (모바일은 바텀시트) -->
+  <aside class="panel" id="panel" hidden tabindex="-1" role="region" aria-label="선택한 장소의 기록">
+    <button type="button" class="sheet-handle" id="sheet-handle" aria-label="시트 펼치기" aria-expanded="false"><span aria-hidden="true"></span></button>
+    <header class="p-head">
+      <div class="p-nav">
+        <button type="button" class="circ" id="p-prev" aria-label="이전 장소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" class="circ" id="p-next" aria-label="다음 장소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" class="home-pill" id="p-home" hidden><span aria-hidden="true">←</span> 캔모아로 돌아가기</button>
+      </div>
+      <button type="button" class="circ" id="p-close" aria-label="패널 닫고 첫 화면으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+    </header>
+    <div class="p-title">
+      <p class="p-en" id="p-en"></p>
+      <h2 id="p-name"></h2>
+      <p class="p-sub" id="p-sub"></p>
+    </div>
+    <div class="p-body" id="p-body"></div>
+    <footer class="p-foot">
+      <p class="p-attrib">기록 원문: data/spots.json · data/places.json · data/memory-stories.json · 사진: 사용 허락을 받은 블로그 사진</p>
+    </footer>
+  </aside>
+
+  <script src="explore.js?v=20261021"></script>
+</body>
+</html>
