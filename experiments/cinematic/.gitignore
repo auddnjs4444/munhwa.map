@@ -1,0 +1,5 @@
+# 사진은 저장소에 넣지 않는다 (게시 권한 미확인). 로컬 시안용으로만 assets/에 둔다.
+assets/*.jpg
+assets/*.jpeg
+assets/*.png
+assets/*.webp
