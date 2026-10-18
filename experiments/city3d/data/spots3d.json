@@ -14,7 +14,7 @@
     },
     {
       "id": "geumnam", "no": "02", "name": "금남로", "short": "금남로", "en": "GEUMNAM-RO", "kicker": "역사의 축 · 넓은 대로",
-      "coords": [126.9170, 35.1489], "coord_status": "verified", "coord_source": "OSM 도로 '금남로' 중심선 중 전일빌딩245(way/471090813)·5·18민주화운동기록관(way/478278294) 사이 구간",
+      "coords": [126.91711, 35.14901], "coord_status": "verified", "coord_source": "OSM 도로 '금남로' 중심선 중 전일빌딩245(way/471090813)·5·18민주화운동기록관(way/478278294) 사이 구간",
       "radius_m": 200,
       "camera": { "center": [126.9165, 35.1493], "zoom": 16.3, "pitch": 60, "bearing": 132 },
       "note": "'은행의 거리'라는 표현의 정확한 명칭·구간은 미확정이라 라벨로 쓰지 않는다."
