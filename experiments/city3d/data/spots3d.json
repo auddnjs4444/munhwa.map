@@ -1,58 +1,206 @@
 {
   "_doc": "3D 탐험 프로토타입의 스팟 정의. coords는 WGS84 [lng, lat]. coord_status: 'verified'(OSM 데이터로 검증, coord_source 참조·DATA.md) | 'provisional'(검증 전 추정) | 'unverified'(위치 미확정, 지도에 놓지 않음). camera는 스팟을 골랐을 때 도착하는 시점 (bearing 130 전후 = 금남로 협곡을 따라 남동쪽 광장을 바라보는 방향).",
   "attribution": "지도 데이터 © OpenStreetMap contributors (ODbL)",
-  "sequence": ["chungjang", "geumnam", "square", "acc", "nabi"],
-  "overview": { "center": [126.9165, 35.1492], "zoom": 15.3, "pitch": 58, "bearing": 130 },
-  "intro_from": { "center": [126.9165, 35.1492], "zoom": 13.4, "pitch": 0, "bearing": 130 },
+  "sequence": [
+    "chungjang",
+    "geumnam",
+    "square",
+    "acc",
+    "nabi"
+  ],
+  "overview": {
+    "center": [
+      126.9176,
+      35.1484
+    ],
+    "zoom": 15.75,
+    "pitch": 58,
+    "bearing": 130
+  },
+  "intro_from": {
+    "center": [
+      126.9176,
+      35.1484
+    ],
+    "zoom": 13.6,
+    "pitch": 0,
+    "bearing": 130
+  },
   "spots": [
     {
-      "id": "chungjang", "no": "01", "name": "충장로", "short": "충장로", "en": "CHUNGJANG-RO", "kicker": "쇼핑 · 식사 · 약속의 거리",
-      "coords": [126.9159, 35.1484], "coord_status": "verified", "coord_source": "OSM 도로 '충장로' 중심선(way, 1159개 건물 데이터와 같은 추출)에서 캔모아(node/11391900255)·궁전제과(node/4475060012) 사이 구간의 중점",
+      "id": "chungjang",
+      "no": "01",
+      "name": "충장로",
+      "short": "충장로",
+      "en": "CHUNGJANG-RO",
+      "kicker": "쇼핑 · 식사 · 약속의 거리",
+      "coords": [
+        126.9159,
+        35.1484
+      ],
+      "coord_status": "verified",
+      "coord_source": "OSM 도로 '충장로' 중심선(way, 1159개 건물 데이터와 같은 추출)에서 캔모아(node/11391900255)·궁전제과(node/4475060012) 사이 구간의 중점",
       "radius_m": 150,
-      "camera": { "center": [126.9156, 35.1486], "zoom": 17.2, "pitch": 62, "bearing": 128 },
+      "camera": {
+        "center": [
+          126.9156,
+          35.1486
+        ],
+        "zoom": 17.2,
+        "pitch": 62,
+        "bearing": 128
+      },
       "note": "거리 전체는 1가~5가(서쪽 126.909까지)로 이어지며, 사진 01·02가 보여주는 상점가 구간은 개별 상점 위치 미확인."
     },
     {
-      "id": "geumnam", "no": "02", "name": "금남로", "short": "금남로", "en": "GEUMNAM-RO", "kicker": "역사의 축 · 넓은 대로",
-      "coords": [126.91711, 35.14901], "coord_status": "verified", "coord_source": "OSM 도로 '금남로' 중심선 중 전일빌딩245(way/471090813)·5·18민주화운동기록관(way/478278294) 사이 구간",
+      "id": "geumnam",
+      "no": "02",
+      "name": "금남로",
+      "short": "금남로",
+      "en": "GEUMNAM-RO",
+      "kicker": "역사의 축",
+      "coords": [
+        126.91711,
+        35.14901
+      ],
+      "coord_status": "verified",
+      "coord_source": "OSM 도로 '금남로' 중심선 중 전일빌딩245(way/471090813)·5·18민주화운동기록관(way/478278294) 사이 구간",
       "radius_m": 200,
-      "camera": { "center": [126.9165, 35.1493], "zoom": 16.3, "pitch": 60, "bearing": 132 },
+      "camera": {
+        "center": [
+          126.9165,
+          35.1493
+        ],
+        "zoom": 16.3,
+        "pitch": 60,
+        "bearing": 132
+      },
       "note": "'은행의 거리'라는 표현의 정확한 명칭·구간은 미확정이라 라벨로 쓰지 않는다."
     },
     {
-      "id": "square", "no": "03", "name": "5·18민주광장", "short": "5·18민주광장", "en": "MAY 18TH DEMOCRACY SQUARE", "kicker": "분수대 · 옛 전남도청",
-      "coords": [126.91967, 35.14749], "coord_status": "verified", "coord_source": "OSM relation/19102230 (5.18민주광장) 중심",
+      "id": "square",
+      "no": "03",
+      "name": "5·18민주광장",
+      "short": "5·18민주광장",
+      "en": "5·18 DEMOCRACY SQUARE",
+      "kicker": "분수대 · 옛 전남도청",
+      "coords": [
+        126.91964,
+        35.14748
+      ],
+      "coord_status": "verified",
+      "coord_source": "OSM relation/19102230 (5.18민주광장) 중심",
       "radius_m": 130,
-      "camera": { "center": [126.9197, 35.1476], "zoom": 17.0, "pitch": 50, "bearing": 150 },
-      "landmark_names": ["전라남도청", "전남도청"],
-      "note": "옛 전남도청 본관은 OSM way/535847782(구 전라남도청, 광장 남쪽)로 확인. 분수대 위치는 미확인이라 그리지 않는다."
+      "camera": {
+        "center": [
+          126.9197,
+          35.1476
+        ],
+        "zoom": 17.0,
+        "pitch": 50,
+        "bearing": 150
+      },
+      "landmark_names": [
+        "전라남도청",
+        "전남도청"
+      ],
+      "note": "옛 전남도청 본관은 OSM way/535847782(구 전라남도청, 광장 남쪽)로 확인. 분수대는 OSM way/860571290(국립아시아문화전당 분수대, natural=water + amenity=fountain)으로 확인해 표시한다."
     },
     {
-      "id": "acc", "no": "04", "name": "국립아시아문화전당", "short": "ACC", "en": "ASIA CULTURE CENTER", "kicker": "문화 중심의 공간 · ACC",
-      "coords": [126.92057, 35.14728], "label_tall": true, "coord_status": "verified", "coord_source": "OSM way/248192696 (국립아시아문화전당, tourism=attraction 구역) 중심 · spots.json acc(카카오 건물 좌표)와 대조",
+      "id": "acc",
+      "no": "04",
+      "name": "국립아시아문화전당",
+      "short": "ACC",
+      "en": "",
+      "kicker": "문화 중심의 공간 · ACC",
+      "coords": [
+        126.92057,
+        35.14728
+      ],
+      "label_tall": true,
+      "coord_status": "verified",
+      "coord_source": "OSM way/248192696 (국립아시아문화전당, tourism=attraction 구역) 중심 · spots.json acc(카카오 건물 좌표)와 대조",
       "radius_m": 220,
-      "camera": { "center": [126.9204, 35.1472], "zoom": 16.6, "pitch": 70, "bearing": 200 },
-      "landmark_names": ["국립아시아문화전당"],
+      "camera": {
+        "center": [
+          126.9204,
+          35.1472
+        ],
+        "zoom": 16.6,
+        "pitch": 72,
+        "bearing": 200
+      },
+      "landmark_names": [
+        "국립아시아문화전당"
+      ],
       "note": "전당 대부분이 지하라 지상 매스를 세우지 않고, 구역을 낮은 녹지 평면 + 빛 상자(사진 03 참고)로 표현. 상자 위치는 실제 배치가 아니다."
     },
     {
-      "id": "nabi", "no": "05", "name": "금남로 나비정원", "short": "나비정원", "en": "", "kicker": "야간 경관 · 위치 검증 중",
-      "coords": null, "coord_status": "unverified", "radius_m": 0,
+      "id": "nabi",
+      "no": "05",
+      "name": "금남로 나비정원",
+      "short": "나비정원",
+      "en": "",
+      "kicker": "위치 검증 중",
+      "coords": null,
+      "coord_status": "unverified",
+      "radius_m": 0,
       "camera": null,
       "note": "원본 사진 미확보. OSM 데이터(동구 일대 '나비' 검색)에서도 확인되지 않아 지도에 놓지 않는다."
     },
     {
-      "id": "jeonil", "no": "+", "name": "전일빌딩 시점", "short": "전일빌딩", "en": "JEONIL BUILDING 245", "kicker": "광주천 · 양림동 방향 조망",
-      "coords": [126.91862, 35.14832], "coord_status": "verified", "coord_source": "OSM way/471090813 (전일빌딩245, 10층·33m) 중심",
-      "radius_m": 80, "optional": true,
-      "camera": { "center": [126.9186, 35.1483], "zoom": 17.3, "pitch": 68, "bearing": 95 },
-      "landmark_names": ["전일빌딩"],
+      "id": "jeonil",
+      "no": "+",
+      "name": "전일빌딩 시점",
+      "short": "전일빌딩",
+      "en": "",
+      "kicker": "도심 조망 시점 · 방향 미확정",
+      "coords": [
+        126.91872,
+        35.14835
+      ],
+      "coord_status": "verified",
+      "coord_source": "OSM way/471090813 (전일빌딩245, 10층·33m) 중심",
+      "radius_m": 80,
+      "optional": true,
+      "camera": {
+        "center": [
+          126.9186,
+          35.1483
+        ],
+        "zoom": 17.3,
+        "pitch": 68,
+        "bearing": 95
+      },
+      "landmark_names": [
+        "전일빌딩"
+      ],
       "note": "조망 사진(08·09)은 촬영 방향이 미확정이라 카메라 방향은 자료가 아니라 연출이다."
     },
     {
-      "id": "dongmyeong", "no": "+", "name": "동명동 방향", "short": "동명동", "en": "TOWARD DONGMYEONG-DONG", "kicker": "동쪽 조망 · 무등산 방향",
-      "coords": [126.9245, 35.1500], "coord_status": "provisional", "radius_m": 0, "optional": true, "marker": false,
-      "camera": { "center": [126.9235, 35.1496], "zoom": 15.4, "pitch": 45, "bearing": 80 },
+      "id": "dongmyeong",
+      "no": "+",
+      "name": "동명동 방향",
+      "short": "동명동",
+      "en": "",
+      "kicker": "동쪽 조망 · 무등산 방향",
+      "coords": [
+        126.9257,
+        35.1503
+      ],
+      "coord_status": "provisional",
+      "radius_m": 0,
+      "optional": true,
+      "marker": false,
+      "camera": {
+        "center": [
+          126.9235,
+          35.1496
+        ],
+        "zoom": 15.4,
+        "pitch": 45,
+        "bearing": 80
+      },
       "note": "동명동 중심은 places.json의 동 좌표 참고. 조망용 카메라만 둔다 (지도 라벨 없음). 무등산은 지형을 모델링하지 않는다."
     }
   ]

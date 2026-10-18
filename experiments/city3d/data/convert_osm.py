@@ -125,27 +125,45 @@ def way_line(wid):
     return {'type': 'LineString', 'coordinates': c}
 
 def ring_centroid(ring):
-    a = signed_area(ring)
-    if abs(a) < 1e-14:
+    # 지역 원점으로 옮긴 뒤 신발끈 공식을 쓴다: 경위도 원값(126.9, 35.1)으로 바로 계산하면
+    # 작은 다각형에서 곱이 상쇄되며 수십 m 오차가 난다. 반환: (cx, cy, signed_area)
+    x0, y0 = ring[0]
+    r = [(x - x0, y - y0) for x, y in ring]
+    a = signed_area(r)
+    if abs(a) < 1e-18:
         xs = [p[0] for p in ring]; ys = [p[1] for p in ring]
         return sum(xs) / len(xs), sum(ys) / len(ys), 0.0
     cx = cy = 0.0
-    for i in range(len(ring) - 1):
-        f = ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1]
-        cx += (ring[i][0] + ring[i + 1][0]) * f
-        cy += (ring[i][1] + ring[i + 1][1]) * f
-    return cx / (6 * a), cy / (6 * a), abs(a)
+    for i in range(len(r) - 1):
+        f = r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]
+        cx += (r[i][0] + r[i + 1][0]) * f
+        cy += (r[i][1] + r[i + 1][1]) * f
+    return cx / (6 * a) + x0, cy / (6 * a) + y0, a
+
+def polygon_centroid(rings):
+    # 외곽(반시계, +면적)과 구멍(시계, -면적)을 부호 있는 면적으로 합친다
+    x0, y0 = rings[0][0]
+    sx = sy = sa = 0.0
+    for ring in rings:
+        cx, cy, a = ring_centroid(ring)
+        if a == 0.0:
+            continue
+        sx += (cx - x0) * a; sy += (cy - y0) * a; sa += a
+    if abs(sa) < 1e-18:
+        cx, cy, _ = ring_centroid(rings[0]); return cx, cy, 0.0
+    return sx / sa + x0, sy / sa + y0, abs(sa)
 
 def geom_centroid(g):
     if g['type'] == 'Point':
         return g['coordinates']
     if g['type'] == 'Polygon':
-        x, y, _ = ring_centroid(g['coordinates'][0]); return [round(x, 6), round(y, 6)]
+        x, y, _ = polygon_centroid(g['coordinates']); return [round(x, 6), round(y, 6)]
     if g['type'] == 'MultiPolygon':
+        x0, y0 = g['coordinates'][0][0][0]
         sx = sy = sa = 0.0
         for p in g['coordinates']:
-            x, y, a = ring_centroid(p[0]); sx += x * a; sy += y * a; sa += a
-        return [round(sx / sa, 6), round(sy / sa, 6)]
+            x, y, a = polygon_centroid(p); sx += (x - x0) * a; sy += (y - y0) * a; sa += a
+        return [round(sx / sa + x0, 6), round(sy / sa + y0, 6)]
     if g['type'] == 'LineString':
         c = g['coordinates']; return c[len(c) // 2]
 

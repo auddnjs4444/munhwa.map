@@ -23,6 +23,7 @@
   const revealed = new Set(); // 5·18 민감 기록 열람 확인 (세션 한정)
   const bCentroid = new Map(); // 건물 id → [lng, lat]
   let lastFocus = null;
+  let hideTimer = null;
 
   /* ---------- 유틸 ---------- */
   const fetchJson = (u) => fetch(`${u}?${V}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${u} HTTP ${r.status}`))));
@@ -49,7 +50,7 @@
     }
   }
   const squareAt = (c, sizeM) => { const dx = sizeM / 2 / mLng(c[1]), dy = sizeM / 2 / M_LAT; return [[[c[0] - dx, c[1] - dy], [c[0] + dx, c[1] - dy], [c[0] + dx, c[1] + dy], [c[0] - dx, c[1] + dy], [c[0] - dx, c[1] - dy]]]; };
-  function showNotice(msg) { notice.innerHTML = msg; notice.hidden = false; }
+  function showNotice(msg) { notice.innerHTML = `<span>${msg}</span><button type="button" class="notice-x" aria-label="안내 닫기">✕</button>`; notice.hidden = false; notice.querySelector('.notice-x').addEventListener('click', () => { notice.hidden = true; }); }
   const spotById = (id) => spotsDef.spots.find((s) => s.id === id);
   const placed = () => spotsDef.spots.filter((s) => s.coords && s.camera);
   const sequence = () => spotsDef.sequence.map(spotById).filter(Boolean);
@@ -89,20 +90,20 @@
     (geo.roads ? geo.roads.features : []).forEach((f) => {
       if (f.geometry.type !== 'LineString' || !f.properties.main) return;
       if (f.properties.axis === 'geumnam') alongLine(f.geometry.coordinates, 32, 13, (c) => lamps.push({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: c } }));
-      if (f.properties.axis === 'chungjang') alongLine(f.geometry.coordinates, 17, 7.5, (c, k, side) => {
+      if (f.properties.axis === 'chungjang') alongLine(f.geometry.coordinates, 17, 3.6, (c, k, side) => {
         const v = (k * 7 + (side > 0 ? 3 : 0)) % 10; // 결정적 변주
         const color = v < 7 ? '#FFF1D2' : v === 7 ? '#FF6B6E' : v === 8 ? '#4C95FF' : '#FFD23F';
-        signs.push({ type: 'Feature', properties: { color, base: 2.4 + (k % 3) * 0.5, h: 1.3 + (k % 4) * 0.45 }, geometry: { type: 'Polygon', coordinates: squareAt(c, 1.3) } });
+        signs.push({ type: 'Feature', properties: { color, base: 3.2 + (k % 3) * 0.6, h: 1.1 + (k % 4) * 0.4 }, geometry: { type: 'Polygon', coordinates: squareAt(c, 1.1) } });
       });
     });
     if (geo.acc) {
       const ring = ringOf(geo.acc.features[0].geometry);
       const xs = ring.map((p) => p[0]), ys = ring.map((p) => p[1]);
       const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-      const dx = 24 / mLng(y0), dy = 24 / M_LAT; let k = 0;
+      const dx = 34 / mLng(y0), dy = 34 / M_LAT; let k = 0;
       for (let y = y0 + dy / 2; y < y1; y += dy) for (let x = x0 + dx / 2; x < x1; x += dx, k++) {
         const pt = [x + ((k % 3) - 1) * dx * 0.18, y + ((k % 5) - 2) * dy * 0.12];
-        if (pointInRing(pt, ring) && k % 7 !== 3) lanterns.push({ type: 'Feature', properties: { s: 0.7 + (k % 4) * 0.12 }, geometry: { type: 'Point', coordinates: pt } });
+        if (pointInRing(pt, ring) && k % 5 !== 2) lanterns.push({ type: 'Feature', properties: { s: 0.7 + (k % 4) * 0.12 }, geometry: { type: 'Point', coordinates: pt } });
       }
     }
     const fc = (features) => ({ type: 'FeatureCollection', features });
@@ -157,13 +158,13 @@
         { id: 'water-line', type: 'line', source: 'water', filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': C.waterEdge, 'line-width': zw(1, 2.4, 5), 'line-opacity': 0.6, 'line-blur': 1 } },
         { id: 'road-minor', type: 'line', source: 'roads', filter: ['==', ['get', 'cls'], 'minor'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.roadMinor, 'line-width': zw(0.8, 4, 9) } },
         { id: 'road-ped', type: 'line', source: 'roads', filter: ['==', ['get', 'cls'], 'ped'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.roadPed, 'line-width': zw(0.6, 3, 7) } },
-        { id: 'road-mid', type: 'line', source: 'roads', filter: ['==', ['get', 'cls'], 'mid'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.roadMid, 'line-width': zw(1.6, 7, 16) } },
-        { id: 'road-major', type: 'line', source: 'roads', filter: ['==', ['get', 'cls'], 'major'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.roadMajor, 'line-width': zw(2.4, 11, 26) } },
+        { id: 'road-mid', type: 'line', source: 'roads', filter: ['==', ['get', 'cls'], 'mid'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.roadMid, 'line-width': zw(2, 10, 22) } },
+        { id: 'road-major', type: 'line', source: 'roads', filter: ['==', ['get', 'cls'], 'major'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.roadMajor, 'line-width': zw(3.2, 19, 42) } },
         // 핵심 축(충장로·금남로 본선): 연석을 따라 옅은 금빛 + 가운데 가는 금선
-        { id: 'axis-curb', type: 'line', source: 'roads', filter: ['==', ['get', 'main'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.curb, 'line-width': zw(5, 20, 44), 'line-blur': 5 } },
+        { id: 'axis-curb', type: 'line', source: 'roads', filter: ['==', ['get', 'main'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.curb, 'line-width': zw(6, 28, 60), 'line-blur': 6 } },
         { id: 'axis-core', type: 'line', source: 'roads', filter: ['==', ['get', 'main'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.axisCore, 'line-width': zw(0.8, 2, 4) } },
         { id: 'lamps', type: 'circle', source: 'lamps', minzoom: 15.5, paint: { 'circle-color': C.lamp, 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15.5, 1.2, 18, 3.2], 'circle-blur': 0.5 } },
-        { id: 'lanterns', type: 'circle', source: 'lanterns', minzoom: 14.5, paint: { 'circle-color': C.lantern, 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14.5, 1.6, 17, 5, 19, 9], 'circle-blur': 0.55, 'circle-opacity': ['*', 0.85, ['get', 's']] } },
+        { id: 'lanterns', type: 'circle', source: 'lanterns', minzoom: 14.5, paint: { 'circle-color': C.lantern, 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14.5, 1.2, 17, 3.6, 19, 7], 'circle-blur': 0.5, 'circle-opacity': ['*', 0.8, ['get', 's']] } },
         { id: 'buildings', type: 'fill-extrusion', source: 'buildings', paint: {
           'fill-extrusion-color': buildingColor(),
           'fill-extrusion-height': ['get', 'h'],
@@ -185,7 +186,7 @@
     map = new maplibregl.Map({
       container: 'map', style: buildStyle(makeDressing()), center: start.center, zoom: start.zoom, pitch: start.pitch, bearing: start.bearing,
       maxPitch: 76, minZoom: 12.5, maxZoom: 19, antialias: true, attributionControl: false, hash: false,
-      maxBounds: [[126.86, 35.09], [126.98, 35.21]],
+      maxBounds: [[126.898, 35.136], [126.936, 35.163]],
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), 'bottom-right');
     map.on('load', () => {
@@ -238,9 +239,23 @@
     // 조망 시점 라벨은 가까이 갔을 때만 (멀리서는 핵심 스팟 라벨끼리 겹치지 않게)
     const syncZoomLabels = () => { const z = map.getZoom(); markers.forEach((mk, id) => { const s = spotById(id); mk.getElement().classList.toggle('zoom-hidden', !!s.optional && z < 16 && current !== id); }); };
     map.on('zoom', syncZoomLabels); syncZoomLabels();
+    map.on('move', collideLabels); map.on('moveend', collideLabels); collideLabels();
   }
   function syncMarkers() {
     markers.forEach((mk, id) => { const lab = mk.getElement().querySelector('.spot-label'); lab.classList.toggle('is-on', id === current); lab.classList.toggle('is-dim', !!current && id !== current); });
+    collideLabels();
+  }
+  function collideLabels() {
+    const order = sequence().map((s) => s.id);
+    const items = [...markers.entries()].filter(([, mk]) => !mk.getElement().classList.contains('zoom-hidden')).map(([id, mk]) => {
+      const el = mk.getElement(); el.classList.remove('collided');
+      return { id, el, pri: id === current ? -1 : (order.indexOf(id) + 1 || 99), r: el.querySelector('.tag').getBoundingClientRect() };
+    }).sort((a, b) => a.pri - b.pri);
+    const kept = [];
+    items.forEach((it) => {
+      const hit = kept.some((k) => it.r.left < k.r.right + 4 && k.r.left < it.r.right + 4 && it.r.top < k.r.bottom + 4 && k.r.top < it.r.bottom + 4);
+      if (hit || it.r.top < 64) it.el.classList.add('collided'); else kept.push(it);
+    });
   }
 
   /* ---------- 카메라 ---------- */
@@ -284,9 +299,10 @@
     syncNav(); syncMarkers();
     if (map.getSource('buildings')) lightSpot(null);
     if (!keepHash) setHash(null);
-    setTimeout(() => { panel.hidden = true; }, REDUCED ? 0 : 360);
+    hideTimer = setTimeout(() => { panel.hidden = true; }, REDUCED ? 0 : 360);
     flyOverview();
-    if (lastFocus && document.contains(lastFocus)) lastFocus.focus({ preventScroll: true });
+    const back = lastFocus && document.contains(lastFocus) && lastFocus.offsetParent !== null ? lastFocus : $('explore-btn');
+    back.focus({ preventScroll: true });
   }
   function step(dir) {
     const seq = sequence().filter((s) => s.camera);
@@ -300,6 +316,7 @@
     history.replaceState(null, '', next || location.pathname + location.search);
   }
   window.addEventListener('hashchange', () => {
+    if (!spotsDef || !map) return;
     const m = location.hash.match(/^#spot\/([\w-]+)/);
     if (m && spotById(m[1])) { if (current !== m[1]) selectSpot(m[1]); }
     else if (isPanelOpen()) closeAll({ keepHash: true });
@@ -310,6 +327,7 @@
   function openPanel() {
     if (isPanelOpen()) { panel.scrollTop = 0; return; }
     lastFocus = document.activeElement;
+    clearTimeout(hideTimer);
     panel.hidden = false;
     panel.classList.remove('expanded');
     void panel.offsetWidth;
@@ -332,7 +350,7 @@
   function memoriesHtml(c) {
     if (!c) return '';
     const memos = (c.memories || []).map((m) => `<div class="memo"><b>${esc(m.spot || '')}</b><p>${esc(m.hand || m.text || '')}</p><small>${esc([m.by ? `${m.by}님` : '', m.years ? `광주 ${m.years}년` : ''].filter(Boolean).join(' · '))}</small></div>`).join('');
-    const stories = (c.stories || []).map((st) => `<article class="story"><div class="who">${esc(st.narrator_line || '')}</div><h4>${esc(st.title || '')}</h4>${st.subtitle ? `<p class="sub">${esc(st.subtitle)}</p>` : ''}${st.quote ? `<blockquote>${esc(st.quote)}</blockquote>` : ''}</article>`).join('');
+    const stories = (c.stories || []).map((st) => `<article class="story"><div class="who">${esc(st.narrator_line || '')}</div><h4>${esc(st.title || '')}</h4>${st.subtitle ? `<p class="sub">${esc(st.subtitle)}</p>` : ''}${st.quote ? `<blockquote>${esc(st.quote)}</blockquote>` : ''}${st.location || st.source ? `<p class="src">${esc([st.location ? `장소: ${st.location}` : '', st.source ? `출처: ${st.source}` : ''].filter(Boolean).join(' · '))}</p>` : ''}</article>`).join('');
     return memos + stories;
   }
   function renderPanel(s) {
@@ -358,7 +376,6 @@
       html += `<p class="sec">장소 기억</p>${mem || `<p class="pending">${esc((c && c.placeholder) || '기록 준비 중 — 인터뷰가 모이면 이곳에 장소 기억이 실립니다.')}</p>`}`;
       if (c && (c.related_spots || []).length) html += `<p class="sec">함께 보는 장소</p><ul class="related">${c.related_spots.map((r) => `<li><span>${esc(r.name)}</span><small>${esc(r.address || '')}</small></li>`).join('')}</ul>`;
       if (c && (c.tags || []).length) html += `<div class="tags">${c.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</div>`;
-      if (s.note) html += `<p class="pending" style="margin-top:20px">${esc(s.note)}</p>`;
     }
     body.innerHTML = html;
     const v = $('pv'), play = $('pv-play'), err = $('pv-err');
@@ -385,18 +402,18 @@
   /* ---------- 내비게이션 UI ---------- */
   function buildNav() {
     const nav = $('spot-nav');
-    nav.innerHTML = sequence().map((s) => `<button type="button" data-spot="${s.id}" class="${s.camera ? '' : 'pending'}" title="${esc(s.camera ? s.name : s.name + ' — 위치 검증 중')}"><small>${esc(s.no)}</small>${esc(s.short || s.name)}</button>`).join('');
+    nav.innerHTML = sequence().map((s) => `<button type="button" data-spot="${esc(s.id)}" class="${s.camera ? '' : 'pending'}" aria-pressed="false" title="${esc(s.camera ? s.name : s.name + ' — 위치 검증 중')}"><small>${esc(s.no)}</small>${esc(s.short || s.name)}</button>`).join('');
     nav.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => selectSpot(b.dataset.spot)));
     const list = $('explore-list');
     list.innerHTML = spotsDef.spots.map((s) => {
       const c = contentFor(s.id);
       const has = !!(c && c.video && c.video.src);
-      return `<button type="button" class="em-item${s.camera ? '' : ' pending'}" data-spot="${s.id}"><small>${esc(s.no)}</small><span>${esc(s.name)}${s.camera ? '' : ' · 위치 검증 중'}</span><i class="${has ? 'has' : 'no'}" title="${has ? '수어 영상 있음' : '영상 준비 중'}"></i></button>`;
+      return `<button type="button" class="em-item${s.camera ? '' : ' pending'}" data-spot="${esc(s.id)}" aria-pressed="false"><small>${esc(s.no)}</small><span>${esc(s.name)}${s.camera ? '' : ' · 위치 검증 중'}</span><i class="${has ? 'has' : 'no'}" title="${has ? '수어 영상 있음' : '영상 준비 중'}"></i></button>`;
     }).join('');
     list.querySelectorAll('.em-item').forEach((b) => b.addEventListener('click', () => selectSpot(b.dataset.spot)));
     $('explore-note').textContent = '금빛 점은 수어 영상이 있는 장소. 충장로 → 금남로 → 5·18민주광장 → ACC 순서로 이어집니다. + 표시는 조망 시점.';
   }
-  function syncNav() { document.querySelectorAll('.spot-nav button, .em-item').forEach((b) => b.classList.toggle('on', b.dataset.spot === current)); }
+  function syncNav() { document.querySelectorAll('.spot-nav button, .em-item').forEach((b) => { const on = b.dataset.spot === current; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }); }
   function toggleExplore(force) {
     const menu = $('explore-menu'), btn = $('explore-btn');
     const open = force ?? menu.hidden;
@@ -404,7 +421,7 @@
     menu.hidden = !open;
     btn.setAttribute('aria-expanded', String(open));
     btn.classList.toggle('on', open);
-    if (open) menu.querySelector('.em-item.on, .em-item')?.focus();
+    if (open) (menu.querySelector('.em-item.on') || menu.querySelector('.em-item'))?.focus();
   }
   function bindUi() {
     $('explore-btn').addEventListener('click', () => toggleExplore());
@@ -419,9 +436,10 @@
     let dragY = null;
     handle.addEventListener('pointerdown', (e) => { dragY = e.clientY; });
     window.addEventListener('pointerup', (e) => { if (dragY === null) return; const dy = e.clientY - dragY; dragY = null; if (dy < -40) toggleSheet(true); else if (dy > 40) toggleSheet(false); });
+    window.addEventListener('pointercancel', () => { dragY = null; });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { if (!$('explore-menu').hidden) { toggleExplore(false); $('explore-btn').focus(); } else if (isPanelOpen()) closeAll(); return; }
-      if (!isPanelOpen() || (e.target instanceof Element && e.target.closest('input, textarea, video'))) return;
+      if (!isPanelOpen() || (e.target instanceof Element && e.target.closest('input, textarea, video, .maplibregl-canvas-container'))) return;
       if (e.key === 'ArrowRight') step(1); else if (e.key === 'ArrowLeft') step(-1);
     });
     let rt = null;
