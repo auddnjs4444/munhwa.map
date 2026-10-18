@@ -1,0 +1,652 @@
+{
+  "_doc": "experiments/city3d 정보 패널 콘텐츠. 한국어 본문(memories·stories·notice)은 data/*.json에서 프로그램으로 그대로 복사한 원문이며, placeholder 항목은 '기록 준비 중'으로 둔다. 생성 스크립트: scratchpad/build_content.py (프로젝트 외부).",
+  "generated_from": {
+    "places.json": "data/places.json",
+    "dong-records.json": "data/dong-records.json (version 2026-10-15)",
+    "spots.json": "data/spots.json",
+    "memory-stories.json": "data/memory-stories.json",
+    "README.md": "README.md — '5·18 관련 지점 — 건드리지 말 것', '지명 수어 화면 — C-1 CINEMATIC', '장소 둘러보기', '장소 기억'"
+  },
+  "policies": {
+    "sensitive_518": {
+      "source": "README.md '## 5·18 관련 지점 — 건드리지 말 것'",
+      "rule_1": "`sensitive: true`인 항목은 카드가 바로 열리지 않고 안내 문구 + 버튼을 먼저 보여줍니다.",
+      "rule_2": "**관련 기관·유족 측 자문이 확보되기 전에는 `memory_text`·`memories`를 채우지 마세요.** (사업제안서 XI장 윤리 원칙)",
+      "default_notice": "이 지점은 역사적으로 민감한 기록을 담고 있습니다. 계속 보시겠어요?",
+      "default_notice_source": "app.js sensitive-gate fallback (places.json에 sensitive_notice가 없을 때)"
+    },
+    "memories_in_sign_panel": {
+      "source": "README.md '장소 기억' 절 마지막 항목",
+      "text": "지명 수어 패널에서는 `memories`(농인의 기억) 영역을 보여주지 않습니다. 데이터는 그대로 두었고 아카이브 기록 화면에는 계속 표시됩니다."
+    },
+    "video_format": "media/*.mp4 는 540x720 (세로 3:4). places.json videos[].ratio 0.75 = width/height; app.js는 ratio<1이면 '세로 3:4 · 무음'으로 표기."
+  },
+  "placeholder_text": "기록 준비 중",
+  "spots": [
+    {
+      "id": "chungjang",
+      "name": "충장로",
+      "en": "CHUNGJANG-RO",
+      "kicker": "PL. 13 · CHUNGJANG-RO · 동구 법정동",
+      "kicker_source": "dong-records.json:regions.donggu_13 (en, boundary_type); PL 번호 = geojson feature 순서 (README C-1 지역 선택 메뉴 번호)",
+      "source_place_ids": [
+        "chungjang-ro",
+        "canmore"
+      ],
+      "geo": {
+        "lat": 35.1489,
+        "lng": 126.9153,
+        "source": "places.json:chungjang-ro.lat/lng",
+        "note": "places.json의 대표 좌표 (precision 미기재)"
+      },
+      "sign_parts": [
+        "ㅊ",
+        "장소"
+      ],
+      "video": null,
+      "video_status": "placeholder",
+      "video_note": "places.json에 videos 항목 없음 (video_youtube_id도 null)",
+      "memories": [
+        {
+          "by": "A",
+          "years": 23,
+          "spot": "캔모아 충장로점 · 충파 앞",
+          "hand": "친지들 모이는 곳",
+          "story": "처음엔 필담으로 주문했다. 농인들이 하나둘 찾아오면서 사장님도 자연스럽게 소통하게 됐고, 지금은 수어를 몰라도 농인 손님과 대화가 어렵지 않다. 농인 손님이 만든 단골집.",
+          "source": "places.json:chungjang-ro.memories[0]"
+        }
+      ],
+      "stories": [
+        {
+          "title": "충우 앞, 친구들과의 약속",
+          "subtitle": "수많은 만남과 추억이 쌓인 장소",
+          "location": "충장로우체국 앞",
+          "narrator": {
+            "name": "이인자",
+            "identity": "농인",
+            "origin": "전남 보성군 출생",
+            "years": "광주 거주 45년 이상"
+          },
+          "narrator_line": "이인자 · 농인 · 전남 보성군 출생 · 광주 거주 45년 이상",
+          "quote": "제게 '충우 앞'과 충장로는 그저 약속 장소를 넘어, 광주에서 살아온 제 시간과 사람들의 정이 담긴 소중한 곳입니다.",
+          "text": "광주 사람들에게 \"충우 앞에서 만나자\"는 말은 참 익숙하지요.\n\n충장로 우체국 앞을 뜻하는 '충우 앞'은 많은 사람의 약속 장소이자 광주 도심을 떠올리게 하는 상징적인 공간이었습니다.\n\n저에게도 친구들과 만나고 함께 시간을 보내던 정겨운 장소입니다.\n\n지금도 문득 그 거리가 생각나거나 친구를 만날 때면 찾아갑니다.\n\n함께 걷고, 먹고 마시며 이야기를 나누다 보면 오래된 추억 위에 새로운 추억이 더해집니다.\n\n제게 '충우 앞'과 충장로는 그저 약속 장소를 넘어, 광주에서 살아온 제 시간과 사람들의 정이 담긴 소중한 곳입니다.",
+          "tags": [
+            "충우앞",
+            "충장로",
+            "약속장소",
+            "친구",
+            "추억"
+          ],
+          "source": "places.json:chungjang-ro.memory_entries[0]",
+          "alias": "충우 앞"
+        },
+        {
+          "title": "궁전제과, 수어로 나누던 젊은 날의 추억",
+          "subtitle": "친구들과 얼굴을 마주 보며 이야기하던 충장로",
+          "location": "궁전제과 · 충장로1가",
+          "narrator": {
+            "name": "이인자",
+            "identity": "농인",
+            "origin": "전남 보성군 출생",
+            "years": "광주 거주 45년 이상"
+          },
+          "narrator_line": "이인자 · 농인 · 전남 보성군 출생 · 광주 거주 45년 이상",
+          "quote": "제게 그곳의 특별함은 카페의 분위기보다, 편하게 만나 이야기를 나눌 수 있는 사람들이 있다는 데 있었습니다.",
+          "text": "광주에서 오랫동안 살아온 제게 충장로는 젊은 날의 추억이 깃든 장소입니다.\n\n궁전제과와 같은 유명한 빵집을 비롯해 여러 카페와 즐겨 찾던 먹거리 가게들이 있었지요.\n\n지금은 가게 이름들이 어렴풋하지만, 젊은 시절 농인 친구들과 들르던 다방과 카페, 만화가게, 그리고 연애하던 때의 기억은 여전히 남아 있습니다.\n\n어쩌면 저와 농인 친구들에게 충장로는 아지트 같은 공간이었을지도 모릅니다.\n\n서로 얼굴을 마주 보며 수어로 이야기를 나누다 보면 시간 가는 줄 몰랐습니다.\n\n제게 그곳의 특별함은 카페의 분위기보다, 편하게 만나 이야기를 나눌 수 있는 사람들이 있다는 데 있었습니다.\n\n물론 수어로 대화하는 저희를 낯설거나 신기한 듯 바라보는 시선도 있었습니다.\n\n그럴 때는 주변의 눈치를 보기도 했지만, 청인들이 보여준 작은 배려도 기억에 남습니다.\n\n자리를 양보해 주거나 손짓으로 뜻을 전해주던 순간들이지요.\n\n말로 주고받지 않아도 그 마음은 느낄 수 있었습니다.\n\n그래서 충장로를 떠올리면 친구들과 수어로 나누던 이야기들, 젊은 날의 설렘, 그리고 주변 사람들의 소박한 배려가 함께 생각납니다.\n\n어쩌면 제게는 사람과 사람 사이의 온기가 남아 있는 곳일지도 모릅니다.",
+          "tags": [
+            "궁전제과",
+            "충장로",
+            "농인친구",
+            "수어",
+            "젊은날의추억"
+          ],
+          "source": "places.json:chungjang-ro.memory_entries[1]"
+        },
+        {
+          "title": "손끝으로 나누던 우리의 이야기",
+          "subtitle": "충장로 캔모아 · 장소 기억",
+          "narrator_line": null,
+          "quote": "젊은 날의 우정과 사랑, 그리고 수많은 이야기가 손끝으로 오가던 우리만의 아지트였습니다.",
+          "quote_source": "memory-stories.json:canmore.paragraphs[12] (1-based, emphasis 문단)",
+          "paragraph_count": 12,
+          "emphasis": [
+            10,
+            12
+          ],
+          "full_text": "memory-stories.json:canmore.paragraphs — 전문은 여기에 복사하지 않음 (원본 파일 참조)",
+          "source": "memory-stories.json:canmore",
+          "note": "memory-stories.json에는 narrator 필드가 없음. 거점 canmore 패널의 '장소 기억' 화면 원고."
+        }
+      ],
+      "related_spots": [
+        {
+          "id": "canmore",
+          "kind": "hub",
+          "name": "충장로 캔모아",
+          "short": "캔모아",
+          "address": "광주광역시 동구 중앙로 172",
+          "geo": {
+            "lat": 35.1489982,
+            "lng": 126.9142779,
+            "precision": "building",
+            "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+            "note": "주소 검색 결과(지번 충장로3가 32-3), OSM 건물과 2 m 차이"
+          },
+          "intro": "인터뷰에서 농인들이 자주 모이는 장소로 소개됐어요.",
+          "intro_note": "인터뷰 내용 요약",
+          "contact": {
+            "text": "매장에 전화로 확인했어요. 수어 응대는 하지 않지만, 농인 손님과 필담으로 소통한다고 해요.",
+            "checked_on": "2026년 10월 9일"
+          },
+          "sign_place": "chungjang-ro",
+          "source": "spots.json:hubs[canmore]",
+          "coords_verified": true
+        },
+        {
+          "id": "palace-bakery",
+          "kind": "place",
+          "name": "궁전제과 충장로 본점",
+          "address": "광주광역시 동구 충장로 93-6",
+          "geo": {
+            "lat": 35.1477242,
+            "lng": 126.9176286,
+            "precision": "building",
+            "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+            "note": "카카오맵 장소 검색 '궁전제과 충장점'(지번 충장로1가 1-9), 사용자 확인(2026-10-16)"
+          },
+          "source": "spots.json:places[palace-bakery]",
+          "coords_verified": true,
+          "note": "places.json:chungjang-ro.memory_entries[1] location '궁전제과 · 충장로1가'와 대응"
+        },
+        {
+          "id": "chungjang-house",
+          "kind": "place",
+          "name": "충장의 집",
+          "address": "광주광역시 동구 충장로 65 1층",
+          "geo": {
+            "lat": 35.1494211,
+            "lng": 126.9149019,
+            "precision": "building",
+            "source": "OSM Nominatim 주소 검색 (2026-10-15)"
+          },
+          "source": "spots.json:places[chungjang-house]",
+          "coords_verified": true
+        }
+      ],
+      "tags": [
+        "문화접근성",
+        "20대 농인"
+      ],
+      "sensitive": {
+        "gated": false,
+        "notice": null
+      },
+      "summary": null,
+      "summary_status": "placeholder",
+      "summary_placeholder": "기록 준비 중",
+      "notes": [
+        "places.json:chungjang-ro.origin_text 는 '[예시] 실제 인터뷰 후 수어 이름의 유래 설명으로 교체하세요.' (예시 텍스트) — 패널에 쓰지 않음.",
+        "수어 영상 없음: videos 항목 없음, video_youtube_id null, 원본영상/ 폴더에도 충장로 파일 없음.",
+        "README: 지명 수어 패널에서는 memories(농인의 기억) 영역을 표시하지 않음 — 아카이브 기록 화면에서만 표시. 여기서는 데이터로 포함하되 표시 여부는 프로토타입에서 결정.",
+        "memory-stories.json:canmore 전문(12문단)은 복사하지 않고 참조만 남김."
+      ]
+    },
+    {
+      "id": "geumnam",
+      "name": "금남로",
+      "en": "GEUMNAM-RO",
+      "kicker": "PL. 03 · GEUMNAM-RO · 동구 법정동",
+      "kicker_source": "dong-records.json:regions.donggu_03 (en, boundary_type); PL 번호 = geojson feature 순서 (README C-1 지역 선택 메뉴 번호)",
+      "source_place_ids": [
+        "geumnam-ro"
+      ],
+      "geo": {
+        "lat": 35.1513,
+        "lng": 126.9147,
+        "source": "places.json:geumnam-ro.lat/lng",
+        "note": "places.json의 대표 좌표 (precision 미기재)"
+      },
+      "sign_parts": [
+        "ㄱ",
+        "보성",
+        "장소"
+      ],
+      "video": {
+        "src": "media/geumnam-ro.mp4",
+        "poster": "media/geumnam-ro.jpg",
+        "ratio": 0.75,
+        "label": "수어",
+        "source": "places.json:geumnam-ro.videos[0]"
+      },
+      "video_status": "available",
+      "video_note": "media/geumnam-ro.mp4 존재=True, poster 존재=True; ratio 0.75 = width/height (540x720 세로 3:4)",
+      "memories": [],
+      "stories": [
+        {
+          "title": "눈으로 느꼈던 거리의 활기",
+          "subtitle": "소리가 아닌 풍경과 사람들의 표정으로 기억하는 거리",
+          "location": "전일빌딩 · 금남로 · 충장로",
+          "narrator": {
+            "name": "이인자",
+            "identity": "농인",
+            "origin": "전남 보성군 출생",
+            "years": "광주 거주 45년 이상"
+          },
+          "narrator_line": "이인자 · 농인 · 전남 보성군 출생 · 광주 거주 45년 이상",
+          "quote": "농인인 저는 눈으로 거리의 매력을 느끼곤 했습니다.",
+          "text": "전일빌딩과 금남로를 지나 충장로로 이어지는 거리를 걷다 보면 볼거리와 먹거리, 다양한 상점들이 발길을 붙잡곤 했습니다.\n\n쇼핑을 하거나 맛있는 음식을 먹기도 했지만, 특별한 목적 없이 거리를 구경하는 것만으로도 즐거웠습니다.\n\n때때로 열리는 거리공연과 문화예술 행사, 남녀노소 함께 어울리는 모습은 그 거리를 더욱 생기 있게 만들었습니다.\n\n농인인 저는 눈으로 거리의 매력을 느끼곤 했습니다.\n\n공연하는 사람들의 표정과 몸짓, 사람들의 시선과 웃음, 다채로운 풍경을 바라보며 그곳의 활기를 느꼈습니다.\n\n그렇게 충장로와 금남로 일대는 제게 자주 놀러 가고 산책하며 일상의 즐거움을 누리는 공간이 되었습니다.",
+          "tags": [
+            "금남로",
+            "전일빌딩",
+            "충장로",
+            "거리공연",
+            "농인의시선"
+          ],
+          "source": "places.json:geumnam-ro.memory_entries[0]"
+        }
+      ],
+      "related_spots": [
+        {
+          "id": "518-archives",
+          "kind": "place",
+          "name": "5·18민주화운동기록관",
+          "address": "광주광역시 동구 금남로 221",
+          "geo": {
+            "lat": 35.1495588,
+            "lng": 126.9167619,
+            "precision": "building",
+            "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+            "note": "주소 검색 결과에 '5.18민주화운동기록관' 일치"
+          },
+          "source": "spots.json:places[518-archives]",
+          "coords_verified": true
+        },
+        {
+          "id": "geumnam-park",
+          "kind": "place",
+          "name": "금남로공원",
+          "address": "광주광역시 동구 금남로3가 20-2",
+          "geo": {
+            "lat": 35.149457,
+            "lng": 126.915578,
+            "precision": "poi",
+            "source": "OSM Nominatim 주소 검색 (2026-10-15)",
+            "note": "OSM 상호명 검색(금남로공원)"
+          },
+          "source": "spots.json:places[geumnam-park]",
+          "coords_verified": true
+        },
+        {
+          "id": "1215",
+          "kind": "place",
+          "name": "일이일오",
+          "address": "광주광역시 동구 금남로 236 아송빌딩 1층",
+          "geo": {
+            "lat": 35.1484753,
+            "lng": 126.9175493,
+            "precision": "building",
+            "source": "OSM Nominatim 주소 검색 (2026-10-15)"
+          },
+          "source": "spots.json:places[1215]",
+          "coords_verified": true
+        }
+      ],
+      "tags": [
+        "동구"
+      ],
+      "sensitive": {
+        "gated": false,
+        "notice": null
+      },
+      "summary": null,
+      "summary_status": "placeholder",
+      "summary_placeholder": "기록 준비 중",
+      "notes": [
+        "origin_text 비어 있음 — 유래 설명 없음.",
+        "memories(농인의 기억) 항목 없음; memory_entries 1건(전일빌딩 · 금남로 · 충장로)만 있음.",
+        "related_spots의 5·18민주화운동기록관(518-archives)은 spots.json에 sensitive 플래그가 없음 — 5·18 게이트 적용 여부는 미정."
+      ]
+    },
+    {
+      "id": "square",
+      "name": "5·18민주광장",
+      "en": "5·18 DEMOCRACY SQUARE",
+      "kicker": "경계 밖 장소 · 5·18",
+      "kicker_source": "README.md '경계 밖 장소(무등산·양림동·5·18민주광장)' + places.json:518-democracy-square.tags",
+      "source_place_ids": [
+        "518-democracy-square"
+      ],
+      "geo": {
+        "lat": 35.1499,
+        "lng": 126.9166,
+        "source": "places.json:518-democracy-square.lat/lng",
+        "note": "places.json의 대표 좌표 (precision 미기재)"
+      },
+      "sign_parts": null,
+      "video": null,
+      "video_status": "placeholder",
+      "video_note": "places.json에 videos 항목 없음 (video_youtube_id도 null)",
+      "memories": [],
+      "stories": [],
+      "related_spots": [
+        {
+          "id": "518-archives",
+          "kind": "place",
+          "name": "5·18민주화운동기록관",
+          "address": "광주광역시 동구 금남로 221",
+          "geo": {
+            "lat": 35.1495588,
+            "lng": 126.9167619,
+            "precision": "building",
+            "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+            "note": "주소 검색 결과에 '5.18민주화운동기록관' 일치"
+          },
+          "source": "spots.json:places[518-archives]",
+          "coords_verified": true,
+          "note": "좌표상 인접(약 40 m). spots.json에는 거점 canmore의 nearby 항목으로만 등록됨."
+        }
+      ],
+      "tags": [
+        "5·18"
+      ],
+      "sensitive": {
+        "gated": true,
+        "notice": "이 지점은 5·18과 관련된 기록을 담고 있습니다. 계속 보시겠어요?",
+        "notice_source": "places.json:518-democracy-square.sensitive_notice",
+        "policy": "README.md '5·18 관련 지점 — 건드리지 말 것' 참조 (policies.sensitive_518)"
+      },
+      "summary": null,
+      "summary_status": "placeholder",
+      "summary_placeholder": "기록 준비 중",
+      "notes": [
+        "'옛 전남도청'이라는 표기는 프로젝트 데이터에 없음 — places.json 이름은 '5·18민주광장'만. 부제로 쓰려면 별도 확인 필요.",
+        "README 정책: 관련 기관·유족 측 자문이 확보되기 전에는 memory_text·memories를 채우지 말 것. 현재 origin_text·memory_text 모두 비어 있고 memories 없음 — 의도된 공백.",
+        "dong-records.json regions에 포함되지 않음(경계 밖 핀). 수어 영상 없음."
+      ]
+    },
+    {
+      "id": "acc",
+      "name": "국립아시아문화전당",
+      "en": "ACC",
+      "en_source": "places.json:seonam-dong.memory_entries[0].tags ('ACC') — 공식 영문 표기는 프로젝트 데이터에 없음",
+      "kicker": "장소 둘러보기 · 주변 장소",
+      "kicker_source": "README.md '장소 둘러보기 (거점과 주변 장소)' — spots.json:places 항목(거점 hosijeong의 nearby)",
+      "source_place_ids": [
+        "acc",
+        "seonam-dong"
+      ],
+      "geo": {
+        "lat": 35.1470588,
+        "lng": 126.9200303,
+        "precision": "building",
+        "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+        "note": "주소 검색 결과에 '국립아시아문화전당' 일치",
+        "source_file": "spots.json:places[acc].geo"
+      },
+      "sign_parts": null,
+      "video": null,
+      "video_status": "placeholder",
+      "video_note": "ACC 자체 수어 영상 없음. (서남동 영상 media/seonam-dong.mp4는 '서남동' 지화 영상이므로 ACC에 붙이지 않음)",
+      "memories": [],
+      "stories": [
+        {
+          "title": "눈으로 만나는 문화, 마음으로 잇는 광주",
+          "subtitle": "농인의 시선으로 만나는 광주의 새로운 문화공간",
+          "location": "국립아시아문화전당(ACC)",
+          "narrator": {
+            "name": "이인자",
+            "identity": "농인",
+            "origin": "전남 보성군 출생",
+            "years": "광주 거주 45년 이상"
+          },
+          "narrator_line": "이인자 · 농인 · 전남 보성군 출생 · 광주 거주 45년 이상",
+          "quote": "눈으로 만나는 문화, 마음으로 잇는 광주.",
+          "text": "충장로 우체국 주변이 제게 오랜 추억이 담긴 곳이라면, 국립아시아문화전당(ACC)은 새로운 즐거움과 배움이 있는 곳입니다.\n\n5·18의 역사와 의미를 되새기는 공간이나 양림동의 카페 거리도 좋지만, ACC는 다양한 볼거리와 문화예술을 한곳에서 만날 수 있다는 점에서 특별하게 느껴집니다.\n\n광주에서 오랫동안 살아온 농인으로서 저는 ACC를 '눈으로 만나는 문화, 마음으로 잇는 광주'라고 표현하고 싶습니다.\n\n눈으로 작품을 감상하고 새로운 것을 배우면서, 제가 살아온 광주를 또 다른 시선으로 만나게 되는 곳이기 때문입니다.\n\n농인이 방문할 때는 전시나 공연의 내용을 충분히 이해할 수 있도록 자막과 수어통역, 문자 안내가 제공되는지 미리 확인하면 좋겠습니다.\n\n현장에서는 방송으로만 전달되는 안내를 놓칠 수 있으니 안내 표지와 이동 경로, 비상구 위치도 살펴두면 도움이 됩니다.\n\n무엇보다 농인이 편안하게 문화를 즐길 수 있도록, 소리로 전달되는 정보를 눈으로도 확인할 수 있었으면 합니다.\n\n수어로 대화하는 모습도 자연스럽게 받아들여지는 공간이라면 더욱 좋겠지요.\n\n제게 ACC는 앞으로도 자주 찾아가 보고, 배우고, 사람들과 함께 즐기고 싶은 광주의 문화공간입니다.",
+          "tags": [
+            "ACC",
+            "국립아시아문화전당",
+            "서남동",
+            "문화접근성",
+            "농인의시선"
+          ],
+          "source": "places.json:seonam-dong.memory_entries[0]",
+          "note": "프로젝트에서는 서남동(seonam-dong) 기록에 실린 이야기. location 필드가 '국립아시아문화전당(ACC)'."
+        }
+      ],
+      "related_spots": [
+        {
+          "id": "acc",
+          "kind": "place",
+          "name": "국립아시아문화전당",
+          "address": "광주광역시 동구 문화전당로 38",
+          "geo": {
+            "lat": 35.1470588,
+            "lng": 126.9200303,
+            "precision": "building",
+            "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+            "note": "주소 검색 결과에 '국립아시아문화전당' 일치"
+          },
+          "source": "spots.json:places[acc]",
+          "related": [
+            {
+              "name": "진정성",
+              "note": "문화전당 안에 있는 곳으로 함께 소개할 예정이에요. 정확한 위치와 운영 여부는 확인 중입니다."
+            }
+          ],
+          "coords_verified": true,
+          "note": "related[0] '진정성'은 위치·운영 여부 확인 중(spots.json 원문)."
+        },
+        {
+          "id": "hosijeong",
+          "kind": "hub",
+          "name": "카페 호시정",
+          "short": "호시정",
+          "address": "광주광역시 동구 동계천로 137-9 1층",
+          "geo": {
+            "lat": 35.1497444,
+            "lng": 126.9248389,
+            "precision": "building",
+            "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+            "note": "주소 검색 결과에 '카페호시정' 일치(지번 동명동 154-17)"
+          },
+          "intro": "젊은 농인들이 자주 모이는 장소 중 하나로 추천받았어요.",
+          "intro_note": "인터뷰 내용 요약",
+          "contact": null,
+          "sign_place": "dongmyeong-dong",
+          "source": "spots.json:hubs[hosijeong]",
+          "coords_verified": true,
+          "note": "spots.json:hubs[hosijeong].nearby 에 acc 포함"
+        }
+      ],
+      "tags": [
+        "ACC",
+        "국립아시아문화전당",
+        "서남동",
+        "문화접근성",
+        "농인의시선"
+      ],
+      "tags_source": "places.json:seonam-dong.memory_entries[0].tags",
+      "sensitive": {
+        "gated": false,
+        "notice": null
+      },
+      "summary": null,
+      "summary_status": "placeholder",
+      "summary_placeholder": "기록 준비 중",
+      "notes": [
+        "places.json에 ACC 자체 기록(id) 없음. 좌표·주소는 spots.json:places[acc] (카카오맵 주소 검색, building precision).",
+        "이야기 본문에 '5·18의 역사와 의미를 되새기는 공간' 언급이 있으나 서남동 기록은 sensitive: false — 게이트 미적용."
+      ]
+    },
+    {
+      "id": "nabi",
+      "name": "금남로 나비정원",
+      "name_source": "작업 지시문(프로젝트 데이터에 없음)",
+      "en": null,
+      "kicker": "위치 미확인 · 기록 준비 중",
+      "kicker_source": "placeholder",
+      "source_place_ids": [],
+      "geo": null,
+      "sign_parts": null,
+      "video": null,
+      "video_status": "placeholder",
+      "video_note": "프로젝트 데이터·media/·원본영상/ 어디에도 없음",
+      "memories": [],
+      "stories": [],
+      "related_spots": [],
+      "tags": [],
+      "sensitive": {
+        "gated": false,
+        "notice": null
+      },
+      "summary": null,
+      "summary_status": "placeholder",
+      "summary_placeholder": "기록 준비 중",
+      "notes": [
+        "places.json, spots.json, dong-records.json, memory-stories.json, README.md 전체에서 '나비' 검색 결과 없음.",
+        "위치 미확인 — 좌표 없음. 프로토타입에서 '위치 확인 중' 처리 필요."
+      ]
+    },
+    {
+      "id": "jeonil",
+      "name": "전일빌딩",
+      "name_source": "places.json:geumnam-ro.memory_entries[0].location '전일빌딩 · 금남로 · 충장로' 및 tags",
+      "en": null,
+      "kicker": "금남로 · 기록 준비 중",
+      "kicker_source": "placeholder",
+      "source_place_ids": [
+        "geumnam-ro"
+      ],
+      "geo": null,
+      "sign_parts": null,
+      "video": null,
+      "video_status": "placeholder",
+      "video_note": "전일빌딩 자체 수어 영상 없음",
+      "memories": [],
+      "stories": [
+        {
+          "title": "눈으로 느꼈던 거리의 활기",
+          "subtitle": "소리가 아닌 풍경과 사람들의 표정으로 기억하는 거리",
+          "location": "전일빌딩 · 금남로 · 충장로",
+          "narrator": {
+            "name": "이인자",
+            "identity": "농인",
+            "origin": "전남 보성군 출생",
+            "years": "광주 거주 45년 이상"
+          },
+          "narrator_line": "이인자 · 농인 · 전남 보성군 출생 · 광주 거주 45년 이상",
+          "quote": "농인인 저는 눈으로 거리의 매력을 느끼곤 했습니다.",
+          "text": "전일빌딩과 금남로를 지나 충장로로 이어지는 거리를 걷다 보면 볼거리와 먹거리, 다양한 상점들이 발길을 붙잡곤 했습니다.\n\n쇼핑을 하거나 맛있는 음식을 먹기도 했지만, 특별한 목적 없이 거리를 구경하는 것만으로도 즐거웠습니다.\n\n때때로 열리는 거리공연과 문화예술 행사, 남녀노소 함께 어울리는 모습은 그 거리를 더욱 생기 있게 만들었습니다.\n\n농인인 저는 눈으로 거리의 매력을 느끼곤 했습니다.\n\n공연하는 사람들의 표정과 몸짓, 사람들의 시선과 웃음, 다채로운 풍경을 바라보며 그곳의 활기를 느꼈습니다.\n\n그렇게 충장로와 금남로 일대는 제게 자주 놀러 가고 산책하며 일상의 즐거움을 누리는 공간이 되었습니다.",
+          "tags": [
+            "금남로",
+            "전일빌딩",
+            "충장로",
+            "거리공연",
+            "농인의시선"
+          ],
+          "source": "places.json:geumnam-ro.memory_entries[0]",
+          "note": "금남로(geumnam) 스팟과 같은 이야기. location 필드에 '전일빌딩'이 포함되어 참조."
+        }
+      ],
+      "related_spots": [],
+      "tags": [],
+      "sensitive": {
+        "gated": false,
+        "notice": null
+      },
+      "summary": null,
+      "summary_status": "placeholder",
+      "summary_placeholder": "기록 준비 중",
+      "notes": [
+        "프로젝트 데이터에 전일빌딩의 좌표·주소 없음 (spots.json 미등록) — 뷰포인트 위치는 별도 확인 필요.",
+        "이야기는 금남로 기록(geumnam-ro.memory_entries[0])을 공유함. 중복 표시 여부는 프로토타입에서 결정."
+      ]
+    },
+    {
+      "id": "dongmyeong",
+      "name": "동명동",
+      "en": "DONGMYEONG-DONG",
+      "kicker": "PL. 05 · DONGMYEONG-DONG · 동구 법정동",
+      "kicker_source": "dong-records.json:regions.donggu_05 (en, boundary_type); PL 번호 = geojson feature 순서 (README C-1 지역 선택 메뉴 번호)",
+      "source_place_ids": [
+        "dongmyeong-dong",
+        "hosijeong"
+      ],
+      "geo": {
+        "lat": 35.1503,
+        "lng": 126.9257,
+        "source": "places.json:dongmyeong-dong.lat/lng",
+        "note": "places.json의 대표 좌표 (precision 미기재)"
+      },
+      "sign_parts": [
+        "동",
+        "맑다",
+        "장소"
+      ],
+      "video": {
+        "src": "media/dongmyeong-dong.mp4",
+        "poster": "media/dongmyeong-dong.jpg",
+        "ratio": 0.75,
+        "label": "수어",
+        "source": "places.json:dongmyeong-dong.videos[0]"
+      },
+      "video_status": "available",
+      "video_note": "media/dongmyeong-dong.mp4 존재=True, poster 존재=True; ratio 0.75 = width/height (540x720 세로 3:4)",
+      "memories": [],
+      "stories": [],
+      "related_spots": [
+        {
+          "id": "hosijeong",
+          "kind": "hub",
+          "name": "카페 호시정",
+          "short": "호시정",
+          "address": "광주광역시 동구 동계천로 137-9 1층",
+          "geo": {
+            "lat": 35.1497444,
+            "lng": 126.9248389,
+            "precision": "building",
+            "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+            "note": "주소 검색 결과에 '카페호시정' 일치(지번 동명동 154-17)"
+          },
+          "intro": "젊은 농인들이 자주 모이는 장소 중 하나로 추천받았어요.",
+          "intro_note": "인터뷰 내용 요약",
+          "contact": null,
+          "sign_place": "dongmyeong-dong",
+          "source": "spots.json:hubs[hosijeong]",
+          "coords_verified": true,
+          "note": "sign_place: dongmyeong-dong (지명 수어 장소와 정확히 대응)"
+        },
+        {
+          "id": "zip",
+          "kind": "place",
+          "name": "여행자의 집(ZIP)",
+          "address": "광주광역시 동구 동계천로 137-17",
+          "geo": {
+            "lat": 35.149914,
+            "lng": 126.9251328,
+            "precision": "building",
+            "source": "카카오맵(map.kakao.com) 주소 검색 결과 좌표를 EPSG:5181×2.5→WGS84로 변환 (2026-10-15)",
+            "note": "주소 검색 결과에 '여행자의zip' 일치(지번 동명동 154-67)"
+          },
+          "source": "spots.json:places[zip]",
+          "coords_verified": true,
+          "note": "지번 동명동 154-67 (spots.json geo.note)"
+        }
+      ],
+      "tags": [
+        "동구"
+      ],
+      "sensitive": {
+        "gated": false,
+        "notice": null
+      },
+      "summary": null,
+      "summary_status": "placeholder",
+      "summary_placeholder": "기록 준비 중",
+      "notes": [
+        "수어 영상은 있음(media/dongmyeong-dong.mp4, 540x720, 9.2초). memories·memory_entries·origin_text 없음 — 서술 텍스트는 placeholder.",
+        "거점 호시정(hosijeong)의 intro '젊은 농인들이 자주 모이는 장소 중 하나로 추천받았어요.'는 인터뷰 내용 요약(intro_note) — 거점 패널용 문구."
+      ]
+    }
+  ]
+}
