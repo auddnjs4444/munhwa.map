@@ -743,6 +743,7 @@
   }
   .mode-btn {
     appearance: none;
+    white-space: nowrap; /* 375px 폭에서 left:50% 절대 배치 때문에 두 줄로 꺾이던 문제 */
     border: 0;
     border-radius: 999px;
     background: none;
@@ -899,19 +900,39 @@
   body[data-map-mode="signs"] .dp-meta { color: var(--cine-muted); }
   body[data-map-mode="signs"] .dp-rec, body[data-map-mode="signs"] .dp-back { border-color: var(--cine-line); color: var(--cine-ink); }
   @media (max-width: 767px) {
-    body[data-map-mode="signs"] .dpanel { top: auto; height: 54dvh; border-left: 0; border-top: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px 20px 0 0; background: rgba(16, 17, 21, 0.97); box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.45); }
-    body[data-map-mode="signs"] .dpanel.expanded { height: 88dvh; }
-    body[data-map-mode="signs"] .dp-handle { background: transparent; }
-    body[data-map-mode="signs"] .dp-head { padding: 4px 18px 6px 16px; background: none; }
-    body[data-map-mode="signs"] .dp-btn { width: 40px; height: 40px; }
-    body[data-map-mode="signs"] .dp-title { padding-top: 6px; }
+    /* 지명 수어 시트(모바일): 핸들 → 이전/다음/닫기 → 동 이름 → 수어 영상 → 수어 표현 설명 → 나머지 기록. 열리는 높이는 영상이 다 보이도록 */
+    body[data-map-mode="signs"] { --sheet-open: 64dvh; --sheet-peek: 136px; }
+    body[data-map-mode="signs"] .dpanel { top: auto; height: var(--sheet-open); padding: 0 16px calc(14px + env(safe-area-inset-bottom, 0px)); border-left: 0; border-top: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px 20px 0 0; background: rgba(16, 17, 21, 0.97); box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.45); }
+    body[data-map-mode="signs"] .dpanel.expanded { height: 90dvh; }
+    body[data-map-mode="signs"] .dpanel.peek { height: var(--sheet-peek); overflow: hidden; }
+    body[data-map-mode="signs"] .dp-handle { height: 22px; background: transparent; }
+    body[data-map-mode="signs"] .dp-head { margin: 0; padding: 0 0 4px; background: none; }
+    body[data-map-mode="signs"] .dp-nav { gap: 10px; }
+    body[data-map-mode="signs"] .dp-btn { width: 36px; height: 36px; }
+    body[data-map-mode="signs"] .dp-btn svg { width: 17px; height: 17px; }
+    body[data-map-mode="signs"] .dp-title { padding: 2px 0 0; }
     body[data-map-mode="signs"] .dp-title h2,
     body[data-map-mode="signs"] .dp-title h2.mid,
-    body[data-map-mode="signs"] .dp-title h2.long { font-size: 38px; }
-    body[data-map-mode="signs"] .dp-idx { top: 6px; }
-    body[data-map-mode="signs"] .dp-gloss { font-size: 28px; }
-    body[data-map-mode="signs"] .pv { width: min(100%, 280px); }
+    body[data-map-mode="signs"] .dp-title h2.long { display: inline; font-size: 30px; line-height: 1.1; }
+    body[data-map-mode="signs"] .dp-en { display: inline; margin: 0 0 0 10px; font-size: 10px; letter-spacing: 0.2em; }
+    body[data-map-mode="signs"] .dp-sub { display: none; }
+    body[data-map-mode="signs"] .dp-idx { top: 8px; font-size: 10px; }
+    body[data-map-mode="signs"] .dp-body { display: flex; flex-direction: column; }
+    body[data-map-mode="signs"] .dp-body > .pv, body[data-map-mode="signs"] .dp-body > .angles { order: -3; }
+    body[data-map-mode="signs"] .dp-body > .dp-gloss { order: -2; margin: 14px 0 0; font-size: 26px; }
+    body[data-map-mode="signs"] .dp-body > .dp-sign { order: -1; }
+    body[data-map-mode="signs"] .dp-sign .section-label { margin-top: 14px; }
+    body[data-map-mode="signs"] .pv { --pv-h: min(calc(var(--sheet-open) - 150px), 440px); width: auto; height: var(--pv-h); max-width: 100%; margin: 8px auto 0; align-self: center; }
+    body[data-map-mode="signs"] .pv-none { width: auto; height: 180px; aspect-ratio: 0.75; }
+    body[data-map-mode="signs"] .pv-play { height: 40px; font-size: 12.5px; }
+    body.dpanel-open[data-view="map"][data-map-mode="signs"] .leaflet-bottom { bottom: calc(var(--sheet-open) + 8px); }
+    body.dpanel-open[data-view="map"][data-map-mode="signs"]:has(.dpanel.peek) .leaflet-bottom { bottom: calc(var(--sheet-peek) + 8px); }
+    body.dpanel-open[data-view="map"][data-map-mode="signs"]:has(.dpanel.expanded) .leaflet-bottom { bottom: 90dvh; }
     .dp-facts dd { font-size: 11px; }
+  }
+  /* 세로가 짧은 폰(iPhone SE·8 등): 시트를 더 열어 영상을 먼저 보여준다 */
+  @media (max-width: 767px) and (max-height: 700px) {
+    body[data-map-mode="signs"] { --sheet-open: 74dvh; }
   }
   @media (prefers-reduced-motion: reduce) {
     body[data-map-mode="signs"] .region { transition: none; }
@@ -1755,7 +1776,7 @@
   </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=20261023"></script>
+<script src="app.js?v=20261024"></script>
 <script src="story.js?v=20261018"></script>
 <script src="spots.js?v=20261023"></script>
 </body>
