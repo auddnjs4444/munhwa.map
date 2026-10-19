@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>손으로 부르는 광주 — 시네마틱 탐험 v2 (실험)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="explore-v2.css?v=1">
+<link rel="preload" as="image" href="../../assets/explore/overlook-mountains.jpg">
+<link rel="preload" as="image" href="../../assets/explore/chungjang-night.jpg">
+</head>
+<body data-scene="loading">
+  <!-- 무대: 실제 광주 사진 두 장(도심 조망 → 충장로 거리). 사진 위에 핀은 없다 — 장소 선택은 하단 탐색 메뉴로 -->
+  <div class="stage" id="stage" aria-label="광주 동구 시네마틱 탐험">
+    <div class="layer city grade-bluehour" id="layer-city">
+      <div class="plx" id="plx-city"><img class="photo" id="photo-city" alt="" draggable="false"></div>
+      <div class="grade" aria-hidden="true"></div>
+    </div>
+    <div class="layer street grade-night" id="layer-street" aria-hidden="true">
+      <div class="plx" id="plx-street"><img class="photo" id="photo-street" alt="" draggable="false"></div>
+      <div class="grade" aria-hidden="true"></div>
+      <div class="spot" aria-hidden="true"></div>
+    </div>
+    <div class="flash" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="loader" id="loader" aria-hidden="true"><span></span></div>
+  </div>
+
+  <p class="caption" id="caption" aria-live="polite"></p>
+  <div class="notice" id="notice" hidden role="status"></div>
+
+  <!-- 상단 -->
+  <header class="top">
+    <a class="brand" href="../../explore.html"><b>손으로 부르는 광주</b><span>GWANGJU SIGN LANGUAGE MAP</span></a>
+    <nav class="tabs" aria-label="화면">
+      <a href="../../index.html#map">지도</a>
+      <a href="../../index.html?view=archive">기록</a>
+      <a href="../../index.html?view=about">소개</a>
+    </nav>
+    <button type="button" class="region-btn" id="region-btn" aria-expanded="false" aria-controls="region-menu">지역 선택 <span class="plus" aria-hidden="true">+</span></button>
+  </header>
+  <nav class="region-menu" id="region-menu" hidden aria-label="장소 선택">
+    <div class="rm-head"><span>EXPLORE — 충장로에서 시작</span><button type="button" class="rm-close" id="region-close">닫기 ✕</button></div>
+    <div class="rm-list" id="region-list"></div>
+    <p class="rm-note">사진 위에는 핀을 두지 않습니다. 이번 장면은 충장로 거리와 캔모아까지입니다.</p>
+  </nav>
+
+  <!-- 장면 제목 -->
+  <div class="title" id="title">
+    <p class="eyebrow" id="t-eyebrow"></p>
+    <h1 id="t-name"></h1>
+    <p class="hint" id="t-hint"></p>
+  </div>
+
+  <!-- 선택한 장소: 간결한 정보 + 장소 기억 버튼 -->
+  <aside class="card" id="card" hidden>
+    <p class="card-en" id="c-en"></p>
+    <h2 id="c-name"></h2>
+    <p class="card-sub" id="c-sub"></p>
+    <p class="card-addr" id="c-addr"></p>
+    <div class="card-actions">
+      <a class="btn-primary" id="c-link" href="../../explore.html#place/canmore">장소 기억 보기 →</a>
+      <button type="button" class="btn-ghost" id="c-back">거리 계속 보기</button>
+    </div>
+  </aside>
+
+  <!-- 하단 장소 탐색 -->
+  <nav class="strip" id="strip" aria-label="장소 탐색"></nav>
+  <button type="button" class="up" id="up" hidden>↑ 도심 조망으로</button>
+
+  <p class="credit" id="credit"></p>
+
+  <script src="explore-v2.js?v=1"></script>
+</body>
+</html>

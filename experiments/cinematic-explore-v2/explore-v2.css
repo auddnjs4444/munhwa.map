@@ -1,0 +1,162 @@
+/* ===== 시네마틱 탐험 v2 (B안) — 실제 광주 사진 + 2.5D 시차 + 장면 전환. 사진 위 핀 없음 ===== */
+:root {
+  --bg: #070a12;
+  --ink: #F4F1E8;
+  --ink-dim: rgba(244, 241, 232, 0.7);
+  --gold: #E8C470;
+  --gold-2: #C9A24B;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --t-descend: 2.1s;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; overflow: hidden; background: var(--bg); color: var(--ink); font-family: 'Pretendard Variable', 'Pretendard', -apple-system, sans-serif; font-weight: 300; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+button { font-family: inherit; }
+
+/* ---------- 무대 ---------- */
+.stage { position: fixed; inset: 0; overflow: hidden; background: #0b1226; }
+.layer { position: absolute; inset: -3%; will-change: transform, opacity, filter; }
+.plx { position: absolute; inset: 0; transition: transform .9s var(--ease); will-change: transform; }
+.photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--focus, 50% 50%); filter: var(--grade-filter, none); transform: scale(1); }
+.grade { position: absolute; inset: 0; pointer-events: none; }
+/* 블루아워 (낮 항공사진 → 해질녘): explore.css와 같은 보정 */
+.grade-bluehour .photo { --grade-filter: brightness(0.73) contrast(1.24) saturate(0.92) sepia(0.08); }
+.grade-bluehour .grade { background: linear-gradient(180deg, #081130 0%, #0c1a46 11%, rgba(22, 40, 96, 0.9) 19%, rgba(40, 38, 92, 0.82) 25%, rgba(34, 34, 80, 0.76) 36%, rgba(40, 44, 72, 0.42) 46%, rgba(32, 32, 50, 0.24) 68%, rgba(8, 8, 14, 0.5) 100%); mix-blend-mode: multiply; }
+.grade-bluehour::after { content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; background:
+  radial-gradient(34% 13% at 36% 22%, rgba(255, 150, 92, 0.46), rgba(255, 140, 90, 0.18) 55%, rgba(255, 140, 90, 0) 100%),
+  radial-gradient(70% 9% at 55% 23%, rgba(255, 130, 84, 0.2), rgba(255, 130, 84, 0) 100%),
+  linear-gradient(180deg, rgba(255, 120, 70, 0) 12%, rgba(255, 130, 84, 0.1) 19%, rgba(255, 150, 90, 0.14) 22%, rgba(255, 160, 100, 0.05) 25%, rgba(255, 160, 100, 0) 29%),
+  radial-gradient(70% 42% at 48% 80%, rgba(255, 168, 92, 0.26), rgba(255, 168, 92, 0) 100%),
+  radial-gradient(40% 20% at 62% 60%, rgba(255, 176, 96, 0.16), rgba(255, 176, 96, 0) 100%); }
+.grade-night .photo { --grade-filter: brightness(0.92) contrast(1.06) saturate(1.02); }
+.grade-night .grade { background: linear-gradient(180deg, rgba(8, 16, 38, 0.42) 0%, rgba(8, 16, 38, 0.08) 40%, rgba(5, 8, 16, 0.5) 100%); }
+.spot { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 1.6s ease; background: radial-gradient(42% 36% at 44% 58%, rgba(255, 190, 110, 0.22), rgba(255, 190, 110, 0) 100%); mix-blend-mode: screen; }
+
+/* 느린 카메라: 사진 자체에 아주 작은 켄번스 (크게 확대하지 않는다 — 709px 사진) */
+body[data-scene="overview"] .city .photo { animation: drift 30s ease-in-out infinite alternate; }
+body[data-scene="street"] .street .photo, body[data-scene="place"] .street .photo { animation: drift 30s ease-in-out infinite alternate; }
+@keyframes drift { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.04) translate(-0.7%, 0.4%); } }
+
+/* ---------- 장면 상태 ---------- */
+/* 도심 조망 */
+.layer.city { opacity: 1; transform: scale(1); filter: brightness(1) blur(0); transition: transform var(--t-descend) var(--ease-in-out), opacity 1.2s ease .7s, filter var(--t-descend) ease; }
+.layer.street { opacity: 0; transform: scale(1.18); filter: blur(10px) brightness(1.15); pointer-events: none; transition: opacity 1.3s ease .5s, transform 2.3s cubic-bezier(0.2, 0.8, 0.2, 1) .3s, filter 1.5s ease .5s; }
+/* 충장로로 내려가는 전환: 도심은 밀려 들어가며 어두워지고, 거리는 흐림에서 또렷하게 */
+body[data-scene="descend"] .layer.city, body[data-scene="street"] .layer.city, body[data-scene="place"] .layer.city { transform: scale(1.32) translateY(-3%); opacity: 0; filter: brightness(0.5) blur(4px); }
+body[data-scene="descend"] .layer.street, body[data-scene="street"] .layer.street, body[data-scene="place"] .layer.street { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); pointer-events: auto; }
+body[data-scene="place"] .layer.street { transform: scale(1.06) translate(-0.6%, -0.4%); transition: transform 2.6s var(--ease); }
+body[data-scene="place"] .spot { opacity: 1; }
+/* 거리에서 도심으로 돌아갈 때 */
+body[data-scene="ascend"] .layer.street { opacity: 0; transform: scale(1.14); filter: blur(8px) brightness(1.1); transition: opacity 1s ease, transform 1.6s var(--ease-in-out), filter 1s ease; }
+body[data-scene="ascend"] .layer.city { opacity: 1; transform: scale(1); filter: brightness(1) blur(0); transition: transform 2s var(--ease), opacity 1s ease .2s, filter 1.6s ease; }
+/* 레터박스: 전환 중에만 */
+.bars { position: absolute; inset: 0; pointer-events: none; }
+.bars::before, .bars::after { content: ''; position: absolute; left: 0; right: 0; height: 0; background: #04060c; transition: height .9s var(--ease-in-out); }
+.bars::before { top: 0; } .bars::after { bottom: 0; }
+body[data-scene="descend"] .bars::before, body[data-scene="descend"] .bars::after, body[data-scene="ascend"] .bars::before, body[data-scene="ascend"] .bars::after { height: 7%; }
+/* 따뜻한 빛 번짐: 전환 중 잠깐 */
+.flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(60% 50% at 50% 60%, rgba(255, 180, 100, 0.35), rgba(255, 180, 100, 0) 100%); mix-blend-mode: screen; transition: opacity .8s ease; }
+body[data-scene="descend"] .flash { opacity: 1; transition: opacity .9s ease .5s; }
+.vignette { position: absolute; inset: 0; pointer-events: none; transition: background .9s ease; background: radial-gradient(125% 92% at 50% 48%, transparent 50%, rgba(0, 0, 0, 0.58) 100%), linear-gradient(0deg, rgba(4, 6, 14, 0.6) 0%, rgba(4, 6, 14, 0.18) 32%, rgba(4, 6, 14, 0) 52%); }
+body[data-scene="street"] .vignette, body[data-scene="place"] .vignette { background: radial-gradient(125% 92% at 50% 48%, transparent 50%, rgba(0, 0, 0, 0.6) 100%), linear-gradient(0deg, rgba(4, 6, 14, 0.62) 0%, rgba(4, 6, 14, 0.2) 32%, rgba(4, 6, 14, 0) 52%), linear-gradient(90deg, rgba(4, 6, 14, 0.62) 0%, rgba(4, 6, 14, 0.34) 28%, rgba(4, 6, 14, 0) 52%); }
+.grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.05; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.9'/></svg>"); }
+/* 사진 로딩 중: 빈 화면 대신 어두운 바탕 + 가는 금색 선 */
+.loader { position: absolute; left: 50%; bottom: 44%; width: 120px; height: 1px; transform: translateX(-50%); background: rgba(232, 196, 112, 0.25); overflow: hidden; transition: opacity .6s ease; }
+.loader span { position: absolute; left: -40%; width: 40%; height: 100%; background: var(--gold); animation: load 1.2s ease-in-out infinite; }
+@keyframes load { to { left: 100%; } }
+body:not([data-scene="loading"]) .loader { opacity: 0; }
+
+/* ---------- 전환 자막·알림 ---------- */
+.caption { position: fixed; left: 50%; bottom: 12.5%; z-index: 30; margin: 0; transform: translateX(-50%); font-size: 11px; font-weight: 500; letter-spacing: 0.34em; color: var(--gold); opacity: 0; transition: opacity .6s ease; pointer-events: none; white-space: nowrap; }
+body[data-scene="descend"] .caption, body[data-scene="ascend"] .caption { opacity: 1; }
+.notice { position: fixed; left: 50%; top: 84px; z-index: 50; transform: translateX(-50%); max-width: min(520px, calc(100% - 32px)); padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px; background: rgba(8, 10, 18, 0.9); font-size: 12.5px; }
+.notice[hidden] { display: none; }
+
+/* ---------- 상단 ---------- */
+.top { position: fixed; top: 0; left: 0; right: 0; z-index: 40; display: flex; justify-content: space-between; align-items: center; padding: 22px 32px; pointer-events: none; }
+.top > * { pointer-events: auto; }
+.brand { text-decoration: none; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7); }
+.brand b { display: block; font-size: 17px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 4px; }
+.brand span { font-size: 9.5px; font-weight: 500; letter-spacing: 0.22em; color: var(--ink-dim); }
+.tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 999px; background: rgba(8, 10, 18, 0.55); backdrop-filter: blur(10px); }
+.tabs a { padding: 9px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 500; letter-spacing: 0.06em; color: var(--ink-dim); text-decoration: none; }
+.tabs a:hover { color: var(--ink); }
+.region-btn { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px 0 20px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 999px; background: rgba(8, 10, 18, 0.7); backdrop-filter: blur(10px); color: var(--ink); font: 500 12.5px/1 'Pretendard Variable', sans-serif; letter-spacing: 0.16em; cursor: pointer; }
+.region-btn .plus { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: #000; font-size: 14px; font-weight: 600; }
+.region-menu { position: fixed; top: 84px; right: 32px; z-index: 45; width: min(340px, calc(100% - 40px)); padding: 16px 16px 14px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px; background: rgba(8, 10, 18, 0.92); backdrop-filter: blur(14px); }
+.region-menu[hidden] { display: none; }
+.rm-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.24em; color: var(--ink-dim); }
+.rm-close { padding: 4px 2px; border: 0; background: none; color: var(--ink); font: inherit; letter-spacing: 0.1em; cursor: pointer; }
+.rm-list { display: flex; flex-direction: column; gap: 6px; }
+.rm-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: none; color: var(--ink); font: 400 14px/1.2 'Pretendard Variable', sans-serif; text-align: left; cursor: pointer; }
+.rm-item small { font-size: 10.5px; letter-spacing: 0.16em; color: var(--ink-dim); }
+.rm-item span { flex: 1; }
+.rm-item em { font-style: normal; font-size: 11px; color: var(--ink-dim); }
+.rm-item:hover, .rm-item.on { border-color: var(--gold); }
+.rm-item.pending { border-style: dashed; color: var(--ink-dim); }
+.rm-note { margin: 12px 4px 0; font-size: 11.5px; line-height: 1.6; color: var(--ink-dim); }
+
+/* ---------- 장면 제목 ---------- */
+.title { position: fixed; left: 7%; top: 20%; z-index: 20; max-width: 46%; text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6); transition: opacity .7s ease, transform 1.2s var(--ease); }
+.title .eyebrow { margin: 0 0 14px 5px; font-size: 11px; font-weight: 500; letter-spacing: 0.3em; color: var(--gold); }
+.title h1 { margin: 0; font-size: 96px; font-weight: 800; letter-spacing: -0.045em; line-height: 1; color: #fff; white-space: nowrap; }
+.title .hint { margin: 16px 0 0 5px; max-width: 34ch; font-size: 15px; line-height: 1.7; color: rgba(244, 241, 232, 0.9); word-break: keep-all; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 2px 24px rgba(0, 0, 0, 0.7); }
+body[data-scene="descend"] .title, body[data-scene="ascend"] .title, body[data-scene="loading"] .title { opacity: 0; transform: translateY(10px); }
+body[data-scene="place"] .title { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+
+/* ---------- 장소 카드 (간결하게) ---------- */
+.card { position: fixed; left: 7%; bottom: 17%; z-index: 35; width: min(440px, calc(100% - 64px)); padding: 22px 26px 22px; border-radius: 20px; background: linear-gradient(176deg, #C9A24B 0%, #BB9440 48%, #9E7827 100%); color: #1E1606; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5); animation: card-in .7s var(--ease) both; }
+.card[hidden] { display: none; }
+@keyframes card-in { from { opacity: 0; transform: translateY(16px); } }
+.card-en { margin: 0 0 8px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.3em; color: rgba(255, 248, 230, 0.85); }
+.card h2 { margin: 0; font-size: 44px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: #FFF8E6; }
+.card-sub { margin: 10px 0 0; font-size: 15px; line-height: 1.5; color: rgba(255, 248, 230, 0.92); word-break: keep-all; }
+.card-addr { margin: 6px 0 0; font-size: 11.5px; color: rgba(30, 22, 6, 0.75); }
+.card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.btn-primary { display: inline-flex; align-items: center; height: 42px; padding: 0 18px; border: 0; border-radius: 999px; background: #FFF8E6; color: #1E1606; font: 600 13.5px/1 'Pretendard Variable', sans-serif; text-decoration: none; cursor: pointer; }
+.btn-ghost { display: inline-flex; align-items: center; height: 42px; padding: 0 14px; border: 1px solid rgba(255, 248, 230, 0.7); border-radius: 999px; background: none; color: #FFF8E6; font: 500 12.5px/1 'Pretendard Variable', sans-serif; cursor: pointer; }
+.btn-ghost:hover { background: rgba(255, 248, 230, 0.18); }
+
+/* ---------- 하단 탐색 ---------- */
+.strip { position: fixed; left: 50%; bottom: 30px; z-index: 35; transform: translateX(-50%); display: flex; gap: 10px; transition: opacity .6s ease; }
+body[data-scene="descend"] .strip, body[data-scene="ascend"] .strip, body[data-scene="loading"] .strip { opacity: 0; pointer-events: none; }
+.chip { display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 6px; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px; background: rgba(8, 10, 18, 0.62); backdrop-filter: blur(10px); color: var(--ink); font: 500 13px/1 'Pretendard Variable', sans-serif; white-space: nowrap; cursor: pointer; transition: border-color .2s, background .2s, transform .2s var(--ease); }
+.chip .thumb { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: #1a2440; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset; display: grid; place-items: center; font-size: 10px; letter-spacing: 0.08em; color: var(--ink-dim); }
+.chip .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.chip:hover { border-color: rgba(232, 196, 112, 0.7); transform: translateY(-2px); }
+.chip.on { border-color: var(--gold); background: rgba(232, 196, 112, 0.14); }
+.chip.pending { color: var(--ink-dim); }
+.up { position: fixed; left: 32px; bottom: 36px; z-index: 35; height: 40px; padding: 0 16px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 999px; background: rgba(8, 10, 18, 0.62); backdrop-filter: blur(10px); color: var(--ink); font: 500 12px/1 'Pretendard Variable', sans-serif; letter-spacing: 0.1em; cursor: pointer; }
+.up[hidden] { display: none; }
+.credit { position: fixed; right: 32px; bottom: 22px; z-index: 20; margin: 0; max-width: 36%; text-align: right; font-size: 10px; line-height: 1.5; color: rgba(244, 241, 232, 0.42); }
+
+/* ---------- 모바일 ---------- */
+@media (max-width: 767px) {
+  .top { padding: 14px 16px; }
+  .tabs { display: none; }
+  .brand b { font-size: 15px; }
+  .brand span { font-size: 8.5px; letter-spacing: 0.16em; }
+  .region-btn { height: 40px; padding: 0 12px 0 16px; }
+  .region-menu { top: 66px; right: 16px; left: 16px; width: auto; }
+  .photo { object-position: var(--focus-m, var(--focus, 50% 50%)); }
+  .title { left: 18px; top: 18%; max-width: 86%; }
+  .title h1 { font-size: 60px; }
+  .title .hint { font-size: 14px; }
+  .card { left: 16px; right: 16px; bottom: 96px; width: auto; padding: 18px 20px; }
+  .card h2 { font-size: 36px; }
+  .strip { left: 0; right: 0; bottom: 22px; transform: none; padding: 0 16px; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; gap: 8px; }
+  .strip::-webkit-scrollbar { display: none; }
+  .up { left: 16px; top: 66px; bottom: auto; height: 36px; padding: 0 12px; font-size: 11px; }
+  .credit { display: none; }
+  .caption { bottom: 18%; font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-descend: .6s; }
+  .city .photo, .street .photo { animation: none !important; }
+  .plx { transition: none; }
+  .layer.city, .layer.street, body[data-scene="ascend"] .layer.city, body[data-scene="ascend"] .layer.street, body[data-scene="place"] .layer.street { transition: opacity .5s ease, transform .5s ease, filter .5s ease; }
+  .bars::before, .bars::after { transition: none; height: 0 !important; }
+  .card { animation: none; }
+}
