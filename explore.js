@@ -10,6 +10,8 @@
   const q = new URLSearchParams(location.search);
   const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches || q.has('noanim');
   const isSheet = () => matchMedia('(max-width: 767px)').matches;
+  const T_DESCEND = REDUCED ? 0 : 2100; // 도심 조망 → 거리 전환 길이 (explore.css의 전환 시간과 맞춘다)
+  let descendTimer = null;
 
   const DATA_V = '20261021';
   const SRC = { spots: `data/spots.json?v=${DATA_V}`, places: `data/places.json?v=${DATA_V}`, stories: `data/memory-stories.json?v=${DATA_V}` };
@@ -144,10 +146,32 @@
 
   /* ---------- 상태 전환 ---------- */
   function goIntro() {
+    clearTimeout(descendTimer);
     if (isPanelOpen()) closePanelOnly();
     current = null; view = 'place'; hideScene(); syncMenus(); setState('intro'); setHash(null);
     $('explore-btn').focus({ preventScroll: true });
   }
+  // 도심 조망(탐험 화면): 첫 화면 사진 위에 「광주 동구」와 하단 장소 칩. 장소를 고르면 거리로 '내려간다'
+  function goExplore({ instant = false } = {}) {
+    clearTimeout(descendTimer);
+    if (isPanelOpen()) closePanelOnly();
+    current = null; view = 'place'; hideScene(); syncMenus();
+    $('hand').innerHTML = ''; $('place-title').textContent = '광주 동구'; $('place-title').style.fontSize = '';
+    $('eyebrow').textContent = 'CINEMATIC EXPLORE · 충장로에서 시작 — 아래에서 장소를 고르세요';
+    setState('explore'); setHash('explore');
+    if (!instant) setTimeout(() => $('spot-menu').querySelector('.spot-btn')?.focus({ preventScroll: true }), REDUCED ? 0 : 600);
+  }
+  // 도심 조망 → 거리: 두 사진의 시점이 다르므로 3D처럼 잇지 않고, 밀어 들어가기 + 흐림 + 레터박스 + 자막 뒤에 거리 사진으로 디졸브(컷)
+  function descendTo(id) {
+    const item = itemById(id); if (!item) return;
+    if (REDUCED || state() !== 'explore') { select(id); return; }
+    toggleExplore(false); clearTimeout(descendTimer);
+    $('caption').textContent = item.scene === 'acc' ? '문화전당으로 내려갑니다' : '충장로로 내려갑니다';
+    setState('descend');
+    if (item.scene) showScene(item.scene);
+    descendTimer = setTimeout(() => select(id), T_DESCEND);
+  }
+  const choose = (id) => (state() === 'explore' ? descendTo(id) : select(id));
   function updateTitle(item) {
     const memo = item.records.find((r) => r.type === 'memo');
     let hand = '';
@@ -161,6 +185,7 @@
   function select(id, { instant = false } = {}) {
     const item = itemById(id);
     if (!item) return;
+    clearTimeout(descendTimer); // 내려가는 도중 다른 장소가 열리면 예약된 전환을 취소
     toggleExplore(false);
     const wasOpen = isPanelOpen();
     current = id; view = 'place';
@@ -183,13 +208,14 @@
     select(ORDER[(i + dir + ORDER.length) % ORDER.length].id);
   }
   function setHash(v) {
-    const next = v === null ? '' : `#place/${v}`;
+    const next = v === null ? '' : v === 'explore' ? '#explore' : `#place/${v}`;
     if (location.hash === next) return;
     history.replaceState(null, '', next || location.pathname + location.search);
   }
   window.addEventListener('hashchange', () => {
     const m = location.hash.match(/^#place\/([\w-]+)/);
     if (m && itemById(m[1])) { if (current !== m[1]) select(m[1]); }
+    else if (location.hash === '#explore') { if (state() !== 'explore') goExplore(); }
     else if (state() !== 'intro') goIntro();
   });
 
@@ -300,7 +326,7 @@
     const pri = PRIORITY.map(itemById).filter(Boolean);
     $('spot-menu').innerHTML = pri.map(chipHtml).join('');
     $('explore-list').innerHTML = pri.map((x) => `<button type="button" class="em-item" data-spot="${esc(x.id)}" aria-pressed="false"><small>${esc(x.id === HUB_ID ? '거점' : x.dist != null ? distText(x.dist).replace('직선 약 ', '') : '—')}</small><span>${esc(x.name)}</span><em>${esc(x.records.length ? `기억 ${x.records.length}` : x.sensitive ? '열람 확인' : '기록 준비 중')}</em></button>`).join('') + `<button type="button" class="em-item em-all" id="em-all"><small>+</small><span>함께 둘러볼 장소 전체</span><em>${ITEMS.length}곳</em></button>`;
-    document.querySelectorAll('[data-spot]').forEach((b) => b.addEventListener('click', () => select(b.dataset.spot)));
+    document.querySelectorAll('[data-spot]').forEach((b) => b.addEventListener('click', () => choose(b.dataset.spot)));
     $('em-all').addEventListener('click', () => { toggleExplore(false); openList(); });
   }
   function syncMenus() { document.querySelectorAll('[data-spot]').forEach((b) => { const on = b.dataset.spot === current; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }); }
@@ -312,12 +338,12 @@
     if (open) (menu.querySelector('.em-item.on') || menu.querySelector('.em-item'))?.focus();
   }
   function bindUi() {
-    $('cta').addEventListener('click', () => select(HUB_ID));
+    $('cta').addEventListener('click', () => goExplore());
     $('brand').addEventListener('click', (e) => { e.preventDefault(); toggleExplore(false); goIntro(); });
     $('explore-btn').addEventListener('click', () => toggleExplore());
     $('explore-close').addEventListener('click', () => { toggleExplore(false); $('explore-btn').focus(); });
     document.addEventListener('pointerdown', (e) => { const m = $('explore-menu'); if (m.hidden) return; if (m.contains(e.target) || $('explore-btn').contains(e.target)) return; toggleExplore(false); });
-    $('p-close').addEventListener('click', () => goIntro());
+    $('p-close').addEventListener('click', () => goExplore());
     $('p-home').addEventListener('click', () => select(HUB_ID));
     $('p-prev').addEventListener('click', () => step(-1));
     $('p-next').addEventListener('click', () => step(1));
@@ -329,7 +355,7 @@
     window.addEventListener('pointerup', (e) => { if (dragY === null) return; const dy = e.clientY - dragY; dragY = null; if (dy < -40) toggleSheet(true); else if (dy > 40) toggleSheet(false); });
     window.addEventListener('pointercancel', () => { dragY = null; });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { if (!$('explore-menu').hidden) { toggleExplore(false); $('explore-btn').focus(); } else if (view === 'list' && isPanelOpen()) closeList(); else if (state() === 'place') goIntro(); return; }
+      if (e.key === 'Escape') { if (!$('explore-menu').hidden) { toggleExplore(false); $('explore-btn').focus(); } else if (view === 'list' && isPanelOpen()) closeList(); else if (state() === 'place') goExplore(); else if (state() === 'explore') goIntro(); return; }
       if (!isPanelOpen() || view === 'list' || (e.target instanceof Element && e.target.closest('input, textarea, video'))) return;
       if (e.key === 'ArrowRight') step(1); else if (e.key === 'ArrowLeft') step(-1);
     });
@@ -347,8 +373,9 @@
     await loadHero();
     const m = location.hash.match(/^#place\/([\w-]+)/);
     if (m && itemById(m[1])) select(m[1], { instant: true });
+    else if (location.hash === '#explore') goExplore({ instant: true });
     else if (location.hash) setHash(null);
   }
-  window.__cine = { select, goHome: () => select(HUB_ID), goIntro, openList, closeList, step, items: () => ITEMS, order: () => ORDER };
+  window.__cine = { select, choose, descendTo, goExplore, goHome: () => select(HUB_ID), goIntro, openList, closeList, step, items: () => ITEMS, order: () => ORDER };
   boot();
 })();
