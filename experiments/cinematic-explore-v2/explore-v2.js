@@ -14,6 +14,12 @@
     city: { src: '../../assets/explore/overlook-mountains.jpg', focus: '50% 50%', focusM: '52% 50%', credit: '도심 조망 사진: 광주 도심과 무등산 — 사용 허락을 받은 사진, 해질녘 톤으로 보정' },
     street: { src: '../../assets/explore/chungjang-night.jpg', focus: '50% 55%', focusM: '58% 50%', credit: '거리 사진: 충장로 거리 풍경 — 사용 허락을 받은 사진. 선택한 장소 자체의 사진이 아니라 충장로 거리 사진입니다' },
   };
+  // 사용자가 보내 줄 캔모아 사진 (있으면 자동 사용): 거리 장면용 가로 사진 + 카드·칩용 사진. 없으면 충장로 거리 사진으로 대신하지 않고 빈 자리로 둔다
+  const OPTIONAL = {
+    canmoreScene: { src: '../../assets/explore/canmore-street.jpg', focus: '50% 55%', focusM: '55% 50%', credit: '캔모아 거리 사진 — 사용 허락을 받은 사진' },
+    canmorePhoto: { src: '../../assets/explore/canmore.jpg' },
+  };
+  const have = { canmoreScene: false, canmorePhoto: false };
   // 장소: 좌표·주소는 본 사이트 데이터에서 읽고, 이 화면에서는 캔모아만 열린다
   const PLACES = [
     { id: 'canmore', name: '충장로 캔모아', short: '캔모아', en: 'CHUNGJANG-RO · CANMORE', sub: '충장로, 수어로 마음껏 이야기하던 곳', from: 'hub:canmore', street: true, ready: true, thumb: '../../assets/explore/chungjang-night.jpg', link: '../../explore.html#place/canmore' },
@@ -46,6 +52,7 @@
       });
     } catch (e) { /* 주소 없이도 동작 */ }
   }
+  const probe = (src) => new Promise((resolve) => { const im = new Image(); im.onload = () => resolve(true); im.onerror = () => resolve(false); im.src = src; });
   function loadPhoto(img, spec) {
     img.style.setProperty('--focus', spec.focus); img.style.setProperty('--focus-m', spec.focusM || spec.focus);
     return new Promise((resolve) => { if (img.complete && img.naturalWidth && img.getAttribute('src') === spec.src) return resolve(true); img.onload = () => resolve(true); img.onerror = () => resolve(false); img.src = spec.src; });
@@ -91,9 +98,12 @@
     $('c-en').textContent = p.en || ''; $('c-name').textContent = p.short; $('c-sub').textContent = p.sub || '';
     $('c-addr').textContent = p.addr ? `${p.addr}${p.verified ? ' · 위치 확인됨' : ''}` : '';
     $('c-link').href = p.link; $('card').hidden = false;
+    const photo = id === 'canmore' && have.canmorePhoto ? OPTIONAL.canmorePhoto.src : (p.photo || null);
+    $('c-photo').innerHTML = photo ? `<img src="${esc(photo)}" alt="">` : ''; $('c-photo').hidden = !photo; $('card').classList.toggle('has-photo', !!photo);
+    if (id === 'canmore' && have.canmoreScene) { $('layer-place').setAttribute('aria-hidden', 'false'); $('credit').textContent = OPTIONAL.canmoreScene.credit; }
     setScene('place'); setHash(`place/${id}`);
   }
-  function hideCard() { $('card').hidden = true; if (scene === 'place') { current = null; syncChips(); setScene('street'); setHash('street'); } }
+  function hideCard() { $('card').hidden = true; $('layer-place').setAttribute('aria-hidden', 'true'); if (scene === 'place') { current = null; syncChips(); $('credit').textContent = PHOTOS.street.credit; setScene('street'); setHash('street'); } }
   function choose(id) {
     const p = placeById(id); if (!p) return;
     toggleMenu(false);
@@ -137,8 +147,11 @@
   /* ---------- 시작: 두 사진을 먼저 받아 빈 화면 없이 ---------- */
   async function boot() {
     buildMenu(); bindUi();
-    const [ok1, ok2] = await Promise.all([loadPhoto($('photo-city'), PHOTOS.city), loadPhoto($('photo-street'), PHOTOS.street), loadSpots()]);
+    const [ok1, ok2, , hasScene, hasPhoto] = await Promise.all([loadPhoto($('photo-city'), PHOTOS.city), loadPhoto($('photo-street'), PHOTOS.street), loadSpots(), probe(OPTIONAL.canmoreScene.src), probe(OPTIONAL.canmorePhoto.src)]);
     if (!ok1 || !ok2) { notice('사진을 불러오지 못했습니다 (assets/explore).'); }
+    have.canmoreScene = hasScene; have.canmorePhoto = hasPhoto;
+    if (hasScene) { await loadPhoto($('photo-place'), OPTIONAL.canmoreScene); document.body.classList.add('has-place-photo'); }
+    if (hasPhoto) { const p = placeById('canmore'); p.thumb = OPTIONAL.canmorePhoto.src; }
     setTitle('overview'); buildStrip('overview'); $('credit').textContent = PHOTOS.city.credit;
     setScene('overview');
     if (location.hash) applyHash({ instant: true });

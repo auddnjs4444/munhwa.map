@@ -47,6 +47,10 @@ body[data-scene="street"] .street .photo, body[data-scene="place"] .street .phot
 body[data-scene="descend"] .layer.city, body[data-scene="street"] .layer.city, body[data-scene="place"] .layer.city { transform: scale(1.32) translateY(-3%); opacity: 0; filter: brightness(0.5) blur(4px); }
 body[data-scene="descend"] .layer.street, body[data-scene="street"] .layer.street, body[data-scene="place"] .layer.street { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); pointer-events: auto; }
 body[data-scene="place"] .layer.street { transform: scale(1.06) translate(-0.6%, -0.4%); transition: transform 2.6s var(--ease); }
+.layer.place { opacity: 0; transform: scale(1.1); pointer-events: none; transition: opacity 1.4s ease, transform 2.8s var(--ease); }
+body.has-place-photo[data-scene="place"] .layer.place { opacity: 1; transform: scale(1); }
+body.has-place-photo[data-scene="place"] .layer.street { opacity: 0.35; filter: blur(2px); transition: opacity 1.4s ease, filter 1.4s ease, transform 2.6s var(--ease); }
+body.has-place-photo[data-scene="place"] .layer.place .photo { animation: drift 30s ease-in-out infinite alternate; }
 body[data-scene="place"] .spot { opacity: 1; }
 /* 거리에서 도심으로 돌아갈 때 */
 body[data-scene="ascend"] .layer.street { opacity: 0; transform: scale(1.14); filter: blur(8px) brightness(1.1); transition: opacity 1s ease, transform 1.6s var(--ease-in-out), filter 1s ease; }
@@ -107,8 +111,14 @@ body[data-scene="descend"] .title, body[data-scene="ascend"] .title, body[data-s
 body[data-scene="place"] .title { opacity: 0; transform: translateY(-8px); pointer-events: none; }
 
 /* ---------- 장소 카드 (간결하게) ---------- */
-.card { position: fixed; left: 7%; bottom: 17%; z-index: 35; width: min(440px, calc(100% - 64px)); padding: 22px 26px 22px; border-radius: 20px; background: linear-gradient(176deg, #C9A24B 0%, #BB9440 48%, #9E7827 100%); color: #1E1606; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5); animation: card-in .7s var(--ease) both; }
+.card { position: fixed; left: 7%; bottom: 17%; z-index: 35; display: flex; width: min(440px, calc(100% - 64px)); padding: 0; border-radius: 20px; background: linear-gradient(176deg, #C9A24B 0%, #BB9440 48%, #9E7827 100%); color: #1E1606; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5); animation: card-in .7s var(--ease) both; }
 .card[hidden] { display: none; }
+.card-body { flex: 1; min-width: 0; padding: 22px 26px 22px; }
+.card-photo { flex: none; width: 0; background: #1a2440; overflow: hidden; transition: width .4s var(--ease); }
+.card-photo[hidden] { display: none; }
+.card.has-photo { width: min(560px, calc(100% - 64px)); }
+.card.has-photo .card-photo { width: 160px; }
+.card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 @keyframes card-in { from { opacity: 0; transform: translateY(16px); } }
 .card-en { margin: 0 0 8px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.3em; color: rgba(255, 248, 230, 0.85); }
 .card h2 { margin: 0; font-size: 44px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: #FFF8E6; }
@@ -144,7 +154,10 @@ body[data-scene="descend"] .strip, body[data-scene="ascend"] .strip, body[data-s
   .title { left: 18px; top: 18%; max-width: 86%; }
   .title h1 { font-size: 60px; }
   .title .hint { font-size: 14px; }
-  .card { left: 16px; right: 16px; bottom: 96px; width: auto; padding: 18px 20px; }
+  .card { left: 16px; right: 16px; bottom: 96px; width: auto; }
+  .card-body { padding: 18px 20px; }
+  .card.has-photo { width: auto; }
+  .card.has-photo .card-photo { width: 110px; }
   .card h2 { font-size: 36px; }
   .strip { left: 0; right: 0; bottom: 22px; transform: none; padding: 0 16px; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; gap: 8px; }
   .strip::-webkit-scrollbar { display: none; }
