@@ -26,6 +26,7 @@ function setMapMode(mode) {
   if (mode === mapMode && document.body.dataset.mapMode) return;
   mapMode = mode;
   document.body.dataset.mapMode = mode;
+  if (typeof applySignsMap === 'function') applySignsMap(mode === 'signs'); // 지명 수어: 타일 없이 경계만 / 장소 둘러보기: 타일 복원
   document.querySelectorAll('[data-map-mode]').forEach((b) => {
     const on = b.dataset.mapMode === mode;
     b.classList.toggle('on', on);
@@ -45,6 +46,7 @@ function setMapMode(mode) {
     markSelected();
     if (!location.hash.startsWith('#map/')) setHash(null);
     map.invalidateSize({ pan: false });
+    if (typeof fitDistrict === 'function' && !location.hash.startsWith('#map/')) fitDistrict(false); // 지명 수어 보기: 동구 16개 동 전체 구도로 시작
   }
 }
 
@@ -414,7 +416,7 @@ function initSpots() {
       map.on('zoomend moveend', layoutLabels);
       document.querySelectorAll('[data-map-mode]').forEach((b) => b.addEventListener('click', () => setMapMode(b.dataset.mapMode)));
       document.getElementById('spots-all')?.addEventListener('click', showAllHubs);
-      if (location.hash.startsWith('#map/')) setMapMode('signs');
+      if (location.hash.startsWith('#map')) setMapMode('signs');
       else {
         setMapMode('spots');
         let restored = false;
