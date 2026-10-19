@@ -26,6 +26,7 @@ function setMapMode(mode) {
   if (mode === mapMode && document.body.dataset.mapMode) return;
   mapMode = mode;
   document.body.dataset.mapMode = mode;
+  if (typeof applySignsMap === 'function') applySignsMap(mode === 'signs'); // 지명 수어: 타일 없이 경계만 / 장소 둘러보기: 타일 복원
   document.querySelectorAll('[data-map-mode]').forEach((b) => {
     const on = b.dataset.mapMode === mode;
     b.classList.toggle('on', on);

@@ -375,6 +375,16 @@ function setActiveMarker(marker) {
   if (el) el.querySelector('.pin').classList.add('pin--active');
 }
 
+let tileLayer = null;
+/* 지명 수어 보기(전시 지도): 타일을 걷어 경계만 남기고, 줌을 0.1 단위로 풀어 동구 전체가 빈틈없이 들어오게 한다. 장소 둘러보기로 돌아오면 원래대로 */
+function applySignsMap(on) {
+  if (!map) return;
+  if (tileLayer) {
+    if (on && map.hasLayer(tileLayer)) map.removeLayer(tileLayer);
+    if (!on && !map.hasLayer(tileLayer)) tileLayer.addTo(map);
+  }
+  map.options.zoomSnap = on ? 0.1 : 1;
+}
 function initMap() {
   if (map) {
     map.invalidateSize();
@@ -388,11 +398,12 @@ function initMap() {
   map.createPane('art').style.zIndex = 650;
 
   // 키 없이 쓸 수 있는 OSM 표준 타일. 채도는 CSS 필터(.leaflet-tile-pane)로 종이 톤에 맞춘다.
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19,
-  }).addTo(map);
+  });
+  if (mapMode !== 'signs') tileLayer.addTo(map); // 지명 수어 보기에서는 타일 없이 경계만
 
   // 동구 16개 지역 경계를 먼저 올리고, 경계로 대체되지 않는 장소만 핀으로 남긴다.
   // 경계 파일을 못 읽으면 임의 경계를 그리지 않고 안내문 + 이전처럼 전체 핀으로 돌아간다.
@@ -497,11 +508,11 @@ function regionStyle(r) {
   // 지명 수어 v2: 속성은 기본 모양만 두고(행정동은 점선), 호버·선택 색은 CSS 클래스(.hov/.sel)가 입힌다 → 채움·선이 부드럽게 전환된다
   return {
     className: 'region',
-    color: 'rgba(236, 232, 222, 0.58)',
+    color: 'rgba(236, 232, 222, 0.5)',
     weight: 1,
     opacity: 1,
     fillColor: '#F4F3EF',
-    fillOpacity: 0.085,
+    fillOpacity: 0.1,
     dashArray: r.type === '행정동' ? '4 5' : null,
     lineJoin: 'round',
   };
@@ -576,7 +587,12 @@ function visibleMapRect() {
   const ph = sheet && isPanelOpen() ? panelEl.getBoundingClientRect().height : 0;
   const listVisible = !sheet && mapMode === 'signs' && regionListEl && getComputedStyle(regionListEl).display !== 'none';
   const lw = listVisible ? regionListEl.getBoundingClientRect().right : 0;
-  return { x0: lw + 24, y0: sheet ? 116 : 84, x1: size.x - pw - 24, y1: size.y - ph - 24, size };
+  const shown = (el) => el && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().height > 0;
+  const bottomOf = (el) => (shown(el) ? el.getBoundingClientRect().bottom : 0);
+  const top = Math.max(bottomOf(document.querySelector('.map-modes')), bottomOf(regionMenuBtn), 40) + 16;
+  const pillsEl = document.querySelector('.pills');
+  const pillsH = !ph && shown(pillsEl) ? size.y - pillsEl.getBoundingClientRect().top + 10 : 0;
+  return { x0: lw + 24, y0: top, x1: size.x - pw - 24, y1: size.y - Math.max(ph + 16, pillsH, 24), size };
 }
 /* 카메라: 선택 지역과 이웃의 윤곽이 함께 보이도록 지역 상자를 넉넉히 키운 뒤 보이는 영역 가운데에 놓는다 (정수 줌 11–14) */
 function frameRegion(r, animate) {
@@ -587,7 +603,7 @@ function frameRegion(r, animate) {
   const nw = map.project(b.getNorthWest(), 14);
   const se = map.project(b.getSouthEast(), 14);
   const fit = Math.min(visW / Math.max(1, se.x - nw.x), visH / Math.max(1, se.y - nw.y));
-  const zoom = Math.max(11, Math.min(14, Math.floor(14 + Math.log2(fit))));
+  const zoom = Math.max(11, Math.min(14.5, Math.round((14 + Math.log2(fit)) * 10) / 10)); // 0.1 줌 단위 (지명 수어 보기는 zoomSnap 0.1)
   const shift = L.point(vis.size.x / 2 - (vis.x0 + vis.x1) / 2, vis.size.y / 2 - (vis.y0 + vis.y1) / 2);
   const center = map.unproject(map.project(b.getCenter(), zoom).add(shift), zoom);
   if (animate) map.flyTo(center, zoom, { duration: 1.0 });
@@ -598,7 +614,7 @@ function fitDistrict(animate = false) {
   if (!map || !regions.length) return;
   const vis = visibleMapRect();
   const bounds = regions.reduce((bb, r) => bb.extend(r.bounds), L.latLngBounds(regions[0].bounds.getSouthWest(), regions[0].bounds.getNorthEast()));
-  map.fitBounds(bounds, { paddingTopLeft: [vis.x0, vis.y0], paddingBottomRight: [vis.size.x - vis.x1, vis.size.y - vis.y1], maxZoom: 14, animate });
+  map.fitBounds(bounds, { paddingTopLeft: [vis.x0, vis.y0], paddingBottomRight: [vis.size.x - vis.x1, vis.size.y - vis.y1], maxZoom: 14.5, animate });
 }
 
 /* --- 지역 열기: 장소가 있으면 기존 오버레이, 없으면 '영상 준비 중' --- */
@@ -668,7 +684,7 @@ function buildRegionLabels() {
     r.label = L.tooltip({ permanent: true, direction: 'center', className: 'dong-label', interactive: false, opacity: 1 })
       .setLatLng(r.centroid)
       .setContent(r.name);
-    r.labelMinZoom = r.area >= median ? 12 : 14;
+    r.labelMinZoom = r.area >= median ? 12 : 13;
   });
   // 선택한 지역의 이름은 줌과 상관없이 항상, 금색 채움 위에 진하게 보여준다
   syncRegionLabels = () => {
@@ -700,7 +716,7 @@ function collideLabels() {
     const box = { l: rect.left - 6, t: rect.top - 3, r: rect.right + 6, b: rect.bottom + 3 };
     const sel = r.id === selectedRegionId;
     const bw = Math.abs(map.latLngToContainerPoint(r.bounds.getNorthEast()).x - map.latLngToContainerPoint(r.bounds.getSouthWest()).x);
-    const tooWide = !sel && rect.width > bw * 1.3;
+    const tooWide = !sel && rect.width > bw * 1.6;
     const hit = placed.some((p) => !(box.r < p.l || box.l > p.r || box.b < p.t || box.t > p.b));
     if (tooWide || hit) el.style.visibility = 'hidden';
     else placed.push(box);
