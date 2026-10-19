@@ -35,10 +35,19 @@ function setView(name) {
     b.classList.toggle('on', b.dataset.nav === name);
   });
   if (name === 'map') initMap();
+  if (typeof syncNav === 'function') syncNav(); // 지도 화면은 보기(장소/지명 수어)에 따라 '탐험' 또는 '지명 수어'가 켜진다
 }
 document.querySelectorAll('[data-nav]').forEach((b) => {
-  b.addEventListener('click', () => setView(b.dataset.nav));
+  b.addEventListener('click', () => {
+    if (b.dataset.nav === 'signs') { if (typeof goSigns === 'function') goSigns(); return; } // 지명 수어: 지도 화면 + 동구 전체 보기(#map)
+    setView(b.dataset.nav);
+  });
 });
+// '탐험' 링크: 같은 탭에서 거리 보기를 보던 상태(#explore 또는 #place/…)가 있으면 거기로 돌아간다 (첫 화면을 다시 보이지 않는다)
+try {
+  const lastExplore = sessionStorage.getItem('cine:last');
+  if (lastExplore && /^#(explore|place\/[\w-]+)$/.test(lastExplore)) document.querySelectorAll('[data-nav-explore]').forEach((a) => { a.href = `explore.html${lastExplore}`; });
+} catch (e) { /* 저장소를 못 쓰면 기본 링크(explore.html#explore) */ }
 
 /* ---------- 기록 오버레이 ---------- */
 function openOverlay(place) {
@@ -883,8 +892,8 @@ function ensureItemVisible(it) {
 }
 
 function setHash(id) {
-  // 'spot/…'는 장소 둘러보기 해시, 그 외는 지명 수어 해시
-  const next = id ? (String(id).startsWith('spot/') ? `#${id}` : `#map/${id}`) : '';
+  // 'spot/…'는 장소 둘러보기 해시, '#…'는 그대로(#map 동구 전체, #spots 거점 전체), 그 외는 지명 수어 해시
+  const next = id ? (String(id).startsWith('#') ? String(id) : String(id).startsWith('spot/') ? `#${id}` : `#map/${id}`) : '';
   if (location.hash === next) return;
   history.replaceState(null, '', next || location.pathname + location.search);
 }
@@ -917,6 +926,7 @@ window.addEventListener('hashchange', () => {
   }
   if (location.hash.startsWith('#map/')) { if (mapMode !== 'signs') setMapMode('signs'); applyHash(); }
   else if (location.hash === '#map') { if (mapMode !== 'signs') setMapMode('signs'); if (isPanelOpen()) closePanel({ keepHash: true }); fitDistrict(!prefersReducedMotion()); } // 지명 수어 보기 시작 화면(동구 전체)
+  else if (location.hash === '#spots') { if (mapMode !== 'spots') setMapMode('spots'); else if (typeof showAllHubs === 'function') showAllHubs(); } // 탐험 · 위치 보기 시작 화면(거점 전체)
   else if (isPanelOpen()) closePanel({ keepHash: true });
 });
 
@@ -971,7 +981,7 @@ function closePanel({ keepHash = false } = {}) {
   document.body.classList.remove('dpanel-open');
   setSelectedRegion(null);
   setActiveMarker(null);
-  if (!keepHash) setHash(null);
+  if (!keepHash) setHash(typeof modeHomeHash === 'function' ? modeHomeHash() : null); // 패널만 닫아도 보기 주소(#map/#spots)는 남겨, 새로고침해도 첫 화면으로 튀지 않게
   if (panelItem && panelItem.kind === 'spot' && typeof markSelected === 'function') { spotState = null; markSelected(); }
   panelItem = null;
   panelHideTimer = setTimeout(() => {
@@ -1285,7 +1295,7 @@ fetch('data/places.json?v=20261021')
     buildTrack(places);
     buildRuler(places);
     buildSignIndex(places);
-    if (location.hash.startsWith('#map') || location.hash.startsWith('#spot/')) setView('map');
+    if (location.hash.startsWith('#map') || location.hash.startsWith('#spot')) setView('map'); // #map, #map/…, #spots, #spot/…
     else { const v = new URLSearchParams(location.search).get('view'); if (v && v !== 'archive' && document.getElementById(`view-${v}`)) setView(v); } // explore.html에서 ?view=map|about 으로 들어올 때
     syncRuler();
     document.getElementById('loader').classList.add('done');
