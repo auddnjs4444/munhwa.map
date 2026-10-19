@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>손으로 부르는 광주 — 3D 도시 탐험 (실험 v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="city3d-v2.css?v=1">
+</head>
+<body data-state="loading">
+  <!-- 3D 지도: 실사 항공영상(지오레퍼런스) + 지형 + OSM 건물·도로. 사진 위에 핀을 찍는 것이 아니라 좌표가 확인된 곳에만 핀을 둔다 -->
+  <div id="map" aria-label="광주 동구 3D 도시 탐험"></div>
+  <div class="sky-grade" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="notice" id="notice" hidden role="alert"></div>
+
+  <!-- 거리 장면: 실제 충장로 거리 사진 (2.5D 시차). 3D에서 '거리 사진'을 눌렀을 때만 -->
+  <section class="scene" id="scene" aria-hidden="true">
+    <div class="plx" id="scene-plx"><img class="scene-img" id="scene-img" alt="" draggable="false"></div>
+    <div class="scene-grade" aria-hidden="true"></div>
+    <p class="scene-credit" id="scene-credit"></p>
+    <button type="button" class="scene-back" id="scene-back">← 3D 조망으로</button>
+  </section>
+
+  <!-- 상단 -->
+  <header class="top">
+    <a class="brand" href="../../explore.html">
+      <b>손으로 부르는 광주</b>
+      <span>GWANGJU SIGN LANGUAGE MAP</span>
+    </a>
+    <nav class="tabs" aria-label="화면">
+      <a href="../../index.html#map" class="on">지도</a>
+      <a href="../../index.html?view=archive">기록</a>
+      <a href="../../index.html?view=about">소개</a>
+    </nav>
+    <button type="button" class="region-btn" id="region-btn" aria-expanded="false" aria-controls="region-menu">지역 선택 <span class="plus" aria-hidden="true">+</span></button>
+  </header>
+  <nav class="region-menu" id="region-menu" hidden aria-label="장소 선택">
+    <div class="rm-head"><span>EXPLORE — 광주 동구 · 충장로</span><button type="button" class="rm-close" id="region-close">닫기 ✕</button></div>
+    <div class="rm-list" id="region-list"></div>
+    <p class="rm-note">핀은 좌표가 확인된 장소에만 둡니다. 이번 장면은 캔모아까지입니다.</p>
+  </nav>
+
+  <!-- 장면 제목 (전체 조망) -->
+  <div class="title" id="title">
+    <p class="hand">사람과 이야기가 모이는 곳</p>
+    <h1>광주 동구</h1>
+    <p class="eyebrow">CINEMATIC 3D · 충장로 · 캔모아에서 시작</p>
+  </div>
+
+  <!-- 선택한 장소 카드 -->
+  <aside class="card" id="card" hidden>
+    <div class="card-thumb" id="card-thumb"></div>
+    <div class="card-body">
+      <p class="card-en" id="card-en"></p>
+      <h2 id="card-name"></h2>
+      <p class="card-sub" id="card-sub"></p>
+      <p class="card-addr" id="card-addr"></p>
+      <div class="card-actions">
+        <a class="btn-primary" id="card-link" href="../../explore.html#place/canmore">장소 기억 보기 →</a>
+        <button type="button" class="btn-ghost" id="card-street">거리 사진</button>
+        <button type="button" class="btn-ghost" id="card-overview">전체 조망</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 하단 장소 칩 -->
+  <nav class="chips" id="chips" aria-label="장소"></nav>
+
+  <!-- 오른쪽 카메라 조작 -->
+  <div class="ctrl" role="group" aria-label="카메라">
+    <button type="button" id="ctrl-north" aria-label="북쪽 정렬·전체 조망"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M12 4l3 8-3 8-3-8z" fill="currentColor"/></svg></button>
+    <button type="button" id="ctrl-in" aria-label="확대">+</button>
+    <button type="button" id="ctrl-out" aria-label="축소">−</button>
+    <button type="button" id="ctrl-2d" aria-label="2D/3D 전환" aria-pressed="false">2D</button>
+  </div>
+
+  <p class="credit" id="credit"></p>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="city3d-v2.js?v=1"></script>
+</body>
+</html>
