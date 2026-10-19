@@ -947,7 +947,7 @@ function openPanel(it, recordIdx, { fromHash = false } = {}) {
   viewMapEl.classList.add('dpanel-open');
   document.body.classList.add('dpanel-open');
   if (!wasOpen) {
-    panelEl.classList.remove('expanded');
+    panelEl.classList.remove('expanded', 'peek');
     void panelEl.offsetWidth; // hidden 해제 직후 리플로우 → 슬라이드 전환이 실제로 재생된다
     panelEl.classList.add('on');
     // 데스크톱은 지도 컨테이너가 줄어들므로 전환이 끝난 뒤 크기를 다시 재고 위치를 맞춘다
@@ -957,6 +957,7 @@ function openPanel(it, recordIdx, { fromHash = false } = {}) {
     }, prefersReducedMotion() ? 0 : 340);
     panelEl.focus({ preventScroll: true });
   } else {
+    panelEl.classList.remove('peek'); // 접힌 시트에서 다른 기록을 고르면 영상이 보이는 높이로
     ensureItemVisible(it);
     panelEl.scrollTop = 0;
   }
@@ -965,7 +966,7 @@ function openPanel(it, recordIdx, { fromHash = false } = {}) {
 function closePanel({ keepHash = false } = {}) {
   if (panelEl.hidden) return;
   stopPanelVideo();
-  panelEl.classList.remove('on', 'expanded');
+  panelEl.classList.remove('on', 'expanded', 'peek');
   viewMapEl.classList.remove('dpanel-open');
   document.body.classList.remove('dpanel-open');
   setSelectedRegion(null);
@@ -1047,9 +1048,9 @@ function panelRecordHtml(place) {
       <div><dt>경계</dt><dd>${esc(boundaryFact)}</dd></div>
       <div><dt>영상</dt><dd>${esc(videoFact)}</dd></div>
     </dl>
-    ${signPartsHtml(place)}
-    <p class="section-label">이름의 유래</p>
-    ${origin ? `<p class="section-text">${esc(origin)}</p>` : `<p class="section-text pending">수어 이름의 유래는 인터뷰를 거쳐 기록합니다. 아직 확인된 설명이 없습니다.</p>`}
+    ${parts.length ? `<div class="dp-sign">${signPartsHtml(place)}</div>` : ''}
+    <div class="dp-origin"><p class="section-label">이름의 유래</p>
+    ${origin ? `<p class="section-text">${esc(origin)}</p>` : `<p class="section-text pending">수어 이름의 유래는 인터뷰를 거쳐 기록합니다. 아직 확인된 설명이 없습니다.</p>`}</div>
     ${(place.tags || []).length ? `<div class="tags">${place.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}`;
 }
 
@@ -1149,21 +1150,26 @@ function bindPanel() {
   document.getElementById('dp-next').addEventListener('click', () => stepItem(1));
   // 모바일 시트: 핸들을 누르거나 위/아래로 끌면 펼침/접힘
   const handle = document.getElementById('dp-handle');
-  const toggleSheet = (force) => {
-    const on = panelEl.classList.toggle('expanded', force);
-    handle.setAttribute('aria-expanded', String(on));
-    handle.setAttribute('aria-label', on ? '시트 접기' : '시트 펼치기');
+  // 시트 3단계: peek(접힘: 핸들·이름만) ↔ open(영상이 다 보이는 높이) ↔ expanded(거의 전체). 접힘은 지명 수어 보기에서만
+  const sheetState = () => (panelEl.classList.contains('expanded') ? 'expanded' : panelEl.classList.contains('peek') ? 'peek' : 'open');
+  const setSheet = (state) => {
+    panelEl.classList.toggle('expanded', state === 'expanded');
+    panelEl.classList.toggle('peek', state === 'peek');
+    handle.setAttribute('aria-expanded', String(state === 'expanded'));
+    handle.setAttribute('aria-label', state === 'expanded' ? '시트 접기' : state === 'peek' ? '시트 열기' : '시트 펼치기');
   };
-  handle.addEventListener('click', () => toggleSheet());
+  const canPeek = () => mapMode === 'signs';
+  handle.addEventListener('click', () => { const s = sheetState(); setSheet(s === 'peek' ? 'open' : s === 'open' ? 'expanded' : 'open'); });
   let dragY = null;
   handle.addEventListener('pointerdown', (e) => { dragY = e.clientY; });
   window.addEventListener('pointerup', (e) => {
     if (dragY === null) return;
     const dy = e.clientY - dragY;
     dragY = null;
-    if (dy < -40) toggleSheet(true);
-    else if (dy > 40) toggleSheet(false);
+    if (dy < -40) setSheet(sheetState() === 'peek' ? 'open' : 'expanded');
+    else if (dy > 40) setSheet(sheetState() === 'expanded' ? 'open' : canPeek() ? 'peek' : 'open');
   });
+  window.__setSheet = setSheet; // 테스트용
   // 메모 카드 펼치기 (오버레이와 같은 위임 방식)
   panelBodyEl.addEventListener('click', (e) => {
     const memo = e.target.closest('.memo.has-more');
