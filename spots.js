@@ -1,6 +1,7 @@
-/* ---------- 장소 둘러보기: 거점 3곳 + 주변 장소 탐색 ----------
+/* ---------- 장소 둘러보기(탐험 · 위치 보기): 거점 3곳 + 주변 장소 탐색 ----------
    app.js의 지도·패널(openPanel/closePanel/renderPanel)·해시를 그대로 쓰고, 지도 화면을
-   '장소 둘러보기'(기본)와 '지명 수어'(기존 동 경계·목록·영상) 두 보기로 나눈다.
+   '장소 둘러보기'(탐험 · 위치 보기, 주소 #spots·#spot/…)와 '지명 수어'(동 경계·목록·영상, 주소 #map·#map/…) 두 보기로 나눈다.
+   상단 메뉴(탐험·지명 수어·기록·소개)는 두 페이지가 같고, '거리 보기'는 explore.html로 같은 장소를 넘긴다.
    데이터: data/spots.json (좌표 precision이 poi/building인 곳만 핀, 나머지는 '위치 확인 중').
    레이아웃 전제: 데스크톱은 패널이 열리면 #map 컨테이너 자체가 줄어든다(패널 폭을 다시 보정하지 않음),
    모바일은 시트가 지도 위를 덮는다(시트 높이만큼만 보정). */
@@ -37,18 +38,49 @@ function setMapMode(mode) {
   clearNearby();
   if (mode === 'spots') {
     setSelectedRegion(null);
-    if (!location.hash.startsWith('#spot/')) setHash(null);
+    if (!location.hash.startsWith('#spot/')) setHash('#spots'); // 보기 주소를 남긴다(새로고침해도 이 보기로)
     map.invalidateSize({ pan: false });
     fitHubs();
   } else {
     spotState = null;
     hoverId = null;
     markSelected();
-    if (!location.hash.startsWith('#map/')) setHash(null);
+    if (!location.hash.startsWith('#map/')) setHash('#map');
     map.invalidateSize({ pan: false });
     if (typeof fitDistrict === 'function' && !location.hash.startsWith('#map/')) fitDistrict(false); // 지명 수어 보기: 동구 16개 동 전체 구도로 시작
   }
+  syncNav();
+  syncStreetLink();
 }
+/* ---------- 공통 메뉴 상태 · 거리 보기 링크 ---------- */
+const modeHomeHash = () => (mapMode === 'signs' ? '#map' : '#spots'); // 패널을 닫았을 때 남길 보기 주소
+function syncNav() {
+  const view = document.body.dataset.view;
+  const active = view === 'map' ? (mapMode === 'signs' ? 'signs' : 'explore') : view;
+  document.querySelectorAll('[data-nav]').forEach((b) => b.classList.toggle('on', b.dataset.nav === active));
+  document.querySelectorAll('[data-nav-explore]').forEach((a) => {
+    a.classList.toggle('on', active === 'explore');
+    if (active === 'explore') a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+}
+// 상단 메뉴 '지명 수어': 지도 화면의 지명 수어 보기, 동구 전체 구도(#map). 지도가 아직 안 열렸으면 initSpots가 #map을 읽어 그 보기로 시작한다
+function goSigns() {
+  if (document.body.dataset.view !== 'map') { history.replaceState(null, '', '#map'); setView('map'); }
+  if (!map || !regions.length) return;
+  if (mapMode !== 'signs') { setMapMode('signs'); return; }
+  if (isPanelOpen()) closePanel({ keepHash: true });
+  setHash('#map');
+  if (typeof fitDistrict === 'function') fitDistrict(!prefersReducedMotion());
+}
+// '거리 보기'(explore.html)로 넘길 때 지금 보던 장소를 그대로 가져간다. 거리 보기에 없는 거점(탐험 대상이 아닌 곳)은 충장로 거리로
+function streetHref() {
+  if (!spotState) return 'explore.html#explore';
+  const { hub, level, place } = spotState;
+  if (!hub.explore) return 'explore.html#explore';
+  const id = level === 'place' && place ? place.id : hub.id;
+  return `explore.html#place/${id}`;
+}
+function syncStreetLink() { const a = document.getElementById('street-link'); if (a) a.href = streetHref(); }
 
 /* ---------- 마커 ---------- */
 function bindMarkerHover(m, id) {
@@ -109,6 +141,7 @@ function showNearby(hub) {
   layoutLabels();
 }
 function markSelected() {
+  syncStreetLink();
   const selId = spotState ? (spotState.level === 'place' ? spotState.place.id : spotState.hub.id) : null;
   hubMarkers.forEach((m, id) => {
     const el = m.getElement()?.querySelector('.hub');
@@ -269,7 +302,7 @@ function showAllHubs() {
   clearNearby();
   markSelected();
   if (isPanelOpen()) closePanel({ keepHash: true });
-  setHash(null);
+  setHash('#spots');
   setTimeout(() => { map.invalidateSize({ pan: false }); fitHubs(); }, spotAnim() ? 380 : 0);
 }
 // 패널의 이전/다음: 거점 단계에선 거점끼리, 주변 단계에선 그 거점의 주변 장소끼리

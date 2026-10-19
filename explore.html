@@ -9,10 +9,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
-<link rel="stylesheet" href="explore.css?v=20261025">
+<link rel="stylesheet" href="explore.css?v=20261026">
 </head>
 <body data-state="intro">
-  <!-- 왼쪽: 시네마틱 도시 풍경 (사진 한 장 + 블루아워 보정 오버레이 + 느린 카메라) -->
+  <!-- 왼쪽: 첫 화면은 도심·무등산 사진(블루아워 보정 + 느린 카메라), 거리·장소 화면은 그 위에 원본 비율 액자로 거리 사진 -->
   <section class="stage" id="stage" aria-label="광주 도심 풍경">
     <div class="hero" id="hero">
       <div class="plx" id="hero-plx"><img class="hero-img" id="hero-img" alt="" draggable="false"></div>
@@ -42,10 +42,13 @@
         <b>손으로 부르는 광주</b>
         <span>GWANGJU SIGN LANGUAGE MAP</span>
       </a>
+      <!-- 공통 메뉴(두 페이지 동일): 탐험 · 지명 수어 · 기록 · 소개. 탐험 안에서만 거리 보기/위치 보기 전환 -->
       <nav class="site-nav" aria-label="사이트">
-        <a href="index.html#map">지명 수어 지도</a>
-        <a href="index.html?view=archive">아카이브</a>
+        <a href="#explore" id="nav-explore" class="on" aria-current="page">탐험</a>
+        <a href="index.html#map">지명 수어</a>
+        <a href="index.html?view=archive">기록</a>
         <a href="index.html?view=about">소개</a>
+        <span class="view-toggle" id="view-toggle" role="group" aria-label="탐험 보기 방식"><span class="vt on" aria-current="true">거리 보기</span><a class="vt" id="vt-map" href="index.html#spots">위치 보기</a></span>
       </nav>
       <button type="button" class="explore-btn" id="explore-btn" aria-expanded="false" aria-controls="explore-menu">지역 선택 <span class="plus" aria-hidden="true">+</span></button>
     </header>
@@ -65,13 +68,19 @@
       <button type="button" class="cta" id="cta">광주 탐험하기 <span aria-hidden="true">→</span></button>
     </div>
 
-    <!-- 장소 화면: 손글씨 한 줄(기록 원문) + 장소 이름 -->
+    <!-- 거리·장소 화면: 손글씨 한 줄(기록 원문) + 장소 이름 -->
     <div class="title-block" id="title-block">
       <p class="hand" id="hand"></p>
       <h1 class="place" id="place-title"></h1>
       <svg class="rule" viewBox="0 0 320 24" aria-hidden="true"><path d="M2 12 C 90 4, 180 20, 318 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       <p class="eyebrow" id="eyebrow"></p>
     </div>
+    <!-- 거리 화면: 농인의 장소 기억 원문 한 문단 (data/memory-stories.json 그대로, 전시용으로 고쳐 쓰지 않음) -->
+    <figure class="street-quote" id="street-quote" hidden>
+      <blockquote id="sq-text"></blockquote>
+      <figcaption id="sq-src"></figcaption>
+    </figure>
+    <div class="scene-none" id="scene-none" hidden>이 장소의 사진은<br>아직 없습니다</div>
 
     <!-- 하단: 거점과 우선 탐색 장소 (전체 목록은 패널의 '함께 둘러볼 장소') -->
     <nav class="spot-menu" id="spot-menu" aria-label="탐험 장소"></nav>
@@ -88,7 +97,7 @@
         <button type="button" class="circ" id="p-next" aria-label="다음 장소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button type="button" class="home-pill" id="p-home" hidden><span aria-hidden="true">←</span> 캔모아로 돌아가기</button>
       </div>
-      <button type="button" class="circ" id="p-close" aria-label="패널 닫고 첫 화면으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      <button type="button" class="circ" id="p-close" aria-label="패널 닫고 충장로 거리로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
     </header>
     <div class="p-title">
       <p class="p-en" id="p-en"></p>
@@ -101,6 +110,6 @@
     </footer>
   </aside>
 
-  <script src="explore.js?v=20261025"></script>
+  <script src="explore.js?v=20261026"></script>
 </body>
 </html>
