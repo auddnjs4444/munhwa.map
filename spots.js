@@ -355,7 +355,6 @@ function renderSpotPanel() {
       ${hub.explore ? `<div class="sp-actions"><button type="button" class="sp-primary" id="sp-explore">주변 둘러보기<span>· ${total}곳</span></button></div>` : ''}
       <div class="sp-secondary">
         <button type="button" class="sp-link" id="sp-all">전체 거점 보기</button>
-        ${hub.sign_place && placesData.some((p) => p.id === hub.sign_place) ? `<button type="button" class="sp-link" id="sp-sign" data-place="${esc(hub.sign_place)}">이 동네 지명 수어 보기 ›</button>` : ''}
       </div>
       ${typeof hasStory === 'function' && hasStory(hub.id) ? `
       <button type="button" class="sp-memory" id="sp-memory" aria-label="장소 기억 — ${esc(hub.name)}의 이야기 읽기">
@@ -396,12 +395,6 @@ function renderSpotPanel() {
   document.querySelectorAll('#sp-all').forEach((b) => b.addEventListener('click', showAllHubs));
   document.getElementById('sp-back-hub')?.addEventListener('click', () => openHub(hub));
   document.getElementById('sp-back-list')?.addEventListener('click', () => openNearbyList(hub));
-  document.getElementById('sp-sign')?.addEventListener('click', (e) => {
-    const pl = placesData.find((p) => p.id === e.currentTarget.dataset.place);
-    const region = regions.find((r) => r.records.includes(pl));
-    setMapMode('signs');
-    if (region) selectRegion(region);
-  });
   panelBodyEl.querySelectorAll('.sp-row').forEach((b) => {
     const p = placeById(b.dataset.place);
     b.addEventListener('click', () => openNearbyPlace(hub, p));

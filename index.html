@@ -1654,7 +1654,7 @@
     .region-list { top: 112px; padding: 14px 12px 12px; }
     .rl-grid { grid-template-columns: repeat(2, 1fr); }
     .mega { top: 14vh; white-space: normal; }
-    .track { padding: 0 24vw 0 8vw; gap: 34px; align-items: flex-end; padding-bottom: 24vh; }
+    .track { padding: 0 24vw 0 8vw; gap: 34px; align-items: flex-end; padding-bottom: 222px; } /* 카드 아래 = 미니맵(약 118px) + 필 메뉴 자리. 카드 설명이 미니맵과 겹치지 않게 */
     .work { width: 60vw !important; --drift: 0 !important; }
     .work:nth-child(3n+2) .media { aspect-ratio: 3 / 4; }
   }
@@ -1662,6 +1662,32 @@
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
   }
+  /* ---------- 기록(아카이브) 화면의 동구 미니맵 ---------- */
+  .ar-minimap { position: fixed; left: var(--chrome-pad); bottom: 96px; z-index: 35; width: 190px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 16px; background: rgba(8, 10, 18, 0.72); backdrop-filter: blur(10px); color: #fff; }
+  .ar-minimap[hidden], body:not([data-view="archive"]) .ar-minimap { display: none; }
+  .ar-minimap .mm-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 10px 4px 14px; font: 600 13px/1 'Pretendard Variable', sans-serif; }
+  .ar-minimap .mm-toggle { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 50%; background: none; color: #fff; cursor: pointer; }
+  .ar-minimap .mm-toggle svg { width: 14px; height: 14px; transition: transform .3s; }
+  .ar-minimap .mm-toggle:focus-visible { outline: 2px solid #E8C470; outline-offset: 2px; }
+  .ar-minimap.collapsed .mm-toggle svg { transform: rotate(180deg); }
+  .ar-minimap .mm-svg { display: block; width: 100%; height: auto; padding: 0 12px 6px; }
+  .ar-minimap.collapsed .mm-svg, .ar-minimap.collapsed .mm-note { display: none; }
+  .ar-minimap .mm-svg path { fill: rgba(255, 255, 255, 0.07); stroke: rgba(255, 255, 255, 0.55); stroke-width: 0.8; stroke-linejoin: round; transition: fill .25s ease, stroke .25s ease; }
+  .ar-minimap .mm-svg path.hov { fill: rgba(232, 196, 112, 0.45); stroke: #E8C470; }
+  .ar-minimap .mm-svg path.on { fill: rgba(201, 162, 75, 0.9); stroke: #E8C470; filter: drop-shadow(0 0 4px rgba(232, 196, 112, 0.9)); }
+  .ar-minimap .mm-dot { fill: rgba(255, 255, 255, 0.35); stroke: rgba(255, 255, 255, 0.7); stroke-width: 0.8; transition: r .2s ease, fill .2s ease; }
+  .ar-minimap .mm-dot.hov { fill: rgba(232, 196, 112, 0.8); r: 4; }
+  .ar-minimap .mm-dot.on { fill: #E8C470; stroke: #fff; r: 5; filter: drop-shadow(0 0 4px rgba(232, 196, 112, 0.9)); }
+  .ar-minimap .mm-note { margin: 0; padding: 0 14px 10px; font-size: 10px; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.55); }
+  @media (max-width: 767px) {
+    .ar-minimap { left: 12px; bottom: 90px; width: 100px; border-radius: 12px; }
+    .ar-minimap .mm-head { padding: 6px 6px 2px 8px; font-size: 10.5px; }
+    .ar-minimap .mm-toggle { width: 18px; height: 18px; }
+    .ar-minimap .mm-toggle svg { width: 10px; height: 10px; }
+    .ar-minimap .mm-svg { padding: 0 6px 4px; }
+    .ar-minimap .mm-note { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .ar-minimap .mm-svg path, .ar-minimap .mm-dot, .ar-minimap .mm-toggle svg { transition: none; } }
 </style>
 </head>
 <body data-view="archive">
@@ -1671,7 +1697,7 @@
   <header class="chrome-top">
     <!-- 공통 메뉴(두 페이지 동일): 탐험(거리 보기 explore.html) · 지명 수어(#map) · 기록(아카이브) · 소개 -->
     <nav class="commas" aria-label="주 메뉴">
-      <a href="explore.html#explore" data-nav-explore>탐험</a><span class="sep">, </span><button type="button" data-nav="signs">지명 수어</button><span class="sep">, </span><button type="button" data-nav="archive" class="on">기록</button><span class="sep">, </span><button type="button" data-nav="about">소개</button>
+      <a href="explore.html#explore" data-nav-explore>탐험</a><span class="sep">, </span><button type="button" data-nav="archive" class="on">기록</button><span class="sep">, </span><button type="button" data-nav="about">소개</button>
     </nav>
     <span class="chip-top">청년 ESG 문화실험실 — GSL®/2026</span>
   </header>
@@ -1680,6 +1706,12 @@
 
   <section id="view-archive" class="view on" aria-label="수어 지명 아카이브">
     <div class="track" id="track"></div>
+    <!-- 동구 미니맵: 실제 16개 동 경계(data/gwangju_donggu_sign_16.geojson). 카드에 올리거나 누르면 그 기록의 동이 금색으로 빛난다. 경계가 없는 기록(무등산·양림동·5·18민주광장)은 좌표 점 -->
+    <section class="ar-minimap" id="ar-minimap" aria-label="광주 동구 미니맵" hidden>
+      <header class="mm-head"><span>광주 동구</span><button type="button" class="mm-toggle" id="ar-mm-toggle" aria-expanded="true" aria-label="미니맵 접기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></header>
+      <svg class="mm-svg" id="ar-mm-svg" viewBox="0 0 160 160" role="img" aria-label="광주 동구 16개 동 경계. 기록을 고르면 그 동이 금색으로 빛납니다"></svg>
+      <p class="mm-note">카드를 누르면 그 동이 빛납니다</p>
+    </section>
   </section>
 
   <section id="view-map" class="view" aria-label="수어 지명 지도">
@@ -1742,7 +1774,6 @@
 
   <nav class="pills" aria-label="화면 전환">
     <a class="pill" href="explore.html#explore" data-nav-explore>탐험</a>
-    <button type="button" class="pill" data-nav="signs">지명 수어</button>
     <button type="button" class="pill on" data-nav="archive">기록</button>
     <button type="button" class="pill" data-nav="about">소개</button>
   </nav>
@@ -1780,8 +1811,8 @@
   </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=20261026"></script>
+<script src="app.js?v=20261030"></script>
 <script src="story.js?v=20261018"></script>
-<script src="spots.js?v=20261026"></script>
+<script src="spots.js?v=20261030"></script>
 </body>
 </html>

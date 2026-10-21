@@ -203,7 +203,7 @@
   }
   const descendFromIntro = () => goExplore({ push: true }); // 첫 화면 → 첫 지도 화면 (같은 배경 위에 UI만 나타난다)
   // 탐험 보기 방식 전환: '위치 보기'는 본 사이트 지도에서 같은 장소를 연다 (장소 지도에 없는 곳은 지명 수어 지점 → 없으면 거점 전체)
-  function syncToggle(item) { $('vt-map').href = siteLink(item ? (item.siteHash || item.mapHash || '#spots') : '#spots'); }
+  function syncToggle(item) { $('vt-map').href = siteLink(item && item.siteHash ? item.siteHash : '#spots'); } // 장소 지도에 없는 곳은 거점 전체로
   // 거리 화면의 인용: 거점의 장소 기억 원고 첫 문단을 원문 그대로 (전시용 재구성 문장이 아님을 밝힌다)
   function setStreetQuote(stories) {
     const st = stories[HUB_ID]; const q = st && Array.isArray(st.paragraphs) ? st.paragraphs[0] : null;
@@ -332,8 +332,7 @@
       if (item.note) html += `<p class="note">${esc(item.note)}</p>`;
       if (item.verify) html += `<p class="verify">${esc(item.verify)}</p>`;
       const links = [];
-      if (item.siteHash) links.push(`<a href="${esc(siteLink(item.siteHash))}">지도에서 이 장소 보기 →</a>`);
-      if (item.mapHash) links.push(`<a href="${esc(siteLink(item.mapHash))}">지명 수어 지도에서 보기 →</a>`);
+      if (item.siteHash) links.push(`<a href="${esc(siteLink(item.siteHash))}">지도에서 이 장소 보기 →</a>`); // 지명 수어 지도 링크는 2026-10-22에 뺐다(메뉴에서 숨김)
       if (links.length) html += `<div class="links">${links.join('')}</div>`;
       const tags = [...new Set([...(item.tags || []), ...item.records.flatMap((r) => r.tags || [])])];
       if (tags.length) html += `<div class="tags">${tags.map((t) => `<span>${esc(t)}</span>`).join('')}</div>`;
