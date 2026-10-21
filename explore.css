@@ -125,6 +125,12 @@ body:not([data-state="intro"]) .intro-block { opacity: 0; transform: translateY(
 body:not([data-state="place"]):not([data-state="explore"]) .title-block { opacity: 0; pointer-events: none; transition-delay: 0s; }
 .hand { margin: 0 0 6px 4px; font-family: 'Nanum Pen Script', cursive; font-size: 30px; line-height: 1.35; color: var(--ink); word-break: keep-all; }
 .hand small { display: block; margin-top: 2px; font-size: 20px; color: var(--ink-dim); }
+/* 손글씨 한 줄은 한 글자씩 나타난다(글자당 --d 지연, 전체 2초 안팎). 모션 줄이기에서는 바로 보인다 */
+.hand .ch { display: inline-block; opacity: 0; animation: ink .4s ease forwards; animation-delay: var(--d, 0s); }
+.hand small { opacity: 0; animation: ink .5s ease forwards; animation-delay: var(--d, 0s); }
+@keyframes ink { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.title-badge { display: block; height: 34px; width: auto; margin: 0 0 12px 4px; border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }
+.title-badge[hidden] { display: none; }
 .place { margin: 6px 0 0; font-size: 104px; font-weight: 800; letter-spacing: -0.045em; line-height: 1; color: #fff; }
 .rule { display: block; width: 300px; height: 22px; margin: 10px 0 0 6px; color: var(--gold); }
 .rule path { stroke-dasharray: 340; stroke-dashoffset: 340; transition: stroke-dashoffset 1.6s var(--ease) .6s; }
@@ -333,4 +339,73 @@ body[data-state="explore"] .street-quote { opacity: 1; transform: none; pointer-
 }
 @media (max-width: 767px) and (max-height: 700px) {
   .street-quote { display: none; } /* 낮은 화면: 제목·칩이 먼저 */
+}
+
+/* ---------- 캔모아 공간 탐험 (#place/canmore): 실내 사진 1 → 그네 핫스팟 → 사진 2 + 장소 기억 ---------- */
+/* 액자 높이: 76vh·640px 한도 + 오른쪽 제목·이야기 열이 최소 240px 남도록(좁은 데스크톱) */
+:root { --cx-ar: 0.849; --cx-h: min(76vh, 640px, calc((100vw - var(--panel-w) - 7vw - 64px - 240px) / var(--cx-ar))); --cx-w: calc(var(--cx-h) * var(--cx-ar)); --cx-col2: calc(7% + var(--cx-w) + 40px); --cx-col2-w: calc(100vw - var(--panel-w) - 7vw - var(--cx-w) - 64px); }
+.cx { position: absolute; left: 7%; top: 11%; z-index: 15; width: var(--cx-w); height: var(--cx-h); overflow: visible; }
+.cx[hidden] { display: none; }
+.cx::before { content: ''; position: absolute; inset: 0; border-radius: 3px; outline: 1px solid rgba(232, 196, 112, 0.3); outline-offset: 7px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); pointer-events: none; }
+.cx:not([hidden]) { animation: cx-enter .7s ease both; }
+@keyframes cx-enter { from { opacity: 0; transform: scale(1.02); } to { opacity: 1; transform: none; } }
+.cx-view { position: absolute; inset: 0; overflow: hidden; border-radius: 3px; } /* 확대된 사진이 액자 밖으로 넘치지 않게 */
+.cx-img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
+.cx-img-1 { transform: scale(1); transition: transform .9s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.cx[data-cx="zoom"] .cx-img-1, .cx[data-cx="s2"] .cx-img-1 { transform: scale(1.12); }
+.cx-img-2 { opacity: 0; transform: scale(1.04); transition: opacity .8s ease .15s, transform 1s ease; }
+.cx[data-cx="zoom"] .cx-img-2, .cx[data-cx="s2"] .cx-img-2 { opacity: 1; transform: none; }
+.cx-hotspots { position: absolute; inset: 0; overflow: hidden; border-radius: 3px; pointer-events: none; }
+.cx-hs { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; transition: opacity .4s ease; }
+.cx-hs-dot { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 2px rgba(8, 10, 18, 0.55), 0 2px 10px rgba(0, 0, 0, 0.5); }
+.cx-hs-ring { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 1.5px solid rgba(232, 196, 112, 0.85); border-radius: 50%; animation: cx-pulse 2.6s ease-out infinite; transition: transform .5s ease, opacity .5s ease; }
+@keyframes cx-pulse { 0% { transform: scale(0.8); opacity: 0.9; } 70% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(1.5); opacity: 0; } }
+.cx-hs:hover .cx-hs-ring, .cx-hs:focus-visible .cx-hs-ring { animation: none; transform: scale(1.15); opacity: 1; border-color: var(--gold); }
+.cx-hs.hit .cx-hs-ring { animation: none; transform: scale(2); opacity: 0; }
+.cx-hs-tip { position: absolute; left: 50%; bottom: calc(100% - 2px); transform: translate(-50%, 4px); padding: 6px 10px; border-radius: 999px; background: rgba(8, 10, 18, 0.88); color: var(--ink); font: 500 11.5px/1 'Pretendard Variable', sans-serif; letter-spacing: 0.04em; white-space: nowrap; opacity: 0; transition: opacity .2s ease, transform .2s ease; pointer-events: none; }
+.cx-hs:hover .cx-hs-tip, .cx-hs:focus-visible .cx-hs-tip { opacity: 1; transform: translate(-50%, 0); }
+.cx-hs:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 50%; }
+.cx[data-cx="zoom"] .cx-hs, .cx[data-cx="s2"] .cx-hs { opacity: 0; pointer-events: none; }
+.cx-hint { position: absolute; left: 12px; top: 12px; z-index: 3; margin: 0; padding: 7px 12px; border-radius: 999px; background: rgba(8, 10, 18, 0.72); backdrop-filter: blur(8px); color: var(--ink); font-size: 11.5px; font-weight: 500; letter-spacing: 0.04em; line-height: 1.4; transition: opacity .4s ease; pointer-events: none; }
+.cx:not([data-cx="s1"]) .cx-hint { opacity: 0; }
+.cx-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* 장소 기억 패널: 데스크톱은 사진 오른쪽 열(제목 아래), 모바일은 사진 아래쪽에 겹침 */
+.cx-story { position: absolute; left: calc(100% + 40px); top: 250px; width: var(--cx-col2-w); max-width: 320px; margin: 0; padding: 18px 18px 16px; border: 1px solid rgba(232, 196, 112, 0.28); border-radius: 14px; background: rgba(8, 10, 18, 0.78); backdrop-filter: blur(10px); color: var(--ink); animation: cx-story-in .6s ease both; }
+.cx-story[hidden] { display: none; }
+.cx-story:focus { outline: none; }
+.cx-story:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+@keyframes cx-story-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.cx-kicker { margin: 0 0 8px; font-size: 10px; font-weight: 500; letter-spacing: 0.1em; line-height: 1.6; color: var(--gold); }
+.cx-story h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.4; letter-spacing: -0.01em; color: #fff; word-break: keep-all; }
+.cx-text { margin: 10px 0 0; font-size: 13.5px; font-weight: 300; line-height: 1.75; color: rgba(244, 241, 232, 0.9); word-break: keep-all; }
+.cx-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.cx-btn { display: inline-flex; align-items: center; height: 34px; padding: 0 13px; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 999px; background: none; color: var(--ink); font: 500 12px/1 'Pretendard Variable', sans-serif; letter-spacing: 0.02em; text-decoration: none; white-space: nowrap; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.cx-btn:hover { border-color: var(--gold); color: #fff; }
+.cx-btn.primary { background: var(--gold); border-color: var(--gold); color: #1a1408; }
+.cx-btn.primary:hover { background: #f1d48a; }
+.cx-btn.ghost { color: var(--ink-dim); }
+.cx-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+/* 캔모아일 때: 거리 사진 액자는 숨기고 제목 열을 사진 오른쪽으로 */
+body.cx-on .scene, body.cx-on .scene-none { display: none; }
+body.cx-on .title-block { left: var(--cx-col2); top: 11%; max-width: var(--cx-col2-w); }
+body.cx-on .place { font-size: 84px; }
+body.cx-on .rule { width: 220px; }
+/* 이야기 패널 겹침 모드: 모바일, 그리고 오른쪽 열에 자리가 모자란 좁은 데스크톱(JS가 재서 .story-over를 붙인다) → 사진 아래쪽에 겹침 */
+.cx.story-over .cx-story { left: 0; right: 0; top: auto !important; bottom: 0; width: auto; max-width: none; padding: 12px 14px 12px; border: 0; border-radius: 0 0 3px 3px; background: linear-gradient(180deg, rgba(8, 10, 18, 0) 0%, rgba(8, 10, 18, 0.9) 28%); backdrop-filter: none; }
+.cx.story-over .cx-kicker { font-size: 9.5px; }
+.cx.story-over .cx-story h3 { font-size: 15px; }
+.cx.story-over .cx-text { font-size: 12.5px; line-height: 1.6; margin-top: 6px; }
+.cx.story-over .cx-actions { margin-top: 10px; gap: 5px; }
+.cx.story-over .cx-btn { height: 30px; padding: 0 10px; font-size: 11.5px; }
+@media (max-width: 767px) {
+  body.cx-on { --sheet-h: 30dvh; } /* 시트는 낮게 시작해(핸들로 펼침) 사진이 보이게 */
+  .cx { left: 16px; right: 16px; top: 110px; width: auto; height: calc(100dvh - 110px - var(--sheet-h) - 92px); }
+  .cx::before { outline-offset: 4px; }
+  .cx-hint { left: 8px; top: 8px; font-size: 11px; }
+  .cx-hs { width: 52px; height: 52px; margin: -26px 0 0 -26px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cx:not([hidden]), .cx-story, .cx-hs-ring { animation: none; }
+  .cx-img-1, .cx-img-2, .cx-hs, .cx-hint, .cx-hs-tip { transition: none; }
+  .hand .ch, .hand small { animation: none; opacity: 1; }
 }

@@ -30,6 +30,17 @@
     acc: { src: 'assets/explore/acc-night.jpg', grade: 'night', focus: '50% 62%', focusM: '46% 60%', glow: ['50%', '58%'], credit: '장면 사진: 국립아시아문화전당 일대, 해질녘 (사용 허락을 받은 사진)', thumb: 'assets/explore/acc-night.jpg' },
   };
   const NO_SCENE_CREDIT = '배경: 광주 도심 조망 — 이 장소의 사진은 아직 없어 도시 풍경을 배경으로 둡니다';
+  // 캔모아 공간 탐험: 실내 사진 1(그네) → 그네 핫스팟 → 사진 2(마주 보는 그네 자리) + 장소 기억. 사진은 assets/explore/canmore/
+  const CX = {
+    img1: 'assets/explore/canmore/swings.jpg', img2: 'assets/explore/canmore/window.jpg',
+    sign: 'assets/explore/canmore/sign.jpg', thumb: 'assets/explore/canmore/swings-thumb.jpg',
+    pos1: [0.5, 0.7], pos2: [0.5, 0.5], // object-position(가로, 세로): 그네가 아래쪽이라 세로로 잘릴 때 아래를 남긴다
+    hotspots: [ // 사진 1 원본(1179×1389) 기준 그네 좌석 중심 — 가로 비율, 세로 비율 (사진 분석으로 확인)
+      { fx: 0.28, fy: 0.83, label: '앞쪽 그네' }, { fx: 0.59, fy: 0.575, label: '가운데 그네' }, { fx: 0.755, fy: 0.46, label: '안쪽 그네' },
+    ],
+    credit: '장면 사진: 캔모아 충장로점 실내와 간판 — 프로젝트 제공 사진',
+    T_ZOOM: REDUCED ? 0 : 900, // 그네 쪽으로 확대 + 사진 2 크로스페이드 (explore.css 전환 시간과 맞춘다)
+  };
 
   // 표시용 보조 정보(기록이 아님): 영문 표기, 어느 장면 사진을 쓰는지, 데이터 파일에 좌표가 없는 곳의 확인된 좌표(출처 명시), 제목 줄임.
   const PRESENT = {
@@ -76,7 +87,7 @@
     // 1) 거점 캔모아 — 장소 기억 원고(memory-stories) + 수첩 메모(places.json memories 중 캔모아 메모)
     const hubStory = stories[hub.id] ? [{ type: 'story', ...stories[hub.id] }] : [];
     const hubMemos = ((dongById[hub.sign_place] || {}).memories || []).filter((m) => (m.spot || '').includes(hub.short)).map((m) => ({ type: 'memo', ...m }));
-    items.push({ id: hub.id, kind: 'hub', hubId: hub.id, name: hub.short, full: hub.name, address: hub.address, geo: hub.geo, dist: 0, group: 'hub', scene: PRESENT.canmore.scene, en: PRESENT.canmore.en, sub: PRESENT.canmore.sub, intro: hub.intro, introNote: hub.intro_note, records: [...hubStory, ...hubMemos], siteHash: `#spot/${hub.id}`, storyHash: stories[hub.id] ? `#spot/${hub.id}/story` : null, mapHash: hub.sign_place ? `#map/${hub.sign_place}` : null });
+    items.push({ id: hub.id, kind: 'hub', hubId: hub.id, name: hub.short, full: hub.name, address: hub.address, geo: hub.geo, dist: 0, group: 'hub', scene: PRESENT.canmore.scene, en: PRESENT.canmore.en, sub: PRESENT.canmore.sub, intro: hub.intro, introNote: hub.intro_note, records: [...hubStory, ...hubMemos], thumb: CX.thumb, siteHash: `#spot/${hub.id}`, storyHash: stories[hub.id] ? `#spot/${hub.id}/story` : null, mapHash: hub.sign_place ? `#map/${hub.sign_place}` : null });
 
     // 2) 주변 장소 — spots.json 거점의 nearby 그대로(번호 유지). 거리로 가까운 장소/더 둘러볼 곳 구분
     const addNearby = (h, p, i) => {
@@ -157,14 +168,14 @@
   function goIntro() {
     clearTimeout(descendTimer);
     if (isPanelOpen()) closePanelOnly();
-    current = null; view = 'place'; hideScene(); $('scene-none').hidden = true; syncMenus(); setState('intro'); setHash(null);
+    current = null; view = 'place'; cxLeave(); hideScene(); $('scene-none').hidden = true; syncMenus(); setState('intro'); setHash(null);
     $('explore-btn').focus({ preventScroll: true });
   }
   // 충장로 거리(탐험 시작 화면): 어두워진 도심 사진 위에 거리 사진 액자 + 「충장로」 + 장소 기억 원문 한 문단 + 하단 장소 칩
   function goExplore({ instant = false, fromHash = false, push = false } = {}) {
     clearTimeout(descendTimer);
     if (isPanelOpen()) closePanelOnly();
-    current = null; view = 'place'; syncMenus();
+    current = null; view = 'place'; syncMenus(); cxLeave();
     showScene(STREET_SCENE, { delay: instant || fromHash ? 0 : undefined });
     $('scene-none').hidden = true;
     $('hand').innerHTML = ''; $('place-title').textContent = STREET.title; $('place-title').style.fontSize = '';
@@ -194,12 +205,18 @@
     $('sq-src').innerHTML = `${esc(st.subtitle || '')} 원고 「${esc(st.title || '')}」 첫 문단<small>원문 그대로 · 전시용으로 고쳐 쓰지 않았습니다</small>`;
     fig.hidden = false;
   }
+  // 손글씨 한 줄: 한 글자씩(스태거) 나타난다. 길면 글자당 간격을 줄여 전체 2초 안팎에 끝낸다 (모션 줄이기: CSS에서 즉시 표시)
+  function handHtml(text, small) {
+    const chars = [...String(text || '')]; const step = Math.min(0.2, 2.0 / Math.max(chars.length, 1));
+    return chars.map((c, i) => `<span class="ch" style="--d:${(i * step).toFixed(2)}s">${c === ' ' ? '&nbsp;' : esc(c)}</span>`).join('') + (small ? `<small style="--d:${(chars.length * step + 0.2).toFixed(2)}s">${small}</small>` : '');
+  }
   function updateTitle(item) {
     const memo = item.records.find((r) => r.type === 'memo');
     let hand = '';
-    if (memo) hand = `${esc(memo.hand)}<small>${esc([memo.spot, memo.by ? `${memo.by}님` : '', memo.years ? `광주 ${memo.years}년` : ''].filter(Boolean).join(' · '))}</small>`;
+    if (memo) hand = handHtml(memo.hand, esc([memo.spot, memo.by ? `${memo.by}님` : '', memo.years ? `광주 ${memo.years}년` : ''].filter(Boolean).join(' · ')));
     else if (item.sub && item.id !== HUB_ID) hand = esc(item.sub);
     $('hand').innerHTML = hand;
+    const badge = $('title-badge'); if (item.id === HUB_ID) { if (badge.getAttribute('src') !== CX.sign) badge.src = CX.sign; badge.hidden = false; } else badge.hidden = true;
     const t = $('place-title'); t.textContent = item.name;
     const n = item.name.length; t.style.fontSize = n <= 4 ? '' : n <= 7 ? '80px' : '58px';
     $('eyebrow').textContent = item.id === HUB_ID ? '탐험 거점 · 충장로' : item.dist != null ? `캔모아에서 ${distText(item.dist)}` : '지점 미확정 · 거리 표시 안 함';
@@ -212,8 +229,8 @@
     const wasOpen = isPanelOpen();
     current = id; view = 'place';
     setState('place');
-    if (item.scene) { showScene(item.scene, { delay: instant || fromHash ? 0 : undefined }); $('scene-none').hidden = true; }
-    else { hideScene(NO_SCENE_CREDIT); $('scene-none').hidden = false; }
+    if (item.id === HUB_ID) cxEnter();
+    else { cxLeave(); if (item.scene) { showScene(item.scene, { delay: instant || fromHash ? 0 : undefined }); $('scene-none').hidden = true; } else { hideScene(NO_SCENE_CREDIT); $('scene-none').hidden = false; } }
     updateTitle(item);
     renderPanel(item);
     syncMenus();
@@ -346,9 +363,90 @@
     body.querySelectorAll('.row').forEach((b) => b.addEventListener('click', () => select(b.dataset.spot)));
   }
 
+  /* ---------- 캔모아 공간 탐험 ---------- */
+  const cx = { on: false, state: 's1', timer: null, hs: [] };
+  const cxEl = $('cx'), cxImg1 = $('cx-img1'), cxImg2 = $('cx-img2');
+  // object-fit: cover로 그려진 사진의 실제 영역. 핫스팟은 원본 비율 좌표를 이 영역에 투영해 두므로 액자 크기·잘림이 바뀌어도 그네 위에 남는다
+  function cxFitRect(img, pos) {
+    const box = cxEl.getBoundingClientRect(); const nw = img.naturalWidth, nh = img.naturalHeight;
+    if (!nw || !nh || !box.width) return null;
+    const sc = Math.max(box.width / nw, box.height / nh); const w = nw * sc, h = nh * sc;
+    return { x: (box.width - w) * pos[0], y: (box.height - h) * pos[1], w, h };
+  }
+  function cxLayout() {
+    const r = cxFitRect(cxImg1, CX.pos1); if (!r) return;
+    cx.hs.forEach((b, i) => { const h = CX.hotspots[i]; b.style.left = `${(r.x + h.fx * r.w).toFixed(1)}px`; b.style.top = `${(r.y + h.fy * r.h).toFixed(1)}px`; });
+    cxPlaceStory();
+  }
+  function cxPlaceStory() { // 이야기 패널: 데스크톱은 제목 열의 제목 아래. 모바일이거나 거기에 자리가 모자라 하단 칩과 겹치면 사진 아래쪽 겹침 모드
+    const st = $('cx-story');
+    if (isSheet()) { st.style.top = ''; cxEl.classList.add('story-over'); return; }
+    cxEl.classList.remove('story-over');
+    const t = $('title-block').getBoundingClientRect(), c = cxEl.getBoundingClientRect();
+    if (!t.height || !c.height) return;
+    const top = Math.round(t.bottom + 18 - c.top); st.style.top = `${top}px`;
+    const limit = $('spot-menu').getBoundingClientRect().top - 8;
+    if (!st.hidden && c.top + top + st.getBoundingClientRect().height > limit) cxEl.classList.add('story-over');
+  }
+  function cxBuild() {
+    const wrap = $('cx-hotspots');
+    wrap.innerHTML = CX.hotspots.map((h, i) => `<button type="button" class="cx-hs" data-i="${i}" aria-label="그네에 남은 기억 보기 — ${esc(h.label)}"><span class="cx-hs-ring" aria-hidden="true"></span><span class="cx-hs-dot" aria-hidden="true"></span><span class="cx-hs-tip" aria-hidden="true">그네에 남은 기억</span></button>`).join('');
+    cx.hs = [...wrap.querySelectorAll('.cx-hs')];
+    cx.hs.forEach((b) => b.addEventListener('click', () => cxGo(Number(b.dataset.i))));
+    cxImg1.addEventListener('load', cxLayout);
+    window.addEventListener('resize', () => { if (cx.on) cxLayout(); });
+    $('cx-back').addEventListener('click', () => cxReset({ focus: true }));
+    $('cx-more').addEventListener('click', cxReadMore);
+  }
+  function cxSetState(st) { cx.state = st; cxEl.dataset.cx = st; cx.hs.forEach((b) => { b.disabled = st !== 's1'; b.tabIndex = st === 's1' ? 0 : -1; }); }
+  function cxReset({ focus = false } = {}) {
+    clearTimeout(cx.timer);
+    cxImg1.style.transformOrigin = '';
+    cx.hs.forEach((b) => b.classList.remove('hit'));
+    $('cx-story').hidden = true;
+    cxSetState('s1');
+    $('cx-sr').textContent = '';
+    if (focus) cx.hs[0]?.focus({ preventScroll: true });
+  }
+  function cxEnter() { // 캔모아 선택: 거리 사진 액자 대신 실내 사진 1에서 시작한다 (다시 골라도 처음 장면으로)
+    hideScene(CX.credit); $('scene-none').hidden = true;
+    if (cxImg1.getAttribute('src') !== CX.img1) cxImg1.src = CX.img1;
+    if (cxImg2.getAttribute('src') !== CX.img2) cxImg2.src = CX.img2; // 미리 읽어 전환 때 깜빡이지 않게
+    cxImg1.style.objectPosition = `${CX.pos1[0] * 100}% ${CX.pos1[1] * 100}%`;
+    cxImg2.style.objectPosition = `${CX.pos2[0] * 100}% ${CX.pos2[1] * 100}%`;
+    cxEl.hidden = false; cx.on = true; document.body.classList.add('cx-on');
+    cxReset();
+    requestAnimationFrame(cxLayout);
+  }
+  function cxLeave() { if (!cx.on) return; cx.on = false; cxEl.hidden = true; document.body.classList.remove('cx-on'); cxReset(); }
+  function cxGo(i) { // 그네를 누르면: 그 그네 쪽으로 살짝 확대하며 사진 2로 크로스페이드, 끝나면 장소 기억 패널
+    if (!cx.on || cx.state !== 's1') return; // 전환 중 반복 클릭 무시
+    const b = cx.hs[i];
+    if (b) { cxImg1.style.transformOrigin = `${b.style.left} ${b.style.top}`; b.classList.add('hit'); }
+    cxSetState('zoom');
+    $('cx-sr').textContent = '창가 자리로 들어갑니다.';
+    cx.timer = setTimeout(() => {
+      cxSetState('s2');
+      $('cx-story').hidden = false;
+      cxPlaceStory();
+      $('cx-sr').textContent = '마주 보는 그네 자리. 장소 기억이 열렸습니다.';
+      $('cx-story').focus({ preventScroll: true });
+    }, CX.T_ZOOM);
+  }
+  function cxReadMore() { // 오른쪽 황금 패널의 캔모아 인터뷰 본문으로 (모바일은 시트를 펼친다)
+    if (view === 'list') closeList();
+    if (!isPanelOpen()) openPanel();
+    const art = body.querySelector('.story'); if (!art) return;
+    art.querySelector('[data-more]')?.click();
+    if (isSheet()) { panel.classList.add('expanded'); $('sheet-handle').setAttribute('aria-expanded', 'true'); }
+    art.setAttribute('tabindex', '-1');
+    art.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+    art.focus({ preventScroll: true });
+  }
+
   /* ---------- 메뉴 ---------- */
   function chipHtml(x) {
-    const th = x.scene && SCENES[x.scene] && (x.id === HUB_ID || x.scene !== itemById(HUB_ID).scene) ? SCENES[x.scene].thumb : null; // 같은 거리 사진을 여러 칩에 반복하지 않는다
+    const th = x.thumb || (x.scene && SCENES[x.scene] && (x.id === HUB_ID || x.scene !== itemById(HUB_ID).scene) ? SCENES[x.scene].thumb : null); // 같은 거리 사진을 여러 칩에 반복하지 않는다
     const pending = !x.records.length && !x.sensitive; // 기록이 아직 없는 곳은 활성 기능처럼 보이지 않게
     const tag = pending ? '<small class="chip-tag">준비 중</small>' : x.sensitive ? '<small class="chip-tag">열람 확인</small>' : '';
     return `<button type="button" class="spot-btn${pending ? ' pending' : ''}" data-spot="${esc(x.id)}" aria-pressed="false" title="${esc(x.full || x.name)}${pending ? ' · 기록 준비 중' : ''}">${th ? `<span class="thumb"><img src="${esc(th)}" alt="" onerror="this.parentNode.className='thumb empty';this.parentNode.textContent=''"></span>` : `<span class="thumb empty">${x.id === HUB_ID ? '●' : ''}</span>`}${esc(x.name)}${tag}</button>`;
@@ -402,13 +500,13 @@
     if (!spots || !places || !stories) { $('no-data').hidden = false; return; }
     buildModel(spots, places, stories);
     setStreetQuote(stories);
-    buildMenus(); bindUi();
+    buildMenus(); bindUi(); cxBuild();
     await loadHero();
     const m = location.hash.match(/^#place\/([\w-]+)/);
     if (m && itemById(m[1])) select(m[1], { instant: true, fromHash: true });
     else if (location.hash === '#explore') goExplore({ instant: true, fromHash: true });
     else { if (location.hash) setHash(null); else { try { sessionStorage.setItem('cine:last', '#explore'); } catch (e) { /* 없음 */ } } }
   }
-  window.__cine = { select, goExplore, descendFromIntro, goHome: () => select(HUB_ID), goIntro, openList, closeList, step, items: () => ITEMS, order: () => ORDER, choose: select, descendTo: select };
+  window.__cine = { select, goExplore, descendFromIntro, goHome: () => select(HUB_ID), goIntro, openList, closeList, step, items: () => ITEMS, order: () => ORDER, choose: select, descendTo: select, cx: () => ({ ...cx }), cxGo, cxReset };
   boot();
 })();

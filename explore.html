@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
-<link rel="stylesheet" href="explore.css?v=20261026">
+<link rel="stylesheet" href="explore.css?v=20261027">
 </head>
 <body data-state="intro">
   <!-- 왼쪽: 첫 화면은 도심·무등산 사진(블루아워 보정 + 느린 카메라), 거리·장소 화면은 그 위에 원본 비율 액자로 거리 사진 -->
@@ -70,6 +70,7 @@
 
     <!-- 거리·장소 화면: 손글씨 한 줄(기록 원문) + 장소 이름 -->
     <div class="title-block" id="title-block">
+      <img class="title-badge" id="title-badge" alt="캔모아 간판" hidden>
       <p class="hand" id="hand"></p>
       <h1 class="place" id="place-title"></h1>
       <svg class="rule" viewBox="0 0 320 24" aria-hidden="true"><path d="M2 12 C 90 4, 180 20, 318 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
@@ -81,6 +82,27 @@
       <figcaption id="sq-src"></figcaption>
     </figure>
     <div class="scene-none" id="scene-none" hidden>이 장소의 사진은<br>아직 없습니다</div>
+
+    <!-- 캔모아 공간 탐험: 실내 사진 1(그네 핫스팟) → 누르면 사진 2(마주 보는 그네 자리) + 장소 기억. 사진은 assets/explore/canmore/ -->
+    <section class="cx" id="cx" hidden data-cx="s1" aria-label="캔모아 공간 탐험">
+      <div class="cx-view">
+        <img class="cx-img cx-img-1" id="cx-img1" alt="캔모아 충장로점 실내. 큰 유리창 앞으로 천장 줄에 매달린 그네 좌석들이 줄지어 있다" decoding="async" draggable="false">
+        <img class="cx-img cx-img-2" id="cx-img2" alt="캔모아 창가 자리. 마주 보는 분홍색 그네 좌석 두 개와 가운데 테이블, 글씨가 가득 적힌 벽" decoding="async" draggable="false">
+        <div class="cx-hotspots" id="cx-hotspots"></div>
+        <p class="cx-hint" id="cx-hint">그네를 눌러, 이곳에 남은 기억을 만나보세요.</p>
+      </div>
+      <p class="cx-sr" id="cx-sr" aria-live="polite"></p>
+      <div class="cx-story" id="cx-story" hidden tabindex="-1" role="region" aria-labelledby="cx-story-title">
+        <p class="cx-kicker">인터뷰 장소 기억을 바탕으로 간추린 글 · 참여자의 직접 발언이 아닙니다</p>
+        <h3 id="cx-story-title">얼굴을 마주 보고, 손끝으로 이어진 이야기</h3>
+        <p class="cx-text">친구와 약속을 잡고, 연인과 데이트를 하던 캔모아. 농인에게 이곳은 서로의 얼굴을 바라보며 수어로 오랫동안 이야기하던 추억의 공간이었습니다.</p>
+        <div class="cx-actions">
+          <button type="button" class="cx-btn primary" id="cx-more">이야기 더 읽기</button>
+          <a class="cx-btn" id="cx-story-link" href="index.html#spot/canmore/story">장소 기억 읽기</a>
+          <button type="button" class="cx-btn ghost" id="cx-back">처음으로 돌아가기</button>
+        </div>
+      </div>
+    </section>
 
     <!-- 하단: 거점과 우선 탐색 장소 (전체 목록은 패널의 '함께 둘러볼 장소') -->
     <nav class="spot-menu" id="spot-menu" aria-label="탐험 장소"></nav>
@@ -110,6 +132,6 @@
     </footer>
   </aside>
 
-  <script src="explore.js?v=20261026"></script>
+  <script src="explore.js?v=20261027"></script>
 </body>
 </html>
