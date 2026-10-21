@@ -25,7 +25,7 @@
 
   // 배경·장면 사진 (assets/explore/, 사용 허락을 받은 사진)
   // 배경: 광주 동구 야경 연출 이미지(1625×968). 첫 화면과 첫 지도 화면이 같은 배경을 쓴다(색보정 없음). 종전 항공사진은 assets/explore/overlook-mountains.jpg에 그대로 둔다
-  const HERO = { src: 'assets/explore/night-donggu.webp', grade: 'none', focus: '50% 50%', focusM: '46% 55%', glow: ['50%', '62%'], credit: '배경: 광주 도심 야경 연출 이미지 — 핀은 화면 연출 위치이며 실제 위치는 「위치 보기」에서 확인합니다' };
+  const HERO = { src: 'assets/explore/night-donggu.webp', grade: 'none', focus: '50% 50%', focusM: '46% 55%', glow: ['50%', '62%'], credit: '' }; // 배경 설명(연출 이미지·핀 위치)은 사이트가 아니라 발표 자료에서 밝힌다 (사용자 결정 2026-10-21)
   // 첫 지도 화면의 장소 핀과 하단 썸네일(같은 목록·순서). fx·fy는 야경 이미지 기준 화면 연출 위치(가로·세로 비율)이며 지리 좌표가 아니다.
   // 핀을 누르면 해당 탐험 항목(기록·황금 패널)이 열린다: 충장로→캔모아(충장로 거점), 금남로→전일빌딩·금남로 기억
   const MAP = {
