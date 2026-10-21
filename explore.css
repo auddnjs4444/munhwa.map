@@ -25,7 +25,7 @@ a { color: inherit; }
 
 /* ---------- 무대 ---------- */
 .stage { position: fixed; inset: 0; overflow: hidden; background: #0b1226; }
-.hero { position: absolute; inset: -3%; transform: scale(var(--z, 1)); transition: transform .55s var(--ease); } /* --z: 첫 지도 화면의 확대 단계 */
+.hero { position: absolute; inset: -3%; }
 .hero.drift { animation: kenburns 28s ease-in-out infinite alternate; }
 @keyframes kenburns { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.035) translate(-0.7%, 0.4%); } }
 .plx { position: absolute; inset: 0; transition: transform .9s var(--ease); will-change: transform; }
@@ -323,11 +323,13 @@ a.vt:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 body[data-state="intro"] .view-toggle, body[data-state="descend"] .view-toggle, body[data-state="explore"] .view-toggle { display: none; } /* 첫 화면·첫 지도 화면에서는 보기 전환 없음(장소 화면에서만) */
 
 /* ---------- 거리 화면: 농인의 장소 기억 원문 한 문단 (오른쪽 열) ---------- */
-.street-quote { position: absolute; left: 54%; top: 43%; z-index: 20; width: 36%; max-width: 560px; margin: 0; opacity: 0; transform: translateY(10px); transition: opacity .8s ease .5s, transform 1s var(--ease) .5s; pointer-events: none; }
+.street-quote { position: absolute; left: 7%; top: 42%; z-index: 20; width: 34%; max-width: 520px; margin: 0; padding: 14px 18px 12px; border-radius: 12px; background: rgba(8, 10, 18, 0.5); backdrop-filter: blur(8px); opacity: 0; transform: translateY(10px); transition: opacity .8s ease .5s, transform 1s var(--ease) .5s; pointer-events: none; } /* 밝은 도심 위에서 읽히도록 옅은 반투명 바탕만 */
+body[data-state="explore"] .street-quote { opacity: 1; transform: none; pointer-events: auto; }
 .street-quote[hidden] { display: none; }
-.street-quote blockquote { margin: 0; padding: 2px 0 2px 20px; border-left: 2px solid var(--gold); font-size: 20px; font-weight: 300; line-height: 1.8; color: var(--ink); word-break: keep-all; text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6); }
+.street-quote blockquote { margin: 0; padding: 2px 0 2px 20px; border-left: 2px solid var(--gold); font-size: 19px; font-weight: 400; line-height: 1.75; color: #fff; word-break: keep-all; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.6); }
 .street-quote figcaption { margin: 14px 0 0 22px; font-size: 11px; font-weight: 500; letter-spacing: 0.18em; line-height: 1.9; color: var(--gold); }
-.street-quote figcaption small { display: block; font-size: 11px; font-weight: 400; letter-spacing: 0.04em; color: var(--ink-dim); }
+.street-quote figcaption { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8); }
+.street-quote figcaption small { display: block; font-size: 11px; font-weight: 400; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.78); }
 @media (max-width: 767px) {
   .top { flex-wrap: wrap; row-gap: 8px; }
   .site-nav { order: 3; width: 100%; margin: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
@@ -336,12 +338,12 @@ body[data-state="intro"] .view-toggle, body[data-state="descend"] .view-toggle, 
   .site-nav > a { flex: none; height: 32px; padding: 0 10px; font-size: 11px; letter-spacing: 0.04em; }
   .view-toggle { margin-left: 4px; padding: 2px; }
   .vt { height: 26px; padding: 0 9px; font-size: 10.5px; letter-spacing: 0.03em; }
-  .street-quote { left: 16px; right: 16px; width: auto; max-width: none; top: calc(118px + (100vw - 32px) / var(--ar, 1.5) + 190px); }
-  .street-quote blockquote { padding-left: 14px; font-size: 15px; line-height: 1.7; }
-  .street-quote figcaption { margin: 10px 0 0 16px; font-size: 10px; letter-spacing: 0.12em; }
+  .street-quote { left: 16px; right: 16px; width: auto; max-width: none; top: 246px; padding: 10px 12px 8px; }
+  .street-quote blockquote { padding-left: 12px; font-size: 14.5px; line-height: 1.6; }
+  .street-quote figcaption { margin: 8px 0 0 14px; font-size: 9.5px; letter-spacing: 0.08em; line-height: 1.6; }
 }
 @media (max-width: 767px) and (max-height: 700px) {
-  .street-quote { display: none; } /* 낮은 화면: 제목·칩이 먼저 */
+  .street-quote figcaption { display: none; } /* 낮은 화면: 출처 줄은 생략, 원문은 유지 */
 }
 
 /* ---------- 캔모아 공간 탐험 (#place/canmore): 실내 사진 1 → 그네 핫스팟 → 사진 2 + 장소 기억 ---------- */
@@ -423,17 +425,7 @@ body.cx-on .rule { width: 220px; }
 .explore-btn { gap: 9px; padding: 0 16px 0 16px; background: rgba(8, 10, 18, 0.62); font-size: 13.5px; letter-spacing: 0.06em; }
 .explore-btn .ico-search { width: 18px; height: 18px; flex: none; }
 .explore-btn .plus { background: none; color: var(--ink); font-size: 18px; width: auto; height: auto; }
-/* 장소 핀: 금색 핀 + 검은 반투명 이름표. 위치는 JS가 야경 이미지의 실제 표시 영역에 투영한다(화면 연출 위치, 지리 좌표 아님) */
-.pins { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s ease .2s; }
-body[data-state="explore"] .pins { opacity: 1; }
-.pin { position: absolute; display: flex; align-items: center; gap: 1px; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: none; transform: translate(-13px, -100%) scale(calc(1 / var(--z, 1))); transform-origin: 13px 100%; filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55)); transition: transform .55s var(--ease); }
-body[data-state="explore"] .pin { pointer-events: auto; }
-.pin-icon { width: 26px; height: 34px; flex: none; }
-.pin-label { padding: 8px 14px 8px 12px; border-radius: 999px; background: rgba(8, 10, 18, 0.74); color: #fff; font: 700 15px/1 'Pretendard Variable', sans-serif; letter-spacing: -0.01em; white-space: nowrap; transition: background .15s; }
-.pin:hover .pin-label, .pin.on .pin-label { background: rgba(8, 10, 18, 0.92); }
-.pin.on .pin-label { color: var(--gold); }
-.pin:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 999px; }
-.pin.flip { flex-direction: row-reverse; transform: translate(calc(-100% + 13px), -100%) scale(calc(1 / var(--z, 1))); transform-origin: calc(100% - 13px) 100%; } /* 오른쪽 가장자리 근처: 이름표를 핀 왼쪽에 */
+/* 사진 위에는 핀을 두지 않는다(연출 이미지). 실제 위치는 미니맵의 점과 위치 보기에서 */
 /* 손글씨 제목(전시 문구) */
 .map-title { position: absolute; left: 7%; top: 17%; z-index: 20; color: #fff; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.7); opacity: 0; transform: translateY(8px); transition: opacity .8s ease .25s, transform 1s var(--ease) .25s; pointer-events: none; }
 body[data-state="explore"] .map-title { opacity: 1; transform: none; }
@@ -453,8 +445,14 @@ body[data-state="explore"] .minimap { opacity: 1; pointer-events: auto; }
 .minimap.collapsed .mm-svg { display: none; }
 .mm-svg path { fill: rgba(255, 255, 255, 0.07); stroke: rgba(255, 255, 255, 0.55); stroke-width: 0.8; stroke-linejoin: round; }
 .mm-svg path.sel { fill: rgba(201, 162, 75, 0.88); stroke: #E8C470; }
+.mm-svg path.hov, .mm-svg path.on { fill: rgba(232, 196, 112, 0.7); stroke: #E8C470; } /* 금남로처럼 동 단위 장소는 그 동을 밝힌다 */
+.mm-dot { fill: var(--gold); stroke: #fff; stroke-width: 0.8; transition: r .2s ease; } /* 도심 장소들은 동구 전체 축척에서 서로 가까워 점이 겹칠 수 있다(실제 간격) */
+.mm-dot.hov { r: 4; }
+.mm-dot.on { r: 5; stroke-width: 1.2; filter: drop-shadow(0 0 3px rgba(232, 196, 112, 0.9)); }
+.mm-note { margin: -4px 0 0; padding: 0 14px 10px; font-size: 10px; letter-spacing: 0.06em; color: rgba(255, 255, 255, 0.55); }
+.minimap.collapsed .mm-note { display: none; }
 /* 지도 조작: 위치 보기(실제 장소 지도), 확대, 축소 */
-.map-ctl { position: absolute; right: 32px; bottom: 120px; z-index: 30; display: flex; flex-direction: column; gap: 8px; opacity: 0; transition: opacity .6s ease .3s; pointer-events: none; }
+.map-ctl { position: absolute; right: 32px; bottom: 124px; z-index: 30; display: flex; flex-direction: column; gap: 8px; opacity: 0; transition: opacity .6s ease .3s; pointer-events: none; }
 body[data-state="explore"] .map-ctl { opacity: 1; pointer-events: auto; }
 .ctl { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 50%; background: rgba(8, 10, 18, 0.72); backdrop-filter: blur(8px); color: #fff; cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s; }
 .ctl svg { width: 20px; height: 20px; }
@@ -485,10 +483,6 @@ body[data-state="explore"] .credit { left: auto; right: 32px; bottom: 16px; max-
   .mt-lead { font-size: 22px; }
   .mt-name { font-size: 54px; margin: 4px 0 0 10px; }
   .mt-rule { bottom: -9px; height: 12px; }
-  .pin-icon { width: 22px; height: 29px; }
-  .pin-label { padding: 6px 11px 6px 9px; font-size: 13px; }
-  .pin { transform: translate(-11px, -100%) scale(calc(1 / var(--z, 1))); transform-origin: 11px 100%; }
-  .pin.flip { transform: translate(calc(-100% + 11px), -100%) scale(calc(1 / var(--z, 1))); transform-origin: calc(100% - 11px) 100%; }
   .minimap { left: 12px; bottom: auto; top: calc(110px + 54dvh - 112px); width: 98px; border-radius: 12px; }
   .mm-head { padding: 6px 6px 2px 8px; font-size: 10.5px; }
   .mm-toggle { width: 18px; height: 18px; }
@@ -506,11 +500,12 @@ body[data-state="explore"] .credit { left: auto; right: 32px; bottom: 16px; max-
   .map-title { left: 32px; top: 136px; }
   .mt-lead { font-size: 28px; }
   .mt-name { font-size: 72px; }
+  .street-quote { left: 32px; top: 350px; width: 52%; }
   .minimap { bottom: auto; top: calc(120px + 56vh - 150px); width: 130px; }
   .map-ctl { bottom: auto; top: calc(120px + 56vh - 156px); right: 24px; }
   body[data-state="explore"] .spot-menu { left: 0; right: 0; bottom: auto; top: calc(120px + 56vh + 18px); transform: none; justify-content: flex-start; padding: 0 32px; overflow-x: auto; scrollbar-width: none; }
   body[data-state="explore"] .credit { right: 32px; bottom: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .map-title, .pins, .minimap, .map-ctl, .pin, .hero { transition: none; }
+  .map-title, .minimap, .map-ctl, .street-quote { transition: none; }
 }

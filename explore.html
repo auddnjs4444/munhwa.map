@@ -9,14 +9,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
-<link rel="stylesheet" href="explore.css?v=20261028">
+<link rel="stylesheet" href="explore.css?v=20261029">
 </head>
 <body data-state="intro">
   <!-- 왼쪽: 첫 화면은 도심·무등산 사진(블루아워 보정 + 느린 카메라), 거리·장소 화면은 그 위에 원본 비율 액자로 거리 사진 -->
   <section class="stage" id="stage" aria-label="광주 도심 풍경">
-    <!-- 배경: 광주 동구 야경(연출 이미지). 첫 지도 화면에서는 이 위에 장소 핀(화면 연출 위치)을 올린다 -->
+    <!-- 배경: 광주 동구 야경(연출 이미지). 사진 위에는 핀을 두지 않고, 실제 위치는 미니맵(실제 경계)과 위치 보기에서 보여준다 -->
     <div class="hero" id="hero">
-      <div class="plx" id="hero-plx"><img class="hero-img" id="hero-img" alt="" draggable="false"><div class="pins" id="pins"></div></div>
+      <div class="plx" id="hero-plx"><img class="hero-img" id="hero-img" alt="" draggable="false"></div>
       <div class="grade" aria-hidden="true"></div>
     </div>
     <div class="scene" id="scene" aria-hidden="true">
@@ -77,7 +77,7 @@
       <svg class="rule" viewBox="0 0 320 24" aria-hidden="true"><path d="M2 12 C 90 4, 180 20, 318 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       <p class="eyebrow" id="eyebrow"></p>
     </div>
-    <!-- 거리 화면: 농인의 장소 기억 원문 한 문단 (data/memory-stories.json 그대로, 전시용으로 고쳐 쓰지 않음) -->
+    <!-- 첫 지도 화면: 농인의 장소 기억 원문 한 문단 (data/memory-stories.json 그대로, 전시용으로 고쳐 쓰지 않음) -->
     <figure class="street-quote" id="street-quote" hidden>
       <blockquote id="sq-text"></blockquote>
       <figcaption id="sq-src"></figcaption>
@@ -112,12 +112,11 @@
     </div>
     <section class="minimap" id="minimap" aria-label="광주 동구 미니맵" hidden>
       <header class="mm-head"><span>광주 동구</span><button type="button" class="mm-toggle" id="mm-toggle" aria-expanded="true" aria-label="미니맵 접기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></header>
-      <svg class="mm-svg" id="mm-svg" viewBox="0 0 160 160" role="img" aria-label="광주 동구 16개 동 경계. 충장로를 금색으로 표시"></svg>
+      <svg class="mm-svg" id="mm-svg" viewBox="0 0 160 160" role="img" aria-label="광주 동구 16개 동 경계. 충장로를 금색으로, 좌표가 확인된 장소를 금색 점으로 표시"></svg>
+      <p class="mm-note">점은 실제 좌표</p>
     </section>
     <div class="map-ctl" id="map-ctl" role="group" aria-label="지도 조작">
       <a class="ctl" id="ctl-locate" href="index.html#spots" aria-label="위치 보기 — 실제 장소 지도로"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>
-      <button type="button" class="ctl" id="ctl-zoom-in" aria-label="확대"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
-      <button type="button" class="ctl" id="ctl-zoom-out" aria-label="축소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
     </div>
 
     <!-- 하단: 장소 썸네일 목록 (핀과 같은 장소 데이터). 전체 목록은 지역 선택·패널의 '함께 둘러볼 장소' -->
@@ -148,6 +147,6 @@
     </footer>
   </aside>
 
-  <script src="explore.js?v=20261028"></script>
+  <script src="explore.js?v=20261029"></script>
 </body>
 </html>
