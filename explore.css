@@ -25,13 +25,15 @@ a { color: inherit; }
 
 /* ---------- 무대 ---------- */
 .stage { position: fixed; inset: 0; overflow: hidden; background: #0b1226; }
-.hero { position: absolute; inset: -3%; }
+.hero { position: absolute; inset: -3%; transform: scale(var(--z, 1)); transition: transform .55s var(--ease); } /* --z: 첫 지도 화면의 확대 단계 */
 .hero.drift { animation: kenburns 28s ease-in-out infinite alternate; }
 @keyframes kenburns { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.035) translate(-0.7%, 0.4%); } }
 .plx { position: absolute; inset: 0; transition: transform .9s var(--ease); will-change: transform; }
 .hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--focus, 50% 50%); filter: var(--grade-filter, none); transform: scale(1); transition: transform 2.1s cubic-bezier(0.65, 0, 0.35, 1), filter 2.1s ease; }
 /* 거리로 내려가기: 도심 사진은 살짝만(1.1배) 밀려 들어가며 어두워진다. 흐림은 쓰지 않는다. 거리·장소 화면에서는 어두운 배경으로 남는다 */
-body[data-state="descend"] .hero-img, body[data-state="explore"] .hero-img, body[data-state="place"] .hero-img { transform: scale(1.1) translate(-1%, -1.5%); filter: var(--grade-filter, none) brightness(0.42); }
+/* 첫 지도 화면(explore): 야경을 밝기 그대로. 장소 화면(place): 살짝 물러나며 어두워져 액자·패널 뒤 배경이 된다 */
+body[data-state="explore"] .hero-img, body[data-state="descend"] .hero-img { transform: none; filter: none; }
+body[data-state="place"] .hero-img { transform: scale(1.06); filter: brightness(0.45); }
 /* 거리 사진 액자: 원본 비율(--ar), 높이 42vh(1440×900에서 가로 약 567px = 원본 0.8배). 확대·흐림·색보정 없이 그대로 */
 .scene { position: absolute; left: 7%; top: 43%; height: min(42vh, 480px); aspect-ratio: var(--ar, 1.5); overflow: hidden; border-radius: 3px; outline: 1px solid rgba(232, 196, 112, 0.3); outline-offset: 7px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); opacity: 0; transform: translateY(16px); transition: opacity .9s ease, transform 1.2s var(--ease), left .8s var(--ease), top .8s var(--ease), height .8s var(--ease), aspect-ratio .8s var(--ease); pointer-events: none; }
 .scene.on { opacity: 1; transform: none; }
@@ -71,10 +73,12 @@ body[data-state="descend"] .caption { opacity: 1; }
 .grade-night .hero-img, .grade-night .scene-img { --grade-filter: brightness(0.92) contrast(1.06) saturate(1.02); }
 .grade-night .grade { background: linear-gradient(180deg, rgba(8, 16, 38, 0.42) 0%, rgba(8, 16, 38, 0.08) 40%, rgba(5, 8, 16, 0.35) 100%); }
 .glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 1.8s ease; background: radial-gradient(42% 34% at var(--gx, 46%) var(--gy, 58%), rgba(255, 190, 110, 0.26), rgba(255, 190, 110, 0) 100%); mix-blend-mode: screen; }
-body[data-state="place"] .glow { opacity: 0.45; }
+body[data-state="place"] .glow { opacity: 0; }
 .vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(125% 92% at 46% 48%, transparent 48%, rgba(0, 0, 0, 0.6) 100%); transition: background .8s; }
 body[data-state="intro"] .vignette { background: radial-gradient(125% 92% at 50% 46%, transparent 50%, rgba(0, 0, 0, 0.55) 100%), linear-gradient(0deg, rgba(4, 6, 14, 0.62) 0%, rgba(4, 6, 14, 0.2) 34%, rgba(4, 6, 14, 0) 55%); }
-body[data-state="explore"] .vignette, body[data-state="place"] .vignette, body[data-state="descend"] .vignette { background: radial-gradient(120% 90% at 42% 48%, transparent 40%, rgba(0, 0, 0, 0.6) 100%), linear-gradient(0deg, rgba(4, 6, 14, 0.5) 0%, rgba(4, 6, 14, 0) 40%); }
+body[data-state="place"] .vignette { background: radial-gradient(120% 90% at 42% 48%, transparent 40%, rgba(0, 0, 0, 0.6) 100%), linear-gradient(0deg, rgba(4, 6, 14, 0.5) 0%, rgba(4, 6, 14, 0) 40%); }
+/* 첫 지도 화면: 도시 밝기를 깎지 않고 위·아래 글자 자리만 아주 옅게 */
+body[data-state="explore"] .vignette, body[data-state="descend"] .vignette { background: linear-gradient(0deg, rgba(4, 6, 14, 0.42) 0%, rgba(4, 6, 14, 0) 24%), linear-gradient(180deg, rgba(4, 6, 14, 0.32) 0%, rgba(4, 6, 14, 0) 16%); }
 .grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.055; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.9'/></svg>"); }
 .no-photo { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-size: 14px; line-height: 1.8; color: var(--ink-dim); background: radial-gradient(60% 50% at 50% 40%, #16213f, #070a12); }
 .no-photo[hidden] { display: none; }
@@ -122,7 +126,7 @@ body:not([data-state="intro"]) .intro-block { opacity: 0; transform: translateY(
 
 /* ---------- 장소 화면 타이포그래피 ---------- */
 .title-block { position: absolute; left: 7%; top: 15%; z-index: 20; max-width: 46%; text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55); transition: opacity .8s ease .3s, transform 2.4s var(--ease); }
-body:not([data-state="place"]):not([data-state="explore"]) .title-block { opacity: 0; pointer-events: none; transition-delay: 0s; }
+body:not([data-state="place"]) .title-block { opacity: 0; pointer-events: none; transition-delay: 0s; }
 .hand { margin: 0 0 6px 4px; font-family: 'Nanum Pen Script', cursive; font-size: 30px; line-height: 1.35; color: var(--ink); word-break: keep-all; }
 .hand small { display: block; margin-top: 2px; font-size: 20px; color: var(--ink-dim); }
 /* 손글씨 한 줄은 한 글자씩 나타난다(글자당 --d 지연, 전체 2초 안팎). 모션 줄이기에서는 바로 보인다 */
@@ -134,7 +138,7 @@ body:not([data-state="place"]):not([data-state="explore"]) .title-block { opacit
 .place { margin: 6px 0 0; font-size: 104px; font-weight: 800; letter-spacing: -0.045em; line-height: 1; color: #fff; }
 .rule { display: block; width: 300px; height: 22px; margin: 10px 0 0 6px; color: var(--gold); }
 .rule path { stroke-dasharray: 340; stroke-dashoffset: 340; transition: stroke-dashoffset 1.6s var(--ease) .6s; }
-body[data-state="place"] .rule path, body[data-state="explore"] .rule path { stroke-dashoffset: 0; }
+body[data-state="place"] .rule path { stroke-dashoffset: 0; }
 .eyebrow { margin: 10px 0 0 6px; font-size: 11px; font-weight: 500; letter-spacing: 0.28em; color: var(--gold); }
 
 /* ---------- 하단 장소 탐색 ---------- */
@@ -316,12 +320,11 @@ body[data-state="intro"] .credit { left: auto; right: 32px; max-width: 46%; text
 .vt.on { background: var(--ink); color: #0b0b0b; }
 a.vt:hover { color: var(--ink); }
 a.vt:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
-body[data-state="intro"] .view-toggle, body[data-state="descend"] .view-toggle { display: none; } /* 첫 화면·전환 중에는 보기 전환 없음 */
+body[data-state="intro"] .view-toggle, body[data-state="descend"] .view-toggle, body[data-state="explore"] .view-toggle { display: none; } /* 첫 화면·첫 지도 화면에서는 보기 전환 없음(장소 화면에서만) */
 
 /* ---------- 거리 화면: 농인의 장소 기억 원문 한 문단 (오른쪽 열) ---------- */
 .street-quote { position: absolute; left: 54%; top: 43%; z-index: 20; width: 36%; max-width: 560px; margin: 0; opacity: 0; transform: translateY(10px); transition: opacity .8s ease .5s, transform 1s var(--ease) .5s; pointer-events: none; }
 .street-quote[hidden] { display: none; }
-body[data-state="explore"] .street-quote { opacity: 1; transform: none; pointer-events: auto; }
 .street-quote blockquote { margin: 0; padding: 2px 0 2px 20px; border-left: 2px solid var(--gold); font-size: 20px; font-weight: 300; line-height: 1.8; color: var(--ink); word-break: keep-all; text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6); }
 .street-quote figcaption { margin: 14px 0 0 22px; font-size: 11px; font-weight: 500; letter-spacing: 0.18em; line-height: 1.9; color: var(--gold); }
 .street-quote figcaption small { display: block; font-size: 11px; font-weight: 400; letter-spacing: 0.04em; color: var(--ink-dim); }
@@ -408,4 +411,106 @@ body.cx-on .rule { width: 220px; }
   .cx:not([hidden]), .cx-story, .cx-hs-ring { animation: none; }
   .cx-img-1, .cx-img-2, .cx-hs, .cx-hint, .cx-hs-tip { transition: none; }
   .hand .ch, .hand small { animation: none; opacity: 1; }
+}
+
+/* ---------- 첫 지도 화면 (explore): 광주 동구 야경 + 장소 핀 + 손글씨 제목 + 미니맵 + 지도 조작 + 하단 썸네일 ---------- */
+.top { padding: 28px 4.5vw; }
+.brand b { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.brand span { font-size: 10px; letter-spacing: 0.2em; color: rgba(255, 255, 255, 0.8); }
+.site-nav > a { border-color: transparent; background: none; backdrop-filter: none; color: rgba(255, 255, 255, 0.9); font-size: 14px; font-weight: 500; letter-spacing: 0.02em; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
+.site-nav > a:hover { color: #fff; border-color: rgba(255, 255, 255, 0.35); }
+.site-nav > a.on { background: #fff; border-color: #fff; color: #0b0b0b; font-weight: 600; text-shadow: none; }
+.explore-btn { gap: 9px; padding: 0 16px 0 16px; background: rgba(8, 10, 18, 0.62); font-size: 13.5px; letter-spacing: 0.06em; }
+.explore-btn .ico-search { width: 18px; height: 18px; flex: none; }
+.explore-btn .plus { background: none; color: var(--ink); font-size: 18px; width: auto; height: auto; }
+/* 장소 핀: 금색 핀 + 검은 반투명 이름표. 위치는 JS가 야경 이미지의 실제 표시 영역에 투영한다(화면 연출 위치, 지리 좌표 아님) */
+.pins { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s ease .2s; }
+body[data-state="explore"] .pins { opacity: 1; }
+.pin { position: absolute; display: flex; align-items: center; gap: 1px; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: none; transform: translate(-13px, -100%) scale(calc(1 / var(--z, 1))); transform-origin: 13px 100%; filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55)); transition: transform .55s var(--ease); }
+body[data-state="explore"] .pin { pointer-events: auto; }
+.pin-icon { width: 26px; height: 34px; flex: none; }
+.pin-label { padding: 8px 14px 8px 12px; border-radius: 999px; background: rgba(8, 10, 18, 0.74); color: #fff; font: 700 15px/1 'Pretendard Variable', sans-serif; letter-spacing: -0.01em; white-space: nowrap; transition: background .15s; }
+.pin:hover .pin-label, .pin.on .pin-label { background: rgba(8, 10, 18, 0.92); }
+.pin.on .pin-label { color: var(--gold); }
+.pin:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 999px; }
+.pin.flip { flex-direction: row-reverse; transform: translate(calc(-100% + 13px), -100%) scale(calc(1 / var(--z, 1))); transform-origin: calc(100% - 13px) 100%; } /* 오른쪽 가장자리 근처: 이름표를 핀 왼쪽에 */
+/* 손글씨 제목(전시 문구) */
+.map-title { position: absolute; left: 7%; top: 17%; z-index: 20; color: #fff; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.7); opacity: 0; transform: translateY(8px); transition: opacity .8s ease .25s, transform 1s var(--ease) .25s; pointer-events: none; }
+body[data-state="explore"] .map-title { opacity: 1; transform: none; }
+.mt-lead { margin: 0; font-family: 'Nanum Pen Script', cursive; font-size: 34px; line-height: 1.22; }
+.mt-name { position: relative; display: inline-block; margin: 8px 0 0 16px; font-family: 'Nanum Pen Script', cursive; font-size: 94px; line-height: 1; }
+.mt-rule { position: absolute; left: 2px; bottom: -14px; width: 112%; height: 18px; color: #fff; }
+/* 미니맵: 동구 16개 동 실제 경계(geojson), 충장로 금색 */
+.minimap { position: absolute; left: 32px; bottom: 44px; z-index: 30; width: 190px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 16px; background: rgba(8, 10, 18, 0.72); backdrop-filter: blur(10px); color: #fff; opacity: 0; transition: opacity .6s ease .3s; pointer-events: none; }
+.minimap[hidden] { display: none; }
+body[data-state="explore"] .minimap { opacity: 1; pointer-events: auto; }
+.mm-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 10px 4px 14px; font: 600 13px/1 'Pretendard Variable', sans-serif; }
+.mm-toggle { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 50%; background: none; color: #fff; cursor: pointer; }
+.mm-toggle svg { width: 14px; height: 14px; transition: transform .3s; }
+.mm-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.minimap.collapsed .mm-toggle svg { transform: rotate(180deg); }
+.mm-svg { display: block; width: 100%; height: auto; padding: 0 12px 10px; }
+.minimap.collapsed .mm-svg { display: none; }
+.mm-svg path { fill: rgba(255, 255, 255, 0.07); stroke: rgba(255, 255, 255, 0.55); stroke-width: 0.8; stroke-linejoin: round; }
+.mm-svg path.sel { fill: rgba(201, 162, 75, 0.88); stroke: #E8C470; }
+/* 지도 조작: 위치 보기(실제 장소 지도), 확대, 축소 */
+.map-ctl { position: absolute; right: 32px; bottom: 120px; z-index: 30; display: flex; flex-direction: column; gap: 8px; opacity: 0; transition: opacity .6s ease .3s; pointer-events: none; }
+body[data-state="explore"] .map-ctl { opacity: 1; pointer-events: auto; }
+.ctl { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 50%; background: rgba(8, 10, 18, 0.72); backdrop-filter: blur(8px); color: #fff; cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s; }
+.ctl svg { width: 20px; height: 20px; }
+.ctl:hover { background: rgba(8, 10, 18, 0.92); border-color: rgba(255, 255, 255, 0.5); }
+.ctl:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.ctl[disabled] { opacity: 0.4; cursor: default; }
+/* 하단 썸네일: 원형 사진 + 이름 (패널 없이 야경 위에 떠 있음) */
+.spot-menu { gap: 18px; }
+.spot-btn { gap: 10px; padding: 4px 6px 4px 4px; border: 0; background: none; backdrop-filter: none; font: 600 15px/1 'Pretendard Variable', sans-serif; letter-spacing: -0.01em; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.75); }
+.spot-btn .thumb { width: 56px; height: 56px; flex: none; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 6px 16px rgba(0, 0, 0, 0.5); background-color: #1a2440; background-size: cover; background-position: center; background-repeat: no-repeat; }
+.spot-btn .thumb.empty { border: 0; }
+.spot-btn:hover { border: 0; transform: translateY(-2px); }
+.spot-btn.on { background: none; border: 0; }
+.spot-btn.on .thumb { box-shadow: 0 0 0 2.5px var(--gold), 0 6px 16px rgba(0, 0, 0, 0.5); }
+.spot-btn.on .spot-name { color: var(--gold); }
+.spot-btn.pending { border: 0; opacity: 0.88; }
+.spot-btn.pending .thumb { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5), 0 6px 16px rgba(0, 0, 0, 0.5); }
+.credit { color: rgba(244, 241, 232, 0.5); }
+body[data-state="explore"] .credit { left: auto; right: 32px; bottom: 16px; max-width: 46%; text-align: right; }
+@media (max-width: 767px) {
+  .top { padding: 16px 16px; }
+  .brand b { font-size: 17px; }
+  .brand span { font-size: 8.5px; }
+  .site-nav > a { font-size: 12px; }
+  /* 첫 지도 화면: 야경을 띠(46dvh)로 보여 모든 핀이 한 화면에 들어오게 하고, 썸네일은 그 아래에 가로 스크롤 */
+  body[data-state="explore"] .hero { inset: auto; left: 0; right: 0; top: 110px; height: 54dvh; }
+  .map-title { left: 16px; top: 122px; }
+  .mt-lead { font-size: 22px; }
+  .mt-name { font-size: 54px; margin: 4px 0 0 10px; }
+  .mt-rule { bottom: -9px; height: 12px; }
+  .pin-icon { width: 22px; height: 29px; }
+  .pin-label { padding: 6px 11px 6px 9px; font-size: 13px; }
+  .pin { transform: translate(-11px, -100%) scale(calc(1 / var(--z, 1))); transform-origin: 11px 100%; }
+  .pin.flip { transform: translate(calc(-100% + 11px), -100%) scale(calc(1 / var(--z, 1))); transform-origin: calc(100% - 11px) 100%; }
+  .minimap { left: 12px; bottom: auto; top: calc(110px + 54dvh - 112px); width: 98px; border-radius: 12px; }
+  .mm-head { padding: 6px 6px 2px 8px; font-size: 10.5px; }
+  .mm-toggle { width: 18px; height: 18px; }
+  .mm-toggle svg { width: 10px; height: 10px; }
+  .mm-svg { padding: 0 6px 6px; }
+  .map-ctl { display: none; } /* 모바일: 확대·축소 버튼 없음(핀치 줌 미지원) */
+  body[data-state="explore"] .spot-menu { bottom: auto; top: calc(110px + 54dvh + 14px); padding: 0 16px; gap: 14px; }
+  .spot-btn { font-size: 13.5px; }
+  .spot-btn .thumb { width: 48px; height: 48px; }
+  body[data-state="explore"] .credit { display: block; left: 16px; right: 16px; bottom: 14px; max-width: none; text-align: left; font-size: 9.5px; }
+}
+/* 태블릿 세로(768–1023px): 세로 화면에서는 야경을 띠로 보여 핀이 모두 들어오게 하고, 썸네일은 띠 아래 가로 스크롤 */
+@media (min-width: 768px) and (max-width: 1023px) and (orientation: portrait) {
+  body[data-state="explore"] .hero { inset: auto; left: 0; right: 0; top: 120px; height: 56vh; }
+  .map-title { left: 32px; top: 136px; }
+  .mt-lead { font-size: 28px; }
+  .mt-name { font-size: 72px; }
+  .minimap { bottom: auto; top: calc(120px + 56vh - 150px); width: 130px; }
+  .map-ctl { bottom: auto; top: calc(120px + 56vh - 156px); right: 24px; }
+  body[data-state="explore"] .spot-menu { left: 0; right: 0; bottom: auto; top: calc(120px + 56vh + 18px); transform: none; justify-content: flex-start; padding: 0 32px; overflow-x: auto; scrollbar-width: none; }
+  body[data-state="explore"] .credit { right: 32px; bottom: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-title, .pins, .minimap, .map-ctl, .pin, .hero { transition: none; }
 }

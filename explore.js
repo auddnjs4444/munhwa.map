@@ -24,7 +24,22 @@
   const NEAR_M = 450;         // '가까운 장소' 기준: 거점에서 직선 450 m 이내 (실제 위치가 확인된 곳만)
 
   // 배경·장면 사진 (assets/explore/, 사용 허락을 받은 사진)
-  const HERO = { src: 'assets/explore/overlook-mountains.jpg', grade: 'bluehour', focus: '50% 50%', focusM: '52% 50%', glow: ['44%', '66%'], credit: '배경 사진: 광주 도심과 무등산 조망 — 사용 허락을 받은 사진, 해질녘 톤으로 보정' };
+  // 배경: 광주 동구 야경 연출 이미지(1625×968). 첫 화면과 첫 지도 화면이 같은 배경을 쓴다(색보정 없음). 종전 항공사진은 assets/explore/overlook-mountains.jpg에 그대로 둔다
+  const HERO = { src: 'assets/explore/night-donggu.webp', grade: 'none', focus: '50% 50%', focusM: '46% 55%', glow: ['50%', '62%'], credit: '배경: 광주 도심 야경 연출 이미지 — 핀은 화면 연출 위치이며 실제 위치는 「위치 보기」에서 확인합니다' };
+  // 첫 지도 화면의 장소 핀과 하단 썸네일(같은 목록·순서). fx·fy는 야경 이미지 기준 화면 연출 위치(가로·세로 비율)이며 지리 좌표가 아니다.
+  // 핀을 누르면 해당 탐험 항목(기록·황금 패널)이 열린다: 충장로→캔모아(충장로 거점), 금남로→전일빌딩·금남로 기억
+  const MAP = {
+    pins: [
+      { id: 'canmore', label: '충장로', fx: 0.248, fy: 0.472, thumb: 'assets/explore/canmore/swings-thumb.jpg' },
+      { id: 'geumnam-street', label: '금남로', fx: 0.328, fy: 0.617 },
+      { id: '518-democracy-square', label: '5·18민주광장', fx: 0.506, fy: 0.609 },
+      { id: 'acc', label: 'ACC', fx: 0.670, fy: 0.531, thumb: 'assets/explore/acc-night.jpg' },
+      { id: 'geumnam-park', label: '금남로공원', fx: 0.669, fy: 0.758 },
+    ],
+    geojson: 'data/gwangju_donggu_sign_16.geojson?v=20261015', highlight: 'donggu_13', // 미니맵: 실제 동 경계, 충장로 강조
+    zoomSteps: [1, 1.25, 1.5],
+    thumbZoom: 7, imgRatio: 968 / 1625, // 사진이 없는 장소의 썸네일: 야경 이미지에서 핀 주변을 잘라 보여준다
+  };
   const SCENES = {
     chungjang: { src: 'assets/explore/chungjang-night.jpg', grade: 'night', focus: '50% 55%', focusM: '58% 50%', glow: ['46%', '58%'], credit: '장면 사진: 충장로 거리 풍경 — 선택한 장소 자체의 사진이 아니라 충장로 거리 사진입니다 (사용 허락을 받은 사진)', thumb: 'assets/explore/chungjang-night.jpg' },
     acc: { src: 'assets/explore/acc-night.jpg', grade: 'night', focus: '50% 62%', focusM: '46% 60%', glow: ['50%', '58%'], credit: '장면 사진: 국립아시아문화전당 일대, 해질녘 (사용 허락을 받은 사진)', thumb: 'assets/explore/acc-night.jpg' },
@@ -168,32 +183,26 @@
   function goIntro() {
     clearTimeout(descendTimer);
     if (isPanelOpen()) closePanelOnly();
-    current = null; view = 'place'; cxLeave(); hideScene(); $('scene-none').hidden = true; syncMenus(); setState('intro'); setHash(null);
+    current = null; view = 'place'; cxLeave(); hideScene(); $('scene-none').hidden = true; syncMenus(); setZoom(0);
+    if (!REDUCED) hero.classList.add('drift');
+    setState('intro'); setHash(null);
     $('explore-btn').focus({ preventScroll: true });
   }
   // 충장로 거리(탐험 시작 화면): 어두워진 도심 사진 위에 거리 사진 액자 + 「충장로」 + 장소 기억 원문 한 문단 + 하단 장소 칩
+  // 첫 지도 화면: 야경 전체 + 장소 핀 + 손글씨 제목 + 미니맵 + 지도 조작 + 하단 썸네일. 패널·장면 액자는 모두 닫힌 상태
   function goExplore({ instant = false, fromHash = false, push = false } = {}) {
     clearTimeout(descendTimer);
     if (isPanelOpen()) closePanelOnly();
     current = null; view = 'place'; syncMenus(); cxLeave();
-    showScene(STREET_SCENE, { delay: instant || fromHash ? 0 : undefined });
-    $('scene-none').hidden = true;
-    $('hand').innerHTML = ''; $('place-title').textContent = STREET.title; $('place-title').style.fontSize = '';
-    $('eyebrow').textContent = STREET.eyebrow;
+    hideScene(HERO.credit); $('scene-none').hidden = true;
+    hero.classList.remove('drift'); setZoom(0);
     setState('explore');
     setHash('explore', { push: push && !fromHash });
     syncToggle(null);
-    if (!instant && !fromHash) setTimeout(() => $('spot-menu').querySelector('.spot-btn')?.focus({ preventScroll: true }), REDUCED ? 0 : 600);
+    requestAnimationFrame(layoutPins);
+    if (!instant && !fromHash) setTimeout(() => $('pins').querySelector('.pin')?.focus({ preventScroll: true }), REDUCED ? 0 : 700);
   }
-  // 첫 화면 → 충장로 거리: 두 사진의 시점이 다르므로 3D처럼 잇지 않고, 도심 사진이 살짝 물러나며 어두워지는 사이 레터박스·자막 뒤에 거리 사진 액자가 떠오르는 컷
-  function descendFromIntro() {
-    if (REDUCED || state() !== 'intro') { goExplore({ push: true }); return; }
-    clearTimeout(descendTimer);
-    $('caption').textContent = '충장로로 내려갑니다';
-    setState('descend');
-    showScene(STREET_SCENE, { delay: 900 });
-    descendTimer = setTimeout(() => goExplore({ push: true }), T_DESCEND);
-  }
+  const descendFromIntro = () => goExplore({ push: true }); // 첫 화면 → 첫 지도 화면 (같은 배경 위에 UI만 나타난다)
   // 탐험 보기 방식 전환: '위치 보기'는 본 사이트 지도에서 같은 장소를 연다 (장소 지도에 없는 곳은 지명 수어 지점 → 없으면 거점 전체)
   function syncToggle(item) { $('vt-map').href = siteLink(item ? (item.siteHash || item.mapHash || '#spots') : '#spots'); }
   // 거리 화면의 인용: 거점의 장소 기억 원고 첫 문단을 원문 그대로 (전시용 재구성 문장이 아님을 밝힌다)
@@ -228,6 +237,7 @@
     toggleExplore(false);
     const wasOpen = isPanelOpen();
     current = id; view = 'place';
+    hero.classList.remove('drift'); setZoom(0);
     setState('place');
     if (item.id === HUB_ID) cxEnter();
     else { cxLeave(); if (item.scene) { showScene(item.scene, { delay: instant || fromHash ? 0 : undefined }); $('scene-none').hidden = true; } else { hideScene(NO_SCENE_CREDIT); $('scene-none').hidden = false; } }
@@ -444,16 +454,69 @@
     art.focus({ preventScroll: true });
   }
 
+  /* ---------- 첫 지도 화면: 장소 핀 · 확대 · 미니맵 ---------- */
+  function buildPins() {
+    $('pins').innerHTML = MAP.pins.map((p, i) => `<button type="button" class="pin" data-spot="${esc(p.id)}" data-i="${i}" aria-pressed="false" aria-label="${esc(p.label)} — 장소 기억 열기"><svg class="pin-icon" viewBox="0 0 26 34" aria-hidden="true"><path d="M13 1C6.4 1 1 6.3 1 12.8 1 22 13 33 13 33s12-11 12-20.2C25 6.3 19.6 1 13 1z" fill="#E2BC63" stroke="#7a5d18" stroke-width=".8"/><circle cx="13" cy="12.6" r="4.6" fill="#fff"/></svg><span class="pin-label">${esc(p.label)}</span></button>`).join('');
+    heroImg.addEventListener('load', layoutPins);
+    window.addEventListener('resize', layoutPins);
+  }
+  function heroPos() { // 배경 이미지의 object-position(%) → 비율
+    const op = getComputedStyle(heroImg).objectPosition.split(' ');
+    const f = (v, d) => (v && v.endsWith('%') ? parseFloat(v) / 100 : d);
+    return [f(op[0], 0.5), f(op[1], 0.5)];
+  }
+  // 핀 위치: 이미지 비율 좌표 → object-fit: cover로 실제 그려진 영역에 투영. 화면 크기·잘림이 바뀌어도 같은 건물 위에 남는다. 확대(--z)는 상자 전체에 걸리므로 상자 좌표로 둔다
+  function layoutPins() {
+    const nw = heroImg.naturalWidth, nh = heroImg.naturalHeight; const bw = hero.offsetWidth, bh = hero.offsetHeight;
+    if (!nw || !nh || !bw || !bh) return;
+    const sc = Math.max(bw / nw, bh / nh); const w = nw * sc, h = nh * sc; const [px, py] = heroPos();
+    const ox = (bw - w) * px, oy = (bh - h) * py;
+    $('pins').querySelectorAll('.pin').forEach((b) => {
+      const p = MAP.pins[Number(b.dataset.i)]; const x = ox + p.fx * w;
+      b.style.left = `${x.toFixed(1)}px`; b.style.top = `${(oy + p.fy * h).toFixed(1)}px`;
+      b.classList.toggle('flip', x > bw - 130); // 오른쪽 가장자리 근처면 이름표를 핀 왼쪽에 (잘림 방지)
+    });
+  }
+  let zoomIdx = 0;
+  function setZoom(i) {
+    zoomIdx = Math.max(0, Math.min(MAP.zoomSteps.length - 1, i));
+    hero.style.setProperty('--z', MAP.zoomSteps[zoomIdx]);
+    $('ctl-zoom-in').disabled = zoomIdx === MAP.zoomSteps.length - 1; $('ctl-zoom-out').disabled = zoomIdx === 0;
+  }
+  async function buildMinimap() { // 동구 16개 동 실제 경계(geojson)를 160×160에 투영. 경계를 새로 그리거나 바꾸지 않는다
+    const mm = $('minimap');
+    let g = null; try { g = await fetch(MAP.geojson).then((r) => (r.ok ? r.json() : null)); } catch (e) { g = null; }
+    if (!g || !Array.isArray(g.features) || !g.features.length) { mm.hidden = true; return; }
+    const k = Math.cos((35.12 * Math.PI) / 180); // 위도 보정(경도 1도의 실제 길이)
+    const ringsOf = (geom) => (geom.type === 'Polygon' ? geom.coordinates : geom.type === 'MultiPolygon' ? geom.coordinates.flat() : []);
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    g.features.forEach((f) => ringsOf(f.geometry).forEach((r) => r.forEach(([lon, lat]) => { const x = lon * k; if (x < minX) minX = x; if (x > maxX) maxX = x; if (lat < minY) minY = lat; if (lat > maxY) maxY = lat; })));
+    const sx = maxX - minX, sy = maxY - minY; const sc = 150 / Math.max(sx, sy); const dx = 5 + (150 - sx * sc) / 2, dy = 5 + (150 - sy * sc) / 2;
+    const P = (lon, lat) => `${(dx + (lon * k - minX) * sc).toFixed(1)} ${(dy + (maxY - lat) * sc).toFixed(1)}`;
+    $('mm-svg').innerHTML = g.features.map((f) => {
+      const id = f.properties ? f.properties.id : ''; const name = f.properties ? f.properties.name : '';
+      const d = ringsOf(f.geometry).map((r) => `M${r.map(([lon, lat]) => P(lon, lat)).join('L')}Z`).join('');
+      return `<path d="${d}"${id === MAP.highlight ? ' class="sel"' : ''}><title>${esc(name || '')}</title></path>`;
+    }).join('');
+    mm.hidden = false;
+  }
+  function thumbStyle(p) { // 썸네일: 장소 사진이 있으면 그 사진, 없으면 야경 이미지에서 핀 주변을 잘라서 (별도 사진을 만들지 않는다)
+    if (p.thumb) return `background-image:url('${esc(p.thumb)}')`;
+    const z = MAP.thumbZoom, hz = z * MAP.imgRatio; // 배경 너비 = 썸네일의 z배, 높이는 이미지 비율대로
+    const bx = ((p.fx * z - 0.5) / (z - 1)) * 100, by = ((p.fy * hz - 0.5) / (hz - 1)) * 100;
+    return `background-image:url('${esc(HERO.src)}');background-size:${z * 100}% auto;background-position:${bx.toFixed(1)}% ${by.toFixed(1)}%`;
+  }
+
   /* ---------- 메뉴 ---------- */
-  function chipHtml(x) {
-    const th = x.thumb || (x.scene && SCENES[x.scene] && (x.id === HUB_ID || x.scene !== itemById(HUB_ID).scene) ? SCENES[x.scene].thumb : null); // 같은 거리 사진을 여러 칩에 반복하지 않는다
+  function chipHtml(p) {
+    const x = itemById(p.id); if (!x) return '';
     const pending = !x.records.length && !x.sensitive; // 기록이 아직 없는 곳은 활성 기능처럼 보이지 않게
     const tag = pending ? '<small class="chip-tag">준비 중</small>' : x.sensitive ? '<small class="chip-tag">열람 확인</small>' : '';
-    return `<button type="button" class="spot-btn${pending ? ' pending' : ''}" data-spot="${esc(x.id)}" aria-pressed="false" title="${esc(x.full || x.name)}${pending ? ' · 기록 준비 중' : ''}">${th ? `<span class="thumb"><img src="${esc(th)}" alt="" onerror="this.parentNode.className='thumb empty';this.parentNode.textContent=''"></span>` : `<span class="thumb empty">${x.id === HUB_ID ? '●' : ''}</span>`}${esc(x.name)}${tag}</button>`;
+    return `<button type="button" class="spot-btn${pending ? ' pending' : ''}" data-spot="${esc(x.id)}" aria-pressed="false" title="${esc(x.full || x.name)}${pending ? ' · 기록 준비 중' : ''}"><span class="thumb" style="${thumbStyle(p)}"></span><span class="spot-name">${esc(p.label)}</span>${tag}</button>`;
   }
   function buildMenus() {
     const pri = PRIORITY.map(itemById).filter(Boolean);
-    $('spot-menu').innerHTML = pri.map(chipHtml).join('');
+    $('spot-menu').innerHTML = MAP.pins.map(chipHtml).join('');
     $('explore-list').innerHTML = pri.map((x) => `<button type="button" class="em-item${!x.records.length && !x.sensitive ? ' pending' : ''}" data-spot="${esc(x.id)}" aria-pressed="false"><small>${esc(x.id === HUB_ID ? '거점' : x.dist != null ? distText(x.dist).replace('직선 약 ', '') : '—')}</small><span>${esc(x.name)}</span><em>${esc(x.records.length ? `기억 ${x.records.length}` : x.sensitive ? '열람 확인' : '기록 준비 중')}</em></button>`).join('') + `<button type="button" class="em-item em-all" id="em-all"><small>+</small><span>함께 둘러볼 장소 전체</span><em>${ITEMS.length}곳</em></button>`;
     document.querySelectorAll('[data-spot]').forEach((b) => b.addEventListener('click', () => select(b.dataset.spot)));
     $('em-all').addEventListener('click', () => { toggleExplore(false); openList(); });
@@ -468,6 +531,9 @@
   }
   function bindUi() {
     $('cta').addEventListener('click', () => descendFromIntro());
+    $('ctl-zoom-in').addEventListener('click', () => setZoom(zoomIdx + 1));
+    $('ctl-zoom-out').addEventListener('click', () => setZoom(zoomIdx - 1));
+    $('mm-toggle').addEventListener('click', () => { const mm = $('minimap'); const c = mm.classList.toggle('collapsed'); const b = $('mm-toggle'); b.setAttribute('aria-expanded', String(!c)); b.setAttribute('aria-label', c ? '미니맵 펼치기' : '미니맵 접기'); });
     $('nav-explore').addEventListener('click', (e) => { if (state() === 'explore') e.preventDefault(); }); // 이미 거리 화면이면 그대로 (그 밖엔 #explore 해시로 이동)
     $('brand').addEventListener('click', (e) => { e.preventDefault(); toggleExplore(false); goIntro(); });
     $('explore-btn').addEventListener('click', () => toggleExplore());
@@ -499,14 +565,14 @@
     } catch (e) { /* 아래에서 안내 */ }
     if (!spots || !places || !stories) { $('no-data').hidden = false; return; }
     buildModel(spots, places, stories);
-    setStreetQuote(stories);
-    buildMenus(); bindUi(); cxBuild();
+    buildPins(); buildMenus(); bindUi(); cxBuild(); buildMinimap();
     await loadHero();
+    layoutPins();
     const m = location.hash.match(/^#place\/([\w-]+)/);
     if (m && itemById(m[1])) select(m[1], { instant: true, fromHash: true });
     else if (location.hash === '#explore') goExplore({ instant: true, fromHash: true });
     else { if (location.hash) setHash(null); else { try { sessionStorage.setItem('cine:last', '#explore'); } catch (e) { /* 없음 */ } } }
   }
-  window.__cine = { select, goExplore, descendFromIntro, goHome: () => select(HUB_ID), goIntro, openList, closeList, step, items: () => ITEMS, order: () => ORDER, choose: select, descendTo: select, cx: () => ({ ...cx }), cxGo, cxReset };
+  window.__cine = { select, goExplore, descendFromIntro, goHome: () => select(HUB_ID), goIntro, openList, closeList, step, items: () => ITEMS, order: () => ORDER, choose: select, descendTo: select, cx: () => ({ ...cx }), cxGo, cxReset, layoutPins, setZoom, pins: () => MAP.pins };
   boot();
 })();
