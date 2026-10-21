@@ -289,8 +289,60 @@ function buildTrack(places) {
     card.innerHTML = `
       <span class="media">${mediaHtml(place, idx)}</span>
       <span class="cap"><span>${place.name}</span><span class="idx">GSL®/${String(idx).padStart(2, '0')}</span></span>`;
-    card.addEventListener('click', () => openOverlay(place));
+    card.addEventListener('click', () => { arSelect(place.id); openOverlay(place); });
+    card.addEventListener('mouseenter', () => arHover(place.id, true));
+    card.addEventListener('mouseleave', () => arHover(place.id, false));
+    card.addEventListener('focus', () => arHover(place.id, true));
+    card.addEventListener('blur', () => arHover(place.id, false));
     trackEl.appendChild(card);
+  });
+}
+
+/* ---------- 기록 화면의 동구 미니맵 (실제 경계 + 연결표) ----------
+   카드에 올리면 그 기록의 동이 밝아지고(.hov), 누르면 금색으로 빛난다(.on, 기록을 닫아도 유지).
+   경계가 없는 기록(무등산·양림동·5·18민주광장 등)은 places.json 좌표에 점으로 둔다. 경계·좌표 데이터는 바꾸지 않는다. */
+const arMm = { el: null, ready: false };
+function arTargets(placeId) { return arMm.el ? arMm.el.querySelectorAll(`[data-places~="${CSS.escape(placeId)}"]`) : []; }
+function arHover(placeId, on) { arTargets(placeId).forEach((el) => el.classList.toggle('hov', on)); }
+function arSelect(placeId) {
+  if (!arMm.el) return;
+  arMm.el.querySelectorAll('.on').forEach((el) => el.classList.remove('on'));
+  arTargets(placeId).forEach((el) => el.classList.add('on'));
+}
+function buildArchiveMinimap() {
+  const box = document.getElementById('ar-minimap'), svg = document.getElementById('ar-mm-svg');
+  if (!box || !svg) return;
+  arMm.el = svg;
+  Promise.all([
+    fetch(REGION_GEOJSON).then((r) => (r.ok ? r.json() : null)),
+    fetch(DONG_RECORDS).then((r) => (r.ok ? r.json() : null)),
+  ]).then(([geo, rec]) => {
+    if (!geo || !Array.isArray(geo.features) || !geo.features.length) { box.hidden = true; return; }
+    const regionsRec = (rec && rec.regions) || {};
+    const k = Math.cos((35.12 * Math.PI) / 180); // 위도 보정(경도 1도의 실제 길이)
+    const ringsOf = (geom) => (geom.type === 'Polygon' ? geom.coordinates : geom.type === 'MultiPolygon' ? geom.coordinates.flat() : []);
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    geo.features.forEach((f) => ringsOf(f.geometry).forEach((ring) => ring.forEach(([lon, lat]) => { const x = lon * k; if (x < minX) minX = x; if (x > maxX) maxX = x; if (lat < minY) minY = lat; if (lat > maxY) maxY = lat; })));
+    const sx = maxX - minX, sy = maxY - minY; const sc = 150 / Math.max(sx, sy); const dx = 5 + (150 - sx * sc) / 2, dy = 5 + (150 - sy * sc) / 2;
+    const X = (lon) => dx + (lon * k - minX) * sc, Y = (lat) => dy + (maxY - lat) * sc;
+    const covered = new Set();
+    const paths = geo.features.map((f) => {
+      const id = f.properties ? f.properties.id : ''; const name = f.properties ? f.properties.name : '';
+      const ids = ((regionsRec[id] && regionsRec[id].records) || []).filter((pid) => placesData.some((p) => p.id === pid));
+      ids.forEach((pid) => covered.add(pid));
+      const d = ringsOf(f.geometry).map((ring) => `M${ring.map(([lon, lat]) => `${X(lon).toFixed(1)} ${Y(lat).toFixed(1)}`).join('L')}Z`).join('');
+      return `<path d="${d}"${ids.length ? ` data-places="${ids.join(' ')}"` : ''}><title>${name || ''}</title></path>`;
+    });
+    // 경계로 덮이지 않는 기록: 좌표가 미니맵 범위 안이면 점으로 (범위 밖이면 표시하지 않는다)
+    const dots = placesData.filter((p) => !covered.has(p.id) && Number.isFinite(p.lat) && Number.isFinite(p.lng)).map((p) => {
+      const x = X(p.lng), y = Y(p.lat); if (x < 2 || x > 158 || y < 2 || y > 158) return '';
+      return `<circle class="mm-dot" data-places="${p.id}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.8"><title>${p.name}</title></circle>`;
+    });
+    svg.innerHTML = paths.join('') + dots.join('');
+    box.hidden = false; arMm.ready = true;
+  }).catch((err) => { console.error('기록 미니맵 로드 실패:', err); box.hidden = true; });
+  document.getElementById('ar-mm-toggle')?.addEventListener('click', (e) => {
+    const c = box.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(!c)); e.currentTarget.setAttribute('aria-label', c ? '미니맵 펼치기' : '미니맵 접기');
   });
 }
 
@@ -1295,6 +1347,7 @@ fetch('data/places.json?v=20261021')
     buildTrack(places);
     buildRuler(places);
     buildSignIndex(places);
+    buildArchiveMinimap();
     if (location.hash.startsWith('#map') || location.hash.startsWith('#spot')) setView('map'); // #map, #map/…, #spots, #spot/…
     else { const v = new URLSearchParams(location.search).get('view'); if (v && v !== 'archive' && document.getElementById(`view-${v}`)) setView(v); } // explore.html에서 ?view=map|about 으로 들어올 때
     syncRuler();
