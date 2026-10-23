@@ -4,18 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#070a12">
-<meta name="description" content="광주 수어지도 — 농인의 기억으로 다시 만나는 광주. 광주 동구 야경 지도에서 충장로·캔모아로 들어가는 장소 탐험.">
+<meta name="description" content="광주 수어지도 — 농인의 기억으로 다시 만나는 광주. 충장로 캔모아에서 시작하는 장소 탐험과 농인의 장소 기억.">
 <title>손으로 부르는 광주 — 광주 탐험하기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Gowun+Batang:wght@400;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
-<link rel="stylesheet" href="explore.css?v=20261031">
+<link rel="stylesheet" href="explore.css?v=20261101">
 <link rel="stylesheet" href="story.css?v=20261031">
 </head>
 <body data-state="intro">
   <!-- 왼쪽: 첫 화면은 도심·무등산 사진(블루아워 보정 + 느린 카메라), 거리·장소 화면은 그 위에 원본 비율 액자로 거리 사진 -->
   <section class="stage" id="stage" aria-label="광주 도심 풍경">
-    <!-- 배경: 광주 동구 야경(연출 이미지). 사진 위에는 핀을 두지 않고, 실제 위치는 미니맵(실제 경계)과 위치 보기에서 보여준다 -->
+    <!-- 배경: 광주 동구 야경(연출 이미지) — 첫 화면과 장소 화면의 배경. 사진 위에는 핀을 두지 않는다(실제 위치는 index.html 지도에서) -->
     <div class="hero" id="hero">
       <div class="plx" id="hero-plx"><img class="hero-img" id="hero-img" alt="" draggable="false"></div>
       <div class="grade" aria-hidden="true"></div>
@@ -27,9 +27,6 @@
     <div class="glow" id="glow" aria-hidden="true"></div>
     <div class="vignette" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
-    <div class="flash" aria-hidden="true"></div>
-    <div class="bars" aria-hidden="true"></div>
-    <p class="caption" id="caption" aria-live="polite"></p>
 
     <div class="no-photo" id="no-photo" hidden>
       <p><b>배경 사진을 불러오지 못했습니다.</b><br><code>assets/explore/</code>의 사진 파일을 확인해주세요.</p>
@@ -44,9 +41,9 @@
         <b>광주 수어지도</b>
         <span>GWANGJU SIGN LANGUAGE MAP</span>
       </a>
-      <!-- 공통 메뉴(두 페이지 동일): 지도(탐험) · 기록 · 소개. 탐험 안에서만 거리 보기/위치 보기 전환. 지명 수어 지도는 메뉴에서 뺐고 #map 주소로만 열린다 -->
+      <!-- 공통 메뉴(두 페이지 동일): 탐험(= 실제 지도 index.html#spots) · 기록 · 소개. 장소 화면에서만 거리 보기/위치 보기 전환. 지명 수어 지도는 메뉴에서 뺐고 #map 주소로만 열린다 -->
       <nav class="site-nav" aria-label="사이트">
-        <a href="#explore" id="nav-explore" class="on" aria-current="page">지도</a>
+        <a href="index.html#spots" id="nav-explore" class="on" aria-current="page">탐험</a>
         <a href="index.html?view=archive">기록</a>
         <a href="index.html?view=about">소개</a>
         <span class="view-toggle" id="view-toggle" role="group" aria-label="탐험 보기 방식"><span class="vt on" aria-current="true">거리 보기</span><a class="vt" id="vt-map" href="index.html#spots">위치 보기</a></span>
@@ -77,11 +74,6 @@
       <svg class="rule" viewBox="0 0 320 24" aria-hidden="true"><path d="M2 12 C 90 4, 180 20, 318 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       <p class="eyebrow" id="eyebrow"></p>
     </div>
-    <!-- 첫 지도 화면: 농인의 장소 기억 원문 한 문단 (data/memory-stories.json 그대로, 전시용으로 고쳐 쓰지 않음) -->
-    <figure class="street-quote" id="street-quote" hidden>
-      <blockquote id="sq-text"></blockquote>
-      <figcaption id="sq-src"></figcaption>
-    </figure>
     <div class="scene-none" id="scene-none" hidden>이 장소의 사진은<br>아직 없습니다</div>
 
     <!-- 캔모아 공간 탐험: 실내 사진 1(그네 핫스팟) → 누르면 사진 2(마주 보는 그네 자리) + 장소 기억. 사진은 assets/explore/canmore/ -->
@@ -105,21 +97,7 @@
       </div>
     </section>
 
-    <!-- 첫 지도 화면: 손글씨 제목(전시 문구), 동구 미니맵(실제 경계 geojson), 지도 조작 -->
-    <div class="map-title" id="map-title" aria-hidden="true">
-      <p class="mt-lead">사람과 이야기가 모이는<br>광주의 중심 거리,</p>
-      <p class="mt-name">충장로<svg class="mt-rule" viewBox="0 0 220 18" aria-hidden="true"><path d="M3 11 C 60 4, 150 16, 217 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></p>
-    </div>
-    <section class="minimap" id="minimap" aria-label="광주 동구 미니맵" hidden>
-      <header class="mm-head"><span>광주 동구</span><button type="button" class="mm-toggle" id="mm-toggle" aria-expanded="true" aria-label="미니맵 접기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></header>
-      <svg class="mm-svg" id="mm-svg" viewBox="0 0 160 160" role="img" aria-label="광주 동구 16개 동 경계. 충장로를 금색으로, 좌표가 확인된 장소를 금색 점으로 표시"></svg>
-      <p class="mm-note">점은 실제 좌표</p>
-    </section>
-    <div class="map-ctl" id="map-ctl" role="group" aria-label="지도 조작">
-      <a class="ctl" id="ctl-locate" href="index.html#spots" aria-label="위치 보기 — 실제 장소 지도로"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>
-    </div>
-
-    <!-- 하단: 장소 썸네일 목록 (핀과 같은 장소 데이터). 전체 목록은 지역 선택·패널의 '함께 둘러볼 장소' -->
+    <!-- 하단: 장소 썸네일 목록(장소 화면에서 다른 장소로). 전체 목록은 지역 선택·패널의 '함께 둘러볼 장소' -->
     <nav class="spot-menu" id="spot-menu" aria-label="탐험 장소"></nav>
 
     <p class="credit" id="credit"></p>
@@ -134,7 +112,7 @@
         <button type="button" class="circ" id="p-next" aria-label="다음 장소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button type="button" class="home-pill" id="p-home" hidden><span aria-hidden="true">←</span> 캔모아로 돌아가기</button>
       </div>
-      <button type="button" class="circ" id="p-close" aria-label="패널 닫고 충장로 거리로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      <button type="button" class="circ" id="p-close" aria-label="패널 닫고 지도로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
     </header>
     <div class="p-title">
       <p class="p-en" id="p-en"></p>
@@ -177,6 +155,6 @@
 
   <script>window.STORY_HASH_PREFIX = 'place';</script>
   <script src="story.js?v=20261031"></script>
-  <script src="explore.js?v=20261031"></script>
+  <script src="explore.js?v=20261101"></script>
 </body>
 </html>

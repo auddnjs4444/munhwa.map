@@ -1,11 +1,7 @@
-/* ===== 손으로 부르는 광주 — 탐험 · 거리 보기 (explore.html) =====
-   상태: intro(첫 화면: 광주 도심·무등산 사진 + 소개) → descend(내려가기 컷) → explore(충장로 거리: 거리 사진 액자 + 장소 기억 원문 + 장소 칩)
-   ⇄ place(장소 선택: 손글씨 한 줄 + 장소 이름 + 오른쪽 황금 패널). 주소: (없음)=첫 화면, #explore=충장로 거리, #place/<id>=장소.
-   앞으로 가는 이동(탐험하기·장소 선택)은 history에 남겨 뒤로 가기로 이전 장소·화면이 복원되고, 닫기는 주소만 바꾼다.
-   '위치 보기'(index.html#spot/…)로 넘길 때 보던 장소를 그대로 가져가고, index.html의 '탐험'은 sessionStorage의 마지막 상태로 돌아온다.
-   데이터는 본 사이트 원본(data/spots.json · places.json · memory-stories.json)을 그대로 읽는다. 복사본 없음, 창작 문장 없음.
-   사진 위에 위치 핀을 찍지 않는다. 거리는 좌표가 확인된 곳만 '직선거리'로 표시하고 도보 시간은 표시하지 않는다.
-   새 장소는 data/spots.json(거점·주변)·data/places.json(memory_entries)에 추가하면 자동으로 목록에 들어온다. */
+/* ===== 손으로 부르는 광주 — 첫 화면 · 거리 보기 (explore.html) =====
+   상태: intro(첫 화면: 광주 동구 야경 + 소개 + 「광주 탐험하기」 → index.html#spots 실제 지도로) · place(장소 화면: 거리 사진 액자 또는
+   캔모아 공간 탐험 + 오른쪽 황금 패널). 주소: (없음)=첫 화면, #place/<id>=장소, #place/<id>/story=장소 기억 편지. 옛 주소 #explore는 지도로 보낸다.
+   장소 화면의 ✕·Esc는 지도(index.html#spots)로 돌아간다. 데이터는 본 사이트 원본(data/*.json)을 그대로 읽는다. */
 (() => {
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -13,10 +9,6 @@
   const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches || q.has('noanim');
   if (q.has('noanim')) document.documentElement.classList.add('noanim'); // story.js(편지 화면)도 같은 스위치를 본다
   const isSheet = () => matchMedia('(max-width: 767px)').matches;
-  const T_DESCEND = REDUCED ? 0 : 2100; // 첫 화면 → 충장로 거리 전환 길이 (explore.css의 전환 시간과 맞춘다)
-  const STREET_SCENE = 'chungjang';   // 탐험 시작 거리
-  const STREET = { title: '충장로', eyebrow: 'CHUNGJANG-RO · 거리 보기 — 장소를 고르면 농인의 기억이 열립니다' };
-  let descendTimer = null;
 
   const DATA_V = '20261021';
   const SRC = { spots: `data/spots.json?v=${DATA_V}`, places: `data/places.json?v=${DATA_V}`, stories: `data/memory-stories.json?v=${DATA_V}` };
@@ -27,18 +19,15 @@
   // 배경·장면 사진 (assets/explore/, 사용 허락을 받은 사진)
   // 배경: 광주 동구 야경 연출 이미지(1625×968). 첫 화면과 첫 지도 화면이 같은 배경을 쓴다(색보정 없음). 종전 항공사진은 assets/explore/overlook-mountains.jpg에 그대로 둔다
   const HERO = { src: 'assets/explore/night-donggu.webp', grade: 'none', focus: '50% 50%', focusM: '46% 55%', glow: ['50%', '62%'], credit: '' }; // 배경 설명(연출 이미지·핀 위치)은 사이트가 아니라 발표 자료에서 밝힌다 (사용자 결정 2026-10-21)
-  // 첫 지도 화면의 하단 썸네일 목록(순서 그대로). 사진 위에는 핀을 두지 않는다(연출 이미지라 위치가 맞지 않음).
-  // 실제 위치는 미니맵(실제 경계)에 좌표가 확인된 곳만 금색 점으로, 동 단위 장소(금남로)는 그 동을 밝혀서 보여준다.
-  // fx·fy는 사진 없는 장소의 썸네일을 야경 이미지에서 잘라낼 때 쓰는 비율 좌표일 뿐 지리 좌표가 아니다.
+  // 장소 화면 하단 썸네일 목록(순서 그대로). fx·fy는 사진 없는 장소의 썸네일을 야경 이미지에서 잘라낼 때 쓰는 비율 좌표일 뿐 지리 좌표가 아니다
   const MAP = {
     places: [
       { id: 'canmore', label: '충장로', fx: 0.248, fy: 0.472, thumb: 'assets/explore/canmore/swings-thumb.jpg' },
-      { id: 'geumnam-street', label: '금남로', fx: 0.328, fy: 0.617, dong: 'donggu_03' }, // 금남로 1~5가 법정동 경계
+      { id: 'geumnam-street', label: '금남로', fx: 0.328, fy: 0.617 },
       { id: '518-democracy-square', label: '5·18민주광장', fx: 0.506, fy: 0.609 },
       { id: 'acc', label: 'ACC', fx: 0.670, fy: 0.531, thumb: 'assets/explore/acc-night.jpg' },
       { id: 'geumnam-park', label: '금남로공원', fx: 0.669, fy: 0.758 },
     ],
-    geojson: 'data/gwangju_donggu_sign_16.geojson?v=20261015', highlight: 'donggu_13', // 미니맵: 실제 동 경계, 충장로 강조
     thumbZoom: 7, imgRatio: 968 / 1625,
   };
   const SCENES = {
@@ -192,7 +181,6 @@
 
   /* ---------- 상태 전환 ---------- */
   function goIntro() {
-    clearTimeout(descendTimer);
     if (isPanelOpen()) closePanelOnly();
     current = null; view = 'place'; cxLeave(); hideScene(); $('scene-none').hidden = true; syncMenus();
     if (!REDUCED) hero.classList.add('drift');
@@ -200,31 +188,10 @@
     $('explore-btn').focus({ preventScroll: true });
   }
   // 충장로 거리(탐험 시작 화면): 어두워진 도심 사진 위에 거리 사진 액자 + 「충장로」 + 장소 기억 원문 한 문단 + 하단 장소 칩
-  // 첫 지도 화면: 야경 전체 + 장소 핀 + 손글씨 제목 + 미니맵 + 지도 조작 + 하단 썸네일. 패널·장면 액자는 모두 닫힌 상태
-  function goExplore({ instant = false, fromHash = false, push = false } = {}) {
-    clearTimeout(descendTimer);
-    if (isPanelOpen()) closePanelOnly();
-    current = null; view = 'place'; syncMenus(); cxLeave();
-    hideScene(HERO.credit); $('scene-none').hidden = true;
-    hero.classList.remove('drift');
-    setState('explore');
-    setHash('explore', { push: push && !fromHash });
-    syncToggle(null);
-    requestAnimationFrame(layoutMapUi);
-    if (!instant && !fromHash) setTimeout(() => $('spot-menu').querySelector('.spot-btn')?.focus({ preventScroll: true }), REDUCED ? 0 : 700);
-  }
-  const descendFromIntro = () => goExplore({ push: true }); // 첫 화면 → 첫 지도 화면 (같은 배경 위에 UI만 나타난다)
+  // 지도로: 탐험의 실제 지도(index.html#spots, 캔모아 중심). 첫 화면의 「광주 탐험하기」, 장소 패널의 ✕, Esc가 모두 여기로 간다
+  function goMap({ replace = false } = {}) { const url = `${SITE}#spots`; if (replace) location.replace(url); else location.assign(url); }
   // 탐험 보기 방식 전환: '위치 보기'는 본 사이트 지도에서 같은 장소를 연다 (장소 지도에 없는 곳은 지명 수어 지점 → 없으면 거점 전체)
   function syncToggle(item) { $('vt-map').href = siteLink(item && item.siteHash ? item.siteHash : '#spots'); } // 장소 지도에 없는 곳은 거점 전체로
-  // 거리 화면의 인용: 거점의 장소 기억 원고 첫 문단을 원문 그대로 (전시용 재구성 문장이 아님을 밝힌다)
-  function setStreetQuote(stories) {
-    const st = stories[HUB_ID]; const q = st && Array.isArray(st.paragraphs) ? st.paragraphs[0] : null;
-    const fig = $('street-quote');
-    if (!q) { fig.hidden = true; return; }
-    $('sq-text').textContent = q;
-    $('sq-src').innerHTML = `${esc(st.subtitle || '')} 원고 「${esc(st.title || '')}」 첫 문단<small>원문 그대로 · 전시용으로 고쳐 쓰지 않았습니다</small>`;
-    fig.hidden = false;
-  }
   // 손글씨 한 줄: 한 글자씩(스태거) 나타난다. 길면 글자당 간격을 줄여 전체 2초 안팎에 끝낸다 (모션 줄이기: CSS에서 즉시 표시)
   function handHtml(text, small) {
     const chars = [...String(text || '')]; const step = Math.min(0.2, 2.0 / Math.max(chars.length, 1));
@@ -244,7 +211,6 @@
   function select(id, { instant = false, fromHash = false } = {}) {
     const item = itemById(id);
     if (!item) return;
-    clearTimeout(descendTimer); // 내려가는 도중 다른 장소가 열리면 예약된 전환을 취소
     toggleExplore(false);
     const wasOpen = isPanelOpen();
     current = id; view = 'place';
@@ -270,8 +236,7 @@
     select(ORDER[(i + dir + ORDER.length) % ORDER.length].id);
   }
   function setHash(v, { push = false } = {}) {
-    const next = v === null ? '' : v === 'explore' ? '#explore' : `#place/${v}`;
-    try { sessionStorage.setItem('cine:last', next || '#explore'); } catch (e) { /* 저장소를 못 쓰면 index.html의 '탐험'은 기본 링크 */ }
+    const next = v === null ? '' : `#place/${v}`;
     if (location.hash === next) return;
     const url = next || location.pathname + location.search;
     if (push) history.pushState(null, '', url); else history.replaceState(null, '', url);
@@ -287,7 +252,7 @@
     if (letterOpen()) closeStory({ fromHistory: true }); // 편지가 열린 채 뒤로 가기 → 편지만 닫히고 장소 화면은 그대로
     const m = location.hash.match(/^#place\/([\w-]+)/);
     if (m && itemById(m[1])) { if (current !== m[1] || state() !== 'place') select(m[1], { fromHash: true }); }
-    else if (location.hash === '#explore') { if (state() !== 'explore') goExplore({ fromHash: true }); }
+    else if (location.hash === '#explore') goMap({ replace: true }); // 옛 주소(야경 지도 화면)는 실제 지도로
     else if (state() !== 'intro') goIntro();
   });
 
@@ -473,51 +438,6 @@
     art.focus({ preventScroll: true });
   }
 
-  /* ---------- 첫 지도 화면: 미니맵(실제 경계 + 실제 좌표 점) ---------- */
-  async function buildMinimap() { // 동구 16개 동 실제 경계(geojson)를 160×160에 투영. 경계를 새로 그리거나 바꾸지 않는다
-    const mm = $('minimap');
-    let g = null; try { g = await fetch(MAP.geojson).then((r) => (r.ok ? r.json() : null)); } catch (e) { g = null; }
-    if (!g || !Array.isArray(g.features) || !g.features.length) { mm.hidden = true; return; }
-    const k = Math.cos((35.12 * Math.PI) / 180); // 위도 보정(경도 1도의 실제 길이)
-    const ringsOf = (geom) => (geom.type === 'Polygon' ? geom.coordinates : geom.type === 'MultiPolygon' ? geom.coordinates.flat() : []);
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    g.features.forEach((f) => ringsOf(f.geometry).forEach((r) => r.forEach(([lon, lat]) => { const x = lon * k; if (x < minX) minX = x; if (x > maxX) maxX = x; if (lat < minY) minY = lat; if (lat > maxY) maxY = lat; })));
-    const sx = maxX - minX, sy = maxY - minY; const sc = 150 / Math.max(sx, sy); const dx = 5 + (150 - sx * sc) / 2, dy = 5 + (150 - sy * sc) / 2;
-    const X = (lon) => dx + (lon * k - minX) * sc, Y = (lat) => dy + (maxY - lat) * sc;
-    const dongOf = Object.fromEntries(MAP.places.filter((p) => p.dong).map((p) => [p.dong, p.id]));
-    const paths = g.features.map((f) => {
-      const id = f.properties ? f.properties.id : ''; const name = f.properties ? f.properties.name : '';
-      const d = ringsOf(f.geometry).map((r) => `M${r.map(([lon, lat]) => `${X(lon).toFixed(1)} ${Y(lat).toFixed(1)}`).join('L')}Z`).join('');
-      return `<path d="${d}"${id === MAP.highlight ? ' class="sel"' : ''}${dongOf[id] ? ` data-spot="${esc(dongOf[id])}"` : ''}><title>${esc(name || '')}</title></path>`;
-    });
-    // 좌표가 확인된 장소만 점으로 (spots.json·places.json의 실제 좌표). 미확인 좌표는 찍지 않는다
-    const dots = MAP.places.map((p) => { const it = itemById(p.id); if (!it || !verifiedGeo(it.geo)) return ''; return `<circle class="mm-dot" data-spot="${esc(p.id)}" cx="${X(it.geo.lng).toFixed(1)}" cy="${Y(it.geo.lat).toFixed(1)}" r="2.6"><title>${esc(p.label)}</title></circle>`; });
-    $('mm-svg').innerHTML = paths.join('') + dots.join('');
-    mm.hidden = false;
-    syncMenus();
-    layoutMapUi();
-  }
-  function setMinimapCollapsed(on, { auto = false } = {}) {
-    const mm = $('minimap'), b = $('mm-toggle');
-    mm.classList.toggle('collapsed', on);
-    if (auto) mm.dataset.auto = on ? '1' : ''; else delete mm.dataset.auto; // 사용자가 직접 누른 상태는 자동 배치가 건드리지 않는다
-    b.setAttribute('aria-expanded', String(!on)); b.setAttribute('aria-label', on ? '미니맵 펼치기' : '미니맵 접기');
-  }
-  // 첫 지도 화면 배치: 인용은 손글씨 제목 바로 아래. 창이 좁거나 낮아 인용이 미니맵과 겹치면 인용 글자 → 미니맵 크기 → 미니맵 접기 순으로 양보한다 (글을 가리지 않는다)
-  function layoutMapUi() {
-    const sq = $('street-quote'), mm = $('minimap');
-    if (state() !== 'explore' || sq.hidden) return;
-    sq.classList.remove('tight'); mm.classList.remove('compact');
-    if (isSheet()) { sq.style.removeProperty('--sq-top'); return; }
-    const st = stage.getBoundingClientRect(), t = $('map-title').getBoundingClientRect();
-    sq.style.setProperty('--sq-top', `${Math.round(t.bottom - st.top + 22)}px`);
-    if (mm.dataset.auto) setMinimapCollapsed(false); // 자동으로 접었던 것은 다시 펴 보고 판단
-    const fits = () => mm.hidden || mm.classList.contains('collapsed') || sq.getBoundingClientRect().bottom + 12 <= mm.getBoundingClientRect().top;
-    if (fits()) return;
-    sq.classList.add('tight'); if (fits()) return;
-    mm.classList.add('compact'); if (fits()) return;
-    setMinimapCollapsed(true, { auto: true });
-  }
   function thumbStyle(p) { // 썸네일: 장소 사진이 있으면 그 사진, 없으면 야경 이미지에서 핀 주변을 잘라서 (별도 사진을 만들지 않는다)
     if (p.thumb) return `background-image:url('${esc(p.thumb)}')`;
     const z = MAP.thumbZoom, hz = z * MAP.imgRatio; // 배경 너비 = 썸네일의 z배, 높이는 이미지 비율대로
@@ -535,13 +455,11 @@
   function buildMenus() {
     const pri = PRIORITY.map(itemById).filter(Boolean);
     $('spot-menu').innerHTML = MAP.places.map(chipHtml).join('');
-    $('spot-menu').querySelectorAll('.spot-btn').forEach((b) => { const id = b.dataset.spot; b.addEventListener('mouseenter', () => mmHover(id, true)); b.addEventListener('mouseleave', () => mmHover(id, false)); b.addEventListener('focus', () => mmHover(id, true)); b.addEventListener('blur', () => mmHover(id, false)); });
     $('explore-list').innerHTML = pri.map((x) => `<button type="button" class="em-item${!x.records.length && !x.sensitive ? ' pending' : ''}" data-spot="${esc(x.id)}" aria-pressed="false"><small>${esc(x.id === HUB_ID ? '거점' : x.dist != null ? distText(x.dist).replace('직선 약 ', '') : '—')}</small><span>${esc(x.name)}</span><em>${esc(x.records.length ? `기억 ${x.records.length}` : x.sensitive ? '열람 확인' : '기록 준비 중')}</em></button>`).join('') + `<button type="button" class="em-item em-all" id="em-all"><small>+</small><span>함께 둘러볼 장소 전체</span><em>${ITEMS.length}곳</em></button>`;
     document.querySelectorAll('[data-spot]').forEach((b) => b.addEventListener('click', () => select(b.dataset.spot)));
     $('em-all').addEventListener('click', () => { toggleExplore(false); openList(); });
   }
   function syncMenus() { document.querySelectorAll('[data-spot]').forEach((b) => { const on = b.dataset.spot === current; b.classList.toggle('on', on); if (b.tagName === 'BUTTON') b.setAttribute('aria-pressed', String(on)); }); }
-  const mmHover = (id, on) => document.querySelectorAll(`#mm-svg [data-spot="${id}"]`).forEach((el) => el.classList.toggle('hov', on)); // 썸네일에 올리면 미니맵의 점·동이 밝아진다
   function toggleExplore(force) {
     const menu = $('explore-menu'), btn = $('explore-btn');
     const open = force ?? menu.hidden;
@@ -550,17 +468,12 @@
     if (open) (menu.querySelector('.em-item.on') || menu.querySelector('.em-item'))?.focus();
   }
   function bindUi() {
-    $('cta').addEventListener('click', () => descendFromIntro());
-    $('mm-toggle').addEventListener('click', () => setMinimapCollapsed(!$('minimap').classList.contains('collapsed')));
-    let layoutTimer = null;
-    window.addEventListener('resize', () => { clearTimeout(layoutTimer); layoutTimer = setTimeout(layoutMapUi, 120); });
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layoutMapUi()); // 손글씨 폰트가 늦게 오면 제목 높이가 바뀐다
-    $('nav-explore').addEventListener('click', (e) => { if (state() === 'explore') e.preventDefault(); }); // 이미 거리 화면이면 그대로 (그 밖엔 #explore 해시로 이동)
+    $('cta').addEventListener('click', () => goMap()); // 첫 화면 → 실제 지도(캔모아 중심)
     $('brand').addEventListener('click', (e) => { e.preventDefault(); toggleExplore(false); goIntro(); });
     $('explore-btn').addEventListener('click', () => toggleExplore());
     $('explore-close').addEventListener('click', () => { toggleExplore(false); $('explore-btn').focus(); });
     document.addEventListener('pointerdown', (e) => { const m = $('explore-menu'); if (m.hidden) return; if (m.contains(e.target) || $('explore-btn').contains(e.target)) return; toggleExplore(false); });
-    $('p-close').addEventListener('click', () => goExplore());
+    $('p-close').addEventListener('click', () => goMap()); // 장소 화면 닫기 → 지도로
     $('p-home').addEventListener('click', () => select(HUB_ID));
     $('p-prev').addEventListener('click', () => step(-1));
     $('p-next').addEventListener('click', () => step(1));
@@ -572,7 +485,7 @@
     window.addEventListener('pointerup', (e) => { if (dragY === null) return; const dy = e.clientY - dragY; dragY = null; if (dy < -40) toggleSheet(true); else if (dy > 40) toggleSheet(false); });
     window.addEventListener('pointercancel', () => { dragY = null; });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { if (letterOpen()) { closeStory(); return; } if (!$('explore-menu').hidden) { toggleExplore(false); $('explore-btn').focus(); } else if (view === 'list' && isPanelOpen()) closeList(); else if (state() === 'place') goExplore(); else if (state() === 'explore') goIntro(); return; }
+      if (e.key === 'Escape') { if (letterOpen()) { closeStory(); return; } if (!$('explore-menu').hidden) { toggleExplore(false); $('explore-btn').focus(); } else if (view === 'list' && isPanelOpen()) closeList(); else if (state() === 'place') goMap(); return; }
       if (!isPanelOpen() || view === 'list' || (e.target instanceof Element && e.target.closest('input, textarea, video'))) return;
       if (e.key === 'ArrowRight') step(1); else if (e.key === 'ArrowLeft') step(-1);
     });
@@ -586,17 +499,16 @@
     } catch (e) { /* 아래에서 안내 */ }
     if (!spots || !places || !stories) { $('no-data').hidden = false; return; }
     buildModel(spots, places, stories);
-    setStreetQuote(stories);
-    buildMenus(); bindUi(); cxBuild(); buildMinimap();
+    buildMenus(); bindUi(); cxBuild();
     if (typeof loadStories === 'function') await loadStories(); // 편지 화면 원고(story.js, data/memory-stories.json)
     await loadHero();
     const ms = location.hash.match(/^#place\/([\w-]+)\/story$/);
     const m = location.hash.match(/^#place\/([\w-]+)/);
-    if (ms && itemById(ms[1])) { select(ms[1], { instant: true, fromHash: true }); openLetter(ms[1], null, { fromHash: true }); }
+    if (ms && itemById(ms[1])) { select(ms[1], { instant: true, fromHash: true }); history.replaceState(null, '', `#place/${ms[1]}/story`); openLetter(ms[1], null, { fromHash: true }); }
     else if (m && itemById(m[1])) select(m[1], { instant: true, fromHash: true });
-    else if (location.hash === '#explore') goExplore({ instant: true, fromHash: true });
-    else { if (location.hash) setHash(null); else { try { sessionStorage.setItem('cine:last', '#explore'); } catch (e) { /* 없음 */ } } }
+    else if (location.hash === '#explore') { goMap({ replace: true }); return; } // 옛 주소
+    else if (location.hash) setHash(null);
   }
-  window.__cine = { select, goExplore, descendFromIntro, goHome: () => select(HUB_ID), goIntro, openList, closeList, step, items: () => ITEMS, order: () => ORDER, choose: select, descendTo: select, cx: () => ({ ...cx }), cxGo, cxReset, places: () => MAP.places, openLetter, layoutMapUi };
+  window.__cine = { select, goMap, goHome: () => select(HUB_ID), goIntro, openList, closeList, step, items: () => ITEMS, order: () => ORDER, choose: select, descendTo: select, cx: () => ({ ...cx }), cxGo, cxReset, places: () => MAP.places, openLetter };
   boot();
 })();
