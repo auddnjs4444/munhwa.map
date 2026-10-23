@@ -7,9 +7,10 @@
 <meta name="description" content="광주 수어지도 — 농인의 기억으로 다시 만나는 광주. 광주 동구 야경 지도에서 충장로·캔모아로 들어가는 장소 탐험.">
 <title>손으로 부르는 광주 — 광주 탐험하기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Gowun+Batang:wght@400;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
-<link rel="stylesheet" href="explore.css?v=20261029">
+<link rel="stylesheet" href="explore.css?v=20261031">
+<link rel="stylesheet" href="story.css?v=20261031">
 </head>
 <body data-state="intro">
   <!-- 왼쪽: 첫 화면은 도심·무등산 사진(블루아워 보정 + 느린 카메라), 거리·장소 화면은 그 위에 원본 비율 액자로 거리 사진 -->
@@ -98,7 +99,7 @@
         <p class="cx-text">친구와 약속을 잡고, 연인과 데이트를 하던 캔모아. 농인에게 이곳은 서로의 얼굴을 바라보며 수어로 오랫동안 이야기하던 추억의 공간이었습니다.</p>
         <div class="cx-actions">
           <button type="button" class="cx-btn primary" id="cx-more">이야기 더 읽기</button>
-          <a class="cx-btn" id="cx-story-link" href="index.html#spot/canmore/story">장소 기억 읽기</a>
+          <button type="button" class="cx-btn" id="cx-story-link">장소 기억 읽기</button>
           <button type="button" class="cx-btn ghost" id="cx-back">처음으로 돌아가기</button>
         </div>
       </div>
@@ -146,6 +147,36 @@
     </footer>
   </aside>
 
-  <script src="explore.js?v=20261030"></script>
+  <!-- 장소 기억 편지 화면: index.html과 같은 story.js·story.css. 장소 화면 위에 겹쳐 열리고, 닫으면 그 장소(캔모아) 화면으로 돌아온다. 주소 #place/<id>/story -->
+  <section class="letter" id="story" hidden role="dialog" aria-modal="true" aria-labelledby="story-title">
+    <div class="story-backdrop" aria-hidden="true"></div>
+    <button type="button" class="story-close" aria-label="장소 기억 닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+    <p class="story-sr"></p>
+    <div class="story-scroll" id="story-scroll">
+      <article class="paper" aria-hidden="true">
+        <header class="paper-head">
+          <p class="paper-kicker"></p>
+          <h2 id="story-title"></h2>
+          <span class="paper-rule" aria-hidden="true"></span>
+        </header>
+        <div class="paper-body" id="story-body"></div>
+        <footer class="paper-end">
+          <span class="paper-end-rule" aria-hidden="true"></span>
+          <p class="paper-end-mark">끝</p>
+        </footer>
+      </article>
+      <div class="story-foot">
+        <button type="button" class="story-return">캔모아로 돌아가기</button>
+      </div>
+    </div>
+    <div class="story-tools">
+      <span class="story-hint">종이를 누르면 쓰고 있는 문단이 바로 완성돼요</span>
+      <button type="button" class="story-skip">건너뛰기</button>
+    </div>
+  </section>
+
+  <script>window.STORY_HASH_PREFIX = 'place';</script>
+  <script src="story.js?v=20261031"></script>
+  <script src="explore.js?v=20261031"></script>
 </body>
 </html>

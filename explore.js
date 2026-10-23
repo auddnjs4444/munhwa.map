@@ -11,6 +11,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const q = new URLSearchParams(location.search);
   const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches || q.has('noanim');
+  if (q.has('noanim')) document.documentElement.classList.add('noanim'); // story.js(편지 화면)도 같은 스위치를 본다
   const isSheet = () => matchMedia('(max-width: 767px)').matches;
   const T_DESCEND = REDUCED ? 0 : 2100; // 첫 화면 → 충장로 거리 전환 길이 (explore.css의 전환 시간과 맞춘다)
   const STREET_SCENE = 'chungjang';   // 탐험 시작 거리
@@ -179,6 +180,16 @@
     stage.addEventListener('mouseleave', () => { $('hero-plx').style.transform = ''; });
   }
 
+  /* ---------- 장소 기억 편지 화면 (story.js 재사용): 장소 화면 위에 겹쳐 열고, 닫으면 그 장소 화면으로 그대로 돌아온다 ---------- */
+  const letterOpen = () => typeof storyIsOpen === 'function' && storyIsOpen();
+  const ro = (name) => { const c = String(name || '').slice(-1).charCodeAt(0); if (!(c >= 0xac00 && c <= 0xd7a3)) return '로'; const jong = (c - 0xac00) % 28; return jong === 0 || jong === 8 ? '로' : '으로'; }; // 받침 없음·ㄹ → 로, 그 밖 → 으로
+  function openLetter(id, trigger, { fromHash = false } = {}) {
+    if (typeof openStory !== 'function' || typeof hasStory !== 'function' || !hasStory(id)) return;
+    const it = itemById(id); const back = document.querySelector('#story .story-return');
+    if (back) back.textContent = `${it ? it.name : '장소'}${ro(it ? it.name : '장소')} 돌아가기`;
+    openStory(id, { trigger: trigger || null, fromHash });
+  }
+
   /* ---------- 상태 전환 ---------- */
   function goIntro() {
     clearTimeout(descendTimer);
@@ -199,6 +210,7 @@
     setState('explore');
     setHash('explore', { push: push && !fromHash });
     syncToggle(null);
+    requestAnimationFrame(layoutMapUi);
     if (!instant && !fromHash) setTimeout(() => $('spot-menu').querySelector('.spot-btn')?.focus({ preventScroll: true }), REDUCED ? 0 : 700);
   }
   const descendFromIntro = () => goExplore({ push: true }); // 첫 화면 → 첫 지도 화면 (같은 배경 위에 UI만 나타난다)
@@ -266,6 +278,13 @@
   }
   // 주소가 바뀌면(뒤로·앞으로 가기, 상단 '탐험' 링크) 그 화면으로. 전환 연출 없이 복원한다
   window.addEventListener('hashchange', () => {
+    const ms = location.hash.match(/^#place\/([\w-]+)\/story$/);
+    if (ms && itemById(ms[1])) { // 편지 화면 주소(앞으로 가기·직접 입력): 장소를 열고 그 위에 편지
+      if (current !== ms[1] || state() !== 'place') select(ms[1], { fromHash: true });
+      if (!letterOpen()) openLetter(ms[1], null, { fromHash: true });
+      return;
+    }
+    if (letterOpen()) closeStory({ fromHistory: true }); // 편지가 열린 채 뒤로 가기 → 편지만 닫히고 장소 화면은 그대로
     const m = location.hash.match(/^#place\/([\w-]+)/);
     if (m && itemById(m[1])) { if (current !== m[1] || state() !== 'place') select(m[1], { fromHash: true }); }
     else if (location.hash === '#explore') { if (state() !== 'explore') goExplore({ fromHash: true }); }
@@ -289,7 +308,7 @@
       const em = new Set(r.emphasis || []);
       const ps = (r.paragraphs || []).map((p, i) => `<p class="para${em.has(i + 1) ? ' em' : ''}">${esc(p)}</p>`);
       const head = ps.slice(0, 3).join(''), rest = ps.slice(3).join('');
-      return `<article class="story"><div class="who">장소 기억 원고 · ${esc(r.subtitle || '')}</div><h4>${esc(r.title || '')}</h4><div class="text">${head}${rest ? `<div class="rest" hidden>${rest}</div><button type="button" class="more" data-more>이야기 전체 읽기 (${ps.length}문단)</button>` : ''}</div>${item.storyHash ? `<p class="src"><a href="${esc(siteLink(item.storyHash))}">장소 기억 전체 화면으로 →</a></p>` : ''}</article>`;
+      return `<article class="story"><div class="who">장소 기억 원고 · ${esc(r.subtitle || '')}</div><h4>${esc(r.title || '')}</h4><div class="text">${head}${rest ? `<div class="rest" hidden>${rest}</div><button type="button" class="more" data-more>이야기 전체 읽기 (${ps.length}문단)</button>` : ''}</div>${item.storyHash ? `<p class="src"><button type="button" class="linkish" data-story="${esc(item.id)}">장소 기억 전체 화면으로 →</button></p>` : ''}</article>`;
     }
     if (r.type === 'entry') {
       const n = r.narrator || {};
@@ -344,6 +363,7 @@
     $('p-list')?.addEventListener('click', () => openList());
     $('p-home2')?.addEventListener('click', () => select(HUB_ID));
     body.querySelectorAll('[data-more]').forEach((b) => b.addEventListener('click', () => { const rest = b.previousElementSibling; rest.hidden = false; b.remove(); }));
+    body.querySelectorAll('[data-story]').forEach((b) => b.addEventListener('click', () => openLetter(b.dataset.story, b)));
   }
   function openList() {
     if (!current) select(HUB_ID, { instant: true });
@@ -405,6 +425,7 @@
     window.addEventListener('resize', () => { if (cx.on) cxLayout(); });
     $('cx-back').addEventListener('click', () => cxReset({ focus: true }));
     $('cx-more').addEventListener('click', cxReadMore);
+    $('cx-story-link').addEventListener('click', (e) => openLetter(HUB_ID, e.currentTarget));
   }
   function cxSetState(st) { cx.state = st; cxEl.dataset.cx = st; cx.hs.forEach((b) => { b.disabled = st !== 's1'; b.tabIndex = st === 's1' ? 0 : -1; }); }
   function cxReset({ focus = false } = {}) {
@@ -474,6 +495,28 @@
     $('mm-svg').innerHTML = paths.join('') + dots.join('');
     mm.hidden = false;
     syncMenus();
+    layoutMapUi();
+  }
+  function setMinimapCollapsed(on, { auto = false } = {}) {
+    const mm = $('minimap'), b = $('mm-toggle');
+    mm.classList.toggle('collapsed', on);
+    if (auto) mm.dataset.auto = on ? '1' : ''; else delete mm.dataset.auto; // 사용자가 직접 누른 상태는 자동 배치가 건드리지 않는다
+    b.setAttribute('aria-expanded', String(!on)); b.setAttribute('aria-label', on ? '미니맵 펼치기' : '미니맵 접기');
+  }
+  // 첫 지도 화면 배치: 인용은 손글씨 제목 바로 아래. 창이 좁거나 낮아 인용이 미니맵과 겹치면 인용 글자 → 미니맵 크기 → 미니맵 접기 순으로 양보한다 (글을 가리지 않는다)
+  function layoutMapUi() {
+    const sq = $('street-quote'), mm = $('minimap');
+    if (state() !== 'explore' || sq.hidden) return;
+    sq.classList.remove('tight'); mm.classList.remove('compact');
+    if (isSheet()) { sq.style.removeProperty('--sq-top'); return; }
+    const st = stage.getBoundingClientRect(), t = $('map-title').getBoundingClientRect();
+    sq.style.setProperty('--sq-top', `${Math.round(t.bottom - st.top + 22)}px`);
+    if (mm.dataset.auto) setMinimapCollapsed(false); // 자동으로 접었던 것은 다시 펴 보고 판단
+    const fits = () => mm.hidden || mm.classList.contains('collapsed') || sq.getBoundingClientRect().bottom + 12 <= mm.getBoundingClientRect().top;
+    if (fits()) return;
+    sq.classList.add('tight'); if (fits()) return;
+    mm.classList.add('compact'); if (fits()) return;
+    setMinimapCollapsed(true, { auto: true });
   }
   function thumbStyle(p) { // 썸네일: 장소 사진이 있으면 그 사진, 없으면 야경 이미지에서 핀 주변을 잘라서 (별도 사진을 만들지 않는다)
     if (p.thumb) return `background-image:url('${esc(p.thumb)}')`;
@@ -508,7 +551,10 @@
   }
   function bindUi() {
     $('cta').addEventListener('click', () => descendFromIntro());
-    $('mm-toggle').addEventListener('click', () => { const mm = $('minimap'); const c = mm.classList.toggle('collapsed'); const b = $('mm-toggle'); b.setAttribute('aria-expanded', String(!c)); b.setAttribute('aria-label', c ? '미니맵 펼치기' : '미니맵 접기'); });
+    $('mm-toggle').addEventListener('click', () => setMinimapCollapsed(!$('minimap').classList.contains('collapsed')));
+    let layoutTimer = null;
+    window.addEventListener('resize', () => { clearTimeout(layoutTimer); layoutTimer = setTimeout(layoutMapUi, 120); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layoutMapUi()); // 손글씨 폰트가 늦게 오면 제목 높이가 바뀐다
     $('nav-explore').addEventListener('click', (e) => { if (state() === 'explore') e.preventDefault(); }); // 이미 거리 화면이면 그대로 (그 밖엔 #explore 해시로 이동)
     $('brand').addEventListener('click', (e) => { e.preventDefault(); toggleExplore(false); goIntro(); });
     $('explore-btn').addEventListener('click', () => toggleExplore());
@@ -526,7 +572,7 @@
     window.addEventListener('pointerup', (e) => { if (dragY === null) return; const dy = e.clientY - dragY; dragY = null; if (dy < -40) toggleSheet(true); else if (dy > 40) toggleSheet(false); });
     window.addEventListener('pointercancel', () => { dragY = null; });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { if (!$('explore-menu').hidden) { toggleExplore(false); $('explore-btn').focus(); } else if (view === 'list' && isPanelOpen()) closeList(); else if (state() === 'place') goExplore(); else if (state() === 'explore') goIntro(); return; }
+      if (e.key === 'Escape') { if (letterOpen()) { closeStory(); return; } if (!$('explore-menu').hidden) { toggleExplore(false); $('explore-btn').focus(); } else if (view === 'list' && isPanelOpen()) closeList(); else if (state() === 'place') goExplore(); else if (state() === 'explore') goIntro(); return; }
       if (!isPanelOpen() || view === 'list' || (e.target instanceof Element && e.target.closest('input, textarea, video'))) return;
       if (e.key === 'ArrowRight') step(1); else if (e.key === 'ArrowLeft') step(-1);
     });
@@ -542,12 +588,15 @@
     buildModel(spots, places, stories);
     setStreetQuote(stories);
     buildMenus(); bindUi(); cxBuild(); buildMinimap();
+    if (typeof loadStories === 'function') await loadStories(); // 편지 화면 원고(story.js, data/memory-stories.json)
     await loadHero();
+    const ms = location.hash.match(/^#place\/([\w-]+)\/story$/);
     const m = location.hash.match(/^#place\/([\w-]+)/);
-    if (m && itemById(m[1])) select(m[1], { instant: true, fromHash: true });
+    if (ms && itemById(ms[1])) { select(ms[1], { instant: true, fromHash: true }); openLetter(ms[1], null, { fromHash: true }); }
+    else if (m && itemById(m[1])) select(m[1], { instant: true, fromHash: true });
     else if (location.hash === '#explore') goExplore({ instant: true, fromHash: true });
     else { if (location.hash) setHash(null); else { try { sessionStorage.setItem('cine:last', '#explore'); } catch (e) { /* 없음 */ } } }
   }
-  window.__cine = { select, goExplore, descendFromIntro, goHome: () => select(HUB_ID), goIntro, openList, closeList, step, items: () => ITEMS, order: () => ORDER, choose: select, descendTo: select, cx: () => ({ ...cx }), cxGo, cxReset, places: () => MAP.places };
+  window.__cine = { select, goExplore, descendFromIntro, goHome: () => select(HUB_ID), goIntro, openList, closeList, step, items: () => ITEMS, order: () => ORDER, choose: select, descendTo: select, cx: () => ({ ...cx }), cxGo, cxReset, places: () => MAP.places, openLetter, layoutMapUi };
   boot();
 })();

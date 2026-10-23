@@ -1,7 +1,9 @@
 /* ---------- 장소 기억: 한 사람의 기억을 손글씨 편지처럼 읽는 전체 화면 ----------
    데이터: data/memory-stories.json (거점 id → { title, subtitle, paragraphs[], emphasis[] }).
    거점 패널(spots.js)의 '장소 기억' 버튼이 openStory(id)를 부른다. 지도·패널은 건드리지 않고
-   그 위에 화면을 겹쳤다가 걷어내므로, 닫으면 지도 중심·줌·선택 상태가 그대로 남는다. */
+   그 위에 화면을 겹쳤다가 걷어내므로, 닫으면 지도 중심·줌·선택 상태가 그대로 남는다.
+   explore.html(탐험 · 거리 보기)도 같은 화면을 쓴다: 페이지가 window.STORY_HASH_PREFIX = 'place'를 주면
+   주소를 #place/<id>/story 로 쓰고, 닫으면 #place/<id>(캔모아 화면)로 돌아간다. 화면 CSS는 story.css. */
 const STORIES_URL = 'data/memory-stories.json?v=20261017';
 let memoryStories = {};
 const storyEl = document.getElementById('story');
@@ -13,7 +15,10 @@ let storyObserver = null;
 
 const storyIsOpen = () => !!storyEl && !storyEl.hidden;
 const hasStory = (id) => !!memoryStories[id];
-const storyAnim = () => !prefersReducedMotion() && !document.documentElement.classList.contains('noanim');
+const STORY_HASH_PREFIX = (typeof window.STORY_HASH_PREFIX === 'string' && window.STORY_HASH_PREFIX) || 'spot'; // index.html: #spot/<id>/story · explore.html: #place/<id>/story
+const storyEsc = (v) => (typeof esc === 'function' ? esc(v) : String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))); // app.js의 esc가 없는 페이지(explore.html)에서도 동작
+const storyReduced = () => (typeof prefersReducedMotion === 'function' ? prefersReducedMotion() : window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const storyAnim = () => !storyReduced() && !document.documentElement.classList.contains('noanim');
 
 function loadStories() {
   return fetch(STORIES_URL)
@@ -36,7 +41,7 @@ function buildStory(id) {
     .map((t, i) => {
       const n = i + 1;
       const cls = ['story-p', emph.has(n) ? 'emph' : '', emph.has(n) && n === s.paragraphs.length ? 'emph-final' : ''].filter(Boolean).join(' ');
-      return `<p class="${cls}" data-i="${i}"><span class="ghost">${esc(t)}</span><span class="ink" aria-hidden="true"></span></p>`;
+      return `<p class="${cls}" data-i="${i}"><span class="ghost">${storyEsc(t)}</span><span class="ink" aria-hidden="true"></span></p>`;
     })
     .join('');
   // 화면 읽기 도구용 전체 원문 (타이핑 연출과 무관하게 바로 읽힌다)
@@ -153,7 +158,7 @@ function openStory(id, { fromHash = false, trigger = null } = {}) {
   void storyEl.offsetWidth; // 리플로우 → 등장 전환 재생
   storyEl.classList.add('on');
   if (!fromHash && !/\/story$/.test(location.hash)) {
-    history.pushState({ story: id }, '', `#spot/${id}/story`); // 뒤로 가기 한 번이면 이야기만 닫힌다
+    history.pushState({ story: id }, '', `#${STORY_HASH_PREFIX}/${id}/story`); // 뒤로 가기 한 번이면 이야기만 닫힌다
   }
   storyEl.querySelector('.story-close').focus({ preventScroll: true });
   setBackgroundInert(true);
@@ -169,7 +174,7 @@ function closeStory({ fromHistory = false } = {}) {
   document.body.classList.remove('story-open');
   const after = () => { storyEl.hidden = true; storyBodyEl.innerHTML = ''; };
   if (storyAnim()) setTimeout(after, 450); else after();
-  if (!fromHistory && /\/story$/.test(location.hash)) history.replaceState(null, '', `#spot/${storyState ? storyState.id : location.hash.split('/')[1]}`);
+  if (!fromHistory && /\/story$/.test(location.hash)) history.replaceState(null, '', `#${STORY_HASH_PREFIX}/${storyState ? storyState.id : location.hash.split('/')[1]}`);
   storyState = null;
   setBackgroundInert(false);
   const back = storyReturnFocus;
