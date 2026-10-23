@@ -39,15 +39,11 @@ function setView(name) {
 }
 document.querySelectorAll('[data-nav]').forEach((b) => {
   b.addEventListener('click', () => {
-    if (b.dataset.nav === 'signs') { if (typeof goSigns === 'function') goSigns(); return; } // 지명 수어: 지도 화면 + 동구 전체 보기(#map)
+    if (b.dataset.nav === 'explore') { if (typeof goSpots === 'function') goSpots(); return; } // 탐험: 지도의 장소 둘러보기 시작 화면(#spots, 캔모아 중심)
+    if (b.dataset.nav === 'signs') { if (typeof goSigns === 'function') goSigns(); return; } // 지명 수어(메뉴에는 없음): 지도 화면 + 동구 전체 보기(#map)
     setView(b.dataset.nav);
   });
 });
-// '탐험' 링크: 같은 탭에서 거리 보기를 보던 상태(#explore 또는 #place/…)가 있으면 거기로 돌아간다 (첫 화면을 다시 보이지 않는다)
-try {
-  const lastExplore = sessionStorage.getItem('cine:last');
-  if (lastExplore && /^#(explore|place\/[\w-]+)$/.test(lastExplore)) document.querySelectorAll('[data-nav-explore]').forEach((a) => { a.href = `explore.html${lastExplore}`; });
-} catch (e) { /* 저장소를 못 쓰면 기본 링크(explore.html#explore) */ }
 
 /* ---------- 기록 오버레이 ---------- */
 function openOverlay(place) {
@@ -978,7 +974,7 @@ window.addEventListener('hashchange', () => {
   }
   if (location.hash.startsWith('#map/')) { if (mapMode !== 'signs') setMapMode('signs'); applyHash(); }
   else if (location.hash === '#map') { if (mapMode !== 'signs') setMapMode('signs'); if (isPanelOpen()) closePanel({ keepHash: true }); fitDistrict(!prefersReducedMotion()); } // 지명 수어 보기 시작 화면(동구 전체)
-  else if (location.hash === '#spots') { if (mapMode !== 'spots') setMapMode('spots'); else if (typeof showAllHubs === 'function') showAllHubs(); } // 탐험 · 위치 보기 시작 화면(거점 전체)
+  else if (location.hash === '#spots') { if (mapMode !== 'spots') setMapMode('spots'); else if (typeof startAtMain === 'function') startAtMain(); } // 탐험 시작 화면(캔모아 중심 + 주변 번호 핀)
   else if (isPanelOpen()) closePanel({ keepHash: true });
 });
 

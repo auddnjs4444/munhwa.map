@@ -1,7 +1,8 @@
 /* ---------- 장소 둘러보기(탐험 · 위치 보기): 거점 3곳 + 주변 장소 탐색 ----------
    app.js의 지도·패널(openPanel/closePanel/renderPanel)·해시를 그대로 쓰고, 지도 화면을
    '장소 둘러보기'(탐험 · 위치 보기, 주소 #spots·#spot/…)와 '지명 수어'(동 경계·목록·영상, 주소 #map·#map/…) 두 보기로 나눈다.
-   상단 메뉴(탐험·지명 수어·기록·소개)는 두 페이지가 같고, '거리 보기'는 explore.html로 같은 장소를 넘긴다.
+   상단 메뉴(탐험·기록·소개)는 두 페이지가 같고, '거리 보기'는 explore.html로 같은 장소를 넘긴다.
+   지도가 열리면(#spots) 캔모아(MAIN_HUB)를 가운데 두고 주변 11곳 번호 핀을 바로 보여준다. 캔모아를 누르면 패널(주변 둘러보기·장소 기억·거리 보기).
    데이터: data/spots.json (좌표 precision이 poi/building인 곳만 핀, 나머지는 '위치 확인 중').
    레이아웃 전제: 데스크톱은 패널이 열리면 #map 컨테이너 자체가 줄어든다(패널 폭을 다시 보정하지 않음),
    모바일은 시트가 지도 위를 덮는다(시트 높이만큼만 보정). */
@@ -10,6 +11,8 @@ let spotsData = null;
 let mapMode = 'spots'; // 'spots' | 'signs'
 const hubMarkers = new Map();
 let nearbyMarkers = [];
+let nearbyHub = null; // 지금 번호 핀을 보여주는 거점
+const MAIN_HUB = 'canmore'; // 탐험의 시작점: 큰 금색 핀, 지도 시작 화면의 중심
 let spotState = null; // { hub, level: 'hub'|'list'|'place', place }
 let hoverId = null; // 호버·키보드 포커스 중인 장소 id (지도 마커 ↔ 목록 행 동기화)
 let labelRaf = null;
@@ -38,9 +41,8 @@ function setMapMode(mode) {
   clearNearby();
   if (mode === 'spots') {
     setSelectedRegion(null);
-    if (!location.hash.startsWith('#spot/')) setHash('#spots'); // 보기 주소를 남긴다(새로고침해도 이 보기로)
     map.invalidateSize({ pan: false });
-    fitHubs();
+    if (!location.hash.startsWith('#spot/')) { setHash('#spots'); startAtMain(); } // 시작 화면: 캔모아 중심 + 주변 번호 핀 (#spot/… 주소는 applySpotHash가 연다)
   } else {
     spotState = null;
     hoverId = null;
@@ -72,11 +74,29 @@ function goSigns() {
   setHash('#map');
   if (typeof fitDistrict === 'function') fitDistrict(!prefersReducedMotion());
 }
-// '거리 보기'(explore.html)로 넘길 때 지금 보던 장소를 그대로 가져간다. 거리 보기에 없는 거점(탐험 대상이 아닌 곳)은 충장로 거리로
+// 상단 메뉴 '탐험': 지도 화면의 장소 둘러보기 시작 화면(#spots, 캔모아 중심). 지도가 아직 안 열렸으면 initSpots가 시작 화면으로 연다
+function goSpots() {
+  if (document.body.dataset.view !== 'map') { history.replaceState(null, '', '#spots'); setView('map'); }
+  if (!map || !spotsData) return;
+  if (mapMode !== 'spots') { setMapMode('spots'); return; }
+  setHash('#spots');
+  startAtMain();
+}
+// 지도 시작 화면: 캔모아를 가운데, 주변 11곳 번호 핀을 바로. 패널은 닫힌 채 (캔모아를 누르면 패널이 열린다)
+function startAtMain() {
+  const hub = spotsData && hubById(MAIN_HUB);
+  if (!hub || !hasPin(hub)) { fitHubs(); return; }
+  if (isPanelOpen()) closePanel({ keepHash: true });
+  spotState = null;
+  showNearby(hub);
+  markSelected();
+  setTimeout(() => { map.invalidateSize({ pan: false }); fitNearby(hub); }, 0);
+}
+// '거리 보기'(explore.html)로 넘길 때 지금 보던 장소를 그대로 가져간다. 아무것도 고르지 않았거나 거리 보기에 없는 거점이면 캔모아 거리로
 function streetHref() {
-  if (!spotState) return 'explore.html#explore';
+  if (!spotState) return `explore.html#place/${MAIN_HUB}`;
   const { hub, level, place } = spotState;
-  if (!hub.explore) return 'explore.html#explore';
+  if (!hub.explore) return `explore.html#place/${MAIN_HUB}`;
   const id = level === 'place' && place ? place.id : hub.id;
   return `explore.html#place/${id}`;
 }
@@ -97,7 +117,7 @@ function buildHubMarkers() {
   spotsData.hubs.forEach((hub) => {
     if (!hasPin(hub)) return;
     const m = L.marker([hub.geo.lat, hub.geo.lng], {
-      icon: L.divIcon({ className: 'hub-wrap', html: `<div class="hub" data-id="${esc(hub.id)}"><i aria-hidden="true"></i><span class="hub-name">${esc(hub.name)}</span></div>`, iconSize: [0, 0], iconAnchor: [0, 0] }),
+      icon: L.divIcon({ className: 'hub-wrap', html: `<div class="hub${hub.id === MAIN_HUB ? ' main' : ''}" data-id="${esc(hub.id)}"><i aria-hidden="true"></i><span class="hub-name">${esc(hub.id === MAIN_HUB ? hub.short : hub.name)}</span></div>`, iconSize: [0, 0], iconAnchor: [0, 0] }),
       pane: 'spots',
       title: hub.name,
       riseOnHover: true,
@@ -111,11 +131,13 @@ function buildHubMarkers() {
 function clearNearby() {
   nearbyMarkers.forEach((m) => map.removeLayer(m));
   nearbyMarkers = [];
+  nearbyHub = null;
   document.body.classList.remove('nearby-open');
   layoutLabels();
 }
 function showNearby(hub) {
   clearNearby();
+  nearbyHub = hub;
   hubNearby(hub).forEach((p) => {
     if (!hasPin(p)) return;
     const no = nearbyNo(hub, p);
@@ -180,7 +202,7 @@ function doLayoutLabels() {
   hubMarkers.forEach((m, id) => {
     const el = m.getElement()?.querySelector('.hub');
     if (!el) return;
-    items.push({ id, kind: 'hub', el, label: el.querySelector('.hub-name'), pt: map.latLngToContainerPoint(m.getLatLng()), r: compactHubs ? 11 : 18, off: compactHubs ? 18 : 26 });
+    items.push({ id, kind: 'hub', el, label: el.querySelector('.hub-name'), pt: map.latLngToContainerPoint(m.getLatLng()), r: el.classList.contains('main') ? 22 : compactHubs ? 11 : 18, off: el.classList.contains('main') ? 30 : compactHubs ? 18 : 26 });
   });
   nearbyMarkers.forEach((m) => {
     const el = m.getElement()?.querySelector('.nb');
@@ -273,7 +295,7 @@ function pointVisible(latlng) {
 function openHub(hub, { fromHash = false } = {}) {
   const wasOpen = isPanelOpen();
   spotState = { hub, level: 'hub', place: null };
-  clearNearby();
+  if (hub.id === MAIN_HUB) { if (nearbyHub !== hub) showNearby(hub); } else clearNearby(); // 캔모아는 주변 번호 핀을 늘 함께 보여준다
   markSelected();
   openPanel({ kind: 'spot' }, 0, { fromHash: true });
   if (!fromHash) setHash(`spot/${hub.id}`);
@@ -444,10 +466,8 @@ function initSpots() {
       document.getElementById('spots-all')?.addEventListener('click', showAllHubs);
       if (location.hash.startsWith('#map')) setMapMode('signs');
       else {
-        setMapMode('spots');
-        let restored = false;
-        try { restored = applySpotHash(); } catch (e) { console.error('거점 해시 복원 실패:', e); }
-        if (!restored) fitHubs();
+        setMapMode('spots'); // #spot/… 주소가 아니면 시작 화면(캔모아 중심)
+        try { if (location.hash.startsWith('#spot/') && !applySpotHash()) startAtMain(); } catch (e) { console.error('거점 해시 복원 실패:', e); startAtMain(); }
       }
     })
     .catch((err) => {
