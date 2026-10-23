@@ -1093,7 +1093,7 @@ function panelRecordHtml(place) {
   const origin = realText(place.origin_text);
   const reg = panelItem && panelItem.kind === 'region' ? panelItem.region : null;
   const vid = (place.videos || [])[0];
-  const videoFact = vid ? `${Number(vid.ratio) && Number(vid.ratio) < 1 ? '세로 3:4' : '가로'} · 무음` : place.video_youtube_id ? '유튜브' : '준비 중';
+  const videoFact = vid ? `${Number(vid.ratio) && Number(vid.ratio) < 1 ? (Number(vid.ratio) < 0.7 ? '세로 9:16' : '세로 3:4') : '가로'} · 무음` : place.video_youtube_id ? '유튜브' : '준비 중';
   const boundaryFact = reg ? [reg.type, ...(reg.codes || [])].filter(Boolean).join(' · ') : '경계 밖 · 핀';
   // 손글씨 한 줄: 데이터의 sign_parts 그대로 (문장을 지어내지 않는다). 유래 설명이 없으면 '아직 없음'으로 둔다
   const parts = (place.sign_parts || []).filter(Boolean);
@@ -1335,7 +1335,7 @@ function loadRegions() {
 }
 
 /* ---------- 데이터 로드 ---------- */
-fetch('data/places.json?v=20261021')
+fetch('data/places.json?v=20261102')
   .then((res) => res.json())
   .then((places) => {
     placesData = places;
