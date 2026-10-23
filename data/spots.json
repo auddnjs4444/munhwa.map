@@ -1,5 +1,5 @@
 {
-  "_doc": "거점(hubs)과 주변 장소(places). 좌표 precision: poi=지도 데이터의 해당 장소 지점, building=해당 번지 건물, street=도로 기준 근사치(핀 보류 또는 확인 중 표시), none=미확인. 사진은 photo에 경로를 넣으면 표시됩니다.",
+  "_doc": "거점(hubs)과 주변 장소(places). 좌표 precision: poi=지도 데이터의 해당 장소 지점, building=해당 번지 건물, street=도로 기준 근사치(핀 보류 또는 확인 중 표시), none=미확인. 사진은 photo에 경로를 넣으면 표시됩니다. deaf_pick: true 는 농인 추천픽(2026-10-23 사용자 지정: 캔모아 주변 7~11번) — 지도 핀·목록·상세에 금색 「농인 추천」으로 강조됩니다.",
   "hubs": [
     {
       "id": "hosijeong",
@@ -236,6 +236,7 @@
     {
       "id": "geumnam-park",
       "name": "금남로공원",
+      "deaf_pick": true,
       "address": "광주광역시 동구 금남로3가 20-2",
       "geo": {
         "lat": 35.149457,
@@ -248,6 +249,7 @@
     {
       "id": "yehyang",
       "name": "예향식당",
+      "deaf_pick": true,
       "address": "광주광역시 동구 중앙로 150-4 1층",
       "geo": {
         "lat": 35.1474573,
@@ -259,6 +261,7 @@
     {
       "id": "ppyeodae",
       "name": "뼈대있는집 충장점",
+      "deaf_pick": true,
       "address": "광주광역시 동구 충장로 97-2 1층",
       "geo": {
         "lat": 35.14756,
@@ -271,6 +274,7 @@
     {
       "id": "sajik-park",
       "name": "사직공원",
+      "deaf_pick": true,
       "address": "광주광역시 남구 사직길 49",
       "geo": {
         "lat": 35.1426672,
@@ -283,6 +287,7 @@
     {
       "id": "gwangju-park",
       "name": "광주공원",
+      "deaf_pick": true,
       "address": "광주광역시 남구 중앙로107번길 15",
       "geo": {
         "lat": 35.147036,

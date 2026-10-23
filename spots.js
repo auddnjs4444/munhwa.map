@@ -6,7 +6,7 @@
    데이터: data/spots.json (좌표 precision이 poi/building인 곳만 핀, 나머지는 '위치 확인 중').
    레이아웃 전제: 데스크톱은 패널이 열리면 #map 컨테이너 자체가 줄어든다(패널 폭을 다시 보정하지 않음),
    모바일은 시트가 지도 위를 덮는다(시트 높이만큼만 보정). */
-const SPOTS_URL = 'data/spots.json?v=20261016';
+const SPOTS_URL = 'data/spots.json?v=20261104';
 let spotsData = null;
 let mapMode = 'spots'; // 'spots' | 'signs'
 const hubMarkers = new Map();
@@ -142,9 +142,9 @@ function showNearby(hub) {
     if (!hasPin(p)) return;
     const no = nearbyNo(hub, p);
     const m = L.marker([p.geo.lat, p.geo.lng], {
-      icon: L.divIcon({ className: 'nb-wrap', html: `<div class="nb" data-id="${esc(p.id)}"><i aria-hidden="true">${no}</i><span class="nb-name">${esc(p.name)}</span></div>`, iconSize: [0, 0], iconAnchor: [0, 0] }),
+      icon: L.divIcon({ className: 'nb-wrap', html: `<div class="nb${p.deaf_pick ? ' pick' : ''}" data-id="${esc(p.id)}"><i aria-hidden="true">${no}</i><span class="nb-name">${esc(p.name)}${p.deaf_pick ? '<b class="nb-tag">농인 추천</b>' : ''}</span></div>`, iconSize: [0, 0], iconAnchor: [0, 0] }), // deaf_pick: 농인 추천픽은 금색 번호 핀
       pane: 'spots',
-      title: `${no}. ${p.name}`,
+      title: `${no}. ${p.name}${p.deaf_pick ? ' · 농인 추천' : ''}`,
       riseOnHover: true,
     });
     m.on('click', () => {
@@ -360,7 +360,7 @@ function renderSpotPanel() {
     panelSubEl.textContent = `${hub.name} · 주변 장소 ${total}곳`;
   } else {
     panelNameEl.textContent = place.name;
-    panelSubEl.textContent = `${hub.short} 주변 · ${nearbyNo(hub, place)}번`;
+    panelSubEl.textContent = `${hub.short} 주변 · ${nearbyNo(hub, place)}번${place.deaf_pick ? ' · 농인 추천' : ''}`;
   }
   document.getElementById('dp-prev').setAttribute('aria-label', level === 'hub' ? '이전 거점' : '이전 주변 장소');
   document.getElementById('dp-next').setAttribute('aria-label', level === 'hub' ? '다음 거점' : '다음 주변 장소');
@@ -386,10 +386,10 @@ function renderSpotPanel() {
       </button>` : ''}`;
   } else if (level === 'list') {
     const items = hubNearby(hub)
-      .map((p) => `<li><button type="button" class="sp-row${hasPin(p) ? '' : ' nopin'}" data-place="${esc(p.id)}"><span class="sp-no" aria-hidden="true">${nearbyNo(hub, p)}</span><span class="sp-row-text"><span class="sp-row-name">${esc(p.name)}</span><span class="sp-row-addr">${esc(p.address || '')}${hasPin(p) ? '' : ' · 위치 확인 중'}</span></span></button></li>`)
+      .map((p) => `<li><button type="button" class="sp-row${hasPin(p) ? '' : ' nopin'}${p.deaf_pick ? ' pick' : ''}" data-place="${esc(p.id)}"><span class="sp-no" aria-hidden="true">${nearbyNo(hub, p)}</span><span class="sp-row-text"><span class="sp-row-name">${esc(p.name)}${p.deaf_pick ? '<span class="sp-pick">농인 추천</span>' : ''}</span><span class="sp-row-addr">${esc(p.address || '')}${hasPin(p) ? '' : ' · 위치 확인 중'}</span></span></button></li>`)
       .join('');
     html = `
-      <p class="sp-context">${esc(hub.name)}을(를) 기준으로 연결한 장소예요. 번호는 지도 핀의 번호와 같고, 순위나 이동 순서가 아니에요.</p>
+      <p class="sp-context">${esc(hub.name)}을(를) 기준으로 연결한 장소예요. 번호는 지도 핀의 번호와 같고, 순위나 이동 순서가 아니에요.${hubNearby(hub).some((p) => p.deaf_pick) ? ' <b class="sp-legend">금색 번호</b>는 농인이 추천한 장소예요.' : ''}</p>
       <ol class="sp-list" aria-label="${esc(hub.short)} 주변 장소">${items}</ol>
       <div class="sp-secondary">
         <button type="button" class="sp-link" id="sp-back-hub">‹ ${esc(hub.short)} 상세로</button>
@@ -398,6 +398,7 @@ function renderSpotPanel() {
   } else {
     html = `
       ${photoHtml(place)}
+      ${place.deaf_pick ? `<div class="sp-field sp-pickfield"><span class="sp-k">농인 추천</span><p>농인 참여자가 추천한 장소예요.</p></div>` : ''}
       ${place.address ? `<div class="sp-field"><span class="sp-k">주소</span><p>${esc(place.address)}</p></div>` : ''}
       ${hasPin(place) ? '' : `<div class="sp-field"><span class="sp-k">지도 위치</span><p class="muted">위치 확인 중 — 핀은 확인 후 표시돼요.</p></div>`}
       ${(place.related || []).map((r) => `<div class="sp-field"><span class="sp-k">함께 소개할 곳</span><p>${esc(r.name)}</p><p class="muted">${esc(r.note || '')}</p></div>`).join('')}
