@@ -1059,6 +1059,9 @@
   }
   .nb-name { font-size: 12px; padding: 5px 9px; opacity: 0; pointer-events: none; }
   .nb.show > .nb-name { opacity: 1; pointer-events: auto; }
+  .nb.pick i { background: #E8C470; color: #1a1408; border-color: #E8C470; font-weight: 700; box-shadow: 0 0 0 3px rgba(232, 196, 112, 0.28), 0 2px 8px rgba(0, 0, 0, 0.45); }
+  .nb.pick > .nb-name { border-color: rgba(232, 196, 112, 0.7); }
+  .nb-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: rgba(232, 196, 112, 0.18); color: #E8C470; font: 600 9.5px/1.5 'Pretendard Variable', sans-serif; letter-spacing: 0.04em; vertical-align: 1px; }
   .nb.hover i, .nb.on i { background: var(--sp-accent); color: var(--sp-on-accent); border-color: var(--sp-accent); transform: translate(-50%, -50%) scale(1.15); }
   .nb.on > .nb-name { background: var(--sp-accent); color: var(--sp-on-accent); border-color: var(--sp-accent); font-weight: 600; }
   .leaflet-marker-icon.hub-wrap:focus-visible, .leaflet-marker-icon.nb-wrap:focus-visible { outline: none; }
@@ -1193,6 +1196,12 @@
   }
   .sp-row.on .sp-no, .sp-row.hover .sp-no { background: var(--sp-accent); border-color: var(--sp-accent); color: var(--sp-on-accent); }
   .sp-row.nopin .sp-no { border-style: dashed; color: var(--sp-muted); }
+  /* 농인 추천픽(spots.json deaf_pick): 금색 번호 + 「농인 추천」 표. 호버·선택은 다른 행과 같은 민트 */
+  .sp-row.pick .sp-no { background: #E8C470; border-color: #E8C470; color: #1a1408; font-weight: 700; }
+  .sp-pick { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: rgba(232, 196, 112, 0.16); border: 1px solid rgba(232, 196, 112, 0.5); color: #E8C470; font: 600 10.5px/1.5 'Pretendard Variable', sans-serif; letter-spacing: 0.04em; vertical-align: 2px; white-space: nowrap; }
+  .sp-legend { color: #E8C470; font-weight: 600; }
+  .sp-pickfield .sp-k { color: #E8C470; }
+  .sp-pickfield p { color: #F1D48A; }
   .sp-row-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .sp-row-name { font-size: 15.5px; font-weight: 500; line-height: 1.35; }
   .sp-row-addr { font-size: 12.5px; color: var(--sp-muted); line-height: 1.4; }
@@ -1828,6 +1837,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="app.js?v=20261103"></script>
 <script src="story.js?v=20261031"></script>
-<script src="spots.js?v=20261101"></script>
+<script src="spots.js?v=20261104"></script>
 </body>
 </html>

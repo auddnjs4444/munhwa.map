@@ -10,7 +10,7 @@
   if (q.has('noanim')) document.documentElement.classList.add('noanim'); // story.js(편지 화면)도 같은 스위치를 본다
   const isSheet = () => matchMedia('(max-width: 767px)').matches;
 
-  const DATA_V = '20261021';
+  const DATA_V = '20261104';
   const SRC = { spots: `data/spots.json?v=${DATA_V}`, places: `data/places.json?v=${DATA_V}`, stories: `data/memory-stories.json?v=${DATA_V}` };
   const SITE = 'index.html';  // 본 사이트(지명 수어 지도·장소 둘러보기·아카이브)
   const HUB_ID = 'canmore';   // 탐험 거점
@@ -101,7 +101,7 @@
       const geo = pr.geo || p.geo || null;
       const dist = verifiedGeo(geo) ? haversine(hubGeo, geo) : null;
       const recs = entries.filter((x) => matchEntry(x.e, p.name)).map((x) => { used.add(x.e); return { type: 'entry', dongId: x.dong.id, dongName: x.dong.name, ...x.e }; });
-      items.push({ id: p.id, kind: 'nearby', hubId: h.id, hubShort: h.short, no: i + 1, name: pr.short || p.name, full: p.name, address: p.address, geo, dist, group: dist != null && dist <= NEAR_M ? 'near' : 'far', scene: pr.scene || null, en: pr.en || (h.id === HUB_ID ? 'CHUNGJANG-RO · NEARBY' : `${h.short.toUpperCase()} · NEARBY`), note: pr.note, verify: pr.verify, sub: recs[0] ? recs[0].subtitle : null, records: recs, siteHash: `#spot/${h.id}/${p.id}`, mapHash: recs[0] ? `#map/${recs[0].dongId}` : null });
+      items.push({ id: p.id, kind: 'nearby', hubId: h.id, hubShort: h.short, no: i + 1, pick: !!p.deaf_pick, name: pr.short || p.name, full: p.name, address: p.address, geo, dist, group: dist != null && dist <= NEAR_M ? 'near' : 'far', scene: pr.scene || null, en: pr.en || (h.id === HUB_ID ? 'CHUNGJANG-RO · NEARBY' : `${h.short.toUpperCase()} · NEARBY`), note: pr.note, verify: pr.verify, sub: recs[0] ? recs[0].subtitle : null, records: recs, siteHash: `#spot/${h.id}/${p.id}`, mapHash: recs[0] ? `#map/${recs[0].dongId}` : null });
     };
     hub.nearby.forEach((id, i) => placeById[id] && addNearby(hub, placeById[id], i));
 
@@ -307,6 +307,7 @@
       const d2 = item.id === HUB_ID ? 'START · 충장로' : item.dist != null ? 'FROM CANMORE · 직선거리' : '지점 미확정';
       // 농인의 기억이 먼저, 장소 정보(거리·위치 확인·주소)는 그 아래
       if (item.intro) html += `<p class="intro-line">${esc(item.intro)}${item.introNote ? ` <small>(${esc(item.introNote)})</small>` : ''}</p>`;
+      if (item.pick) html += `<p class="pick-badge">농인 추천 장소</p>`;
       html += `<p class="sec">농인의 장소 기억</p>`;
       html += item.records.length ? item.records.map((r) => recordHtml(r, item)).join('') : `<p class="pending">기록 준비 중 — 이 장소의 인터뷰 기록은 아직 없습니다. 확인된 기록이 들어오면 여기에 원문 그대로 채워집니다.</p>`;
       html += `<div class="actions"><button type="button" class="btn-primary" id="p-list">함께 둘러볼 장소 →</button>${item.id !== HUB_ID ? `<button type="button" class="btn-ghost" id="p-home2">캔모아로 돌아가기</button>` : ''}</div>`;
@@ -339,11 +340,12 @@
   function closeList() { view = 'place'; renderPanel(itemById(current)); panel.scrollTop = 0; $('p-list')?.focus({ preventScroll: true }); }
   function rowHtml(x) {
     const meta = [x.id === HUB_ID ? '탐험 거점' : x.dist != null ? distText(x.dist) : '지점 미확정'];
+    if (x.pick) meta.unshift('농인 추천');
     if (x.records.length) meta.push(`기억 ${x.records.length}`);
     if (x.sensitive) meta.push('열람 확인');
     const addr = shortAddr(x.address).replace(/^동구\s*/, '');
     const area = x.kind === 'hub2' ? `동명동 · 탐험 거점 · ${addr}` : x.hubId && x.hubId !== HUB_ID ? `동명동 · ${x.hubShort || ''} 거점 주변 · ${addr}` : addr;
-    return `<button type="button" class="row${x.id === current ? ' on' : ''}" data-spot="${esc(x.id)}" aria-pressed="${x.id === current}"><span class="row-name">${esc(x.name)}</span><span class="row-meta">${esc(meta.join(' · '))}</span><span class="row-area">${esc(area)}</span></button>`;
+    return `<button type="button" class="row${x.id === current ? ' on' : ''}${x.pick ? ' pick' : ''}" data-spot="${esc(x.id)}" aria-pressed="${x.id === current}"><span class="row-name">${esc(x.name)}</span><span class="row-meta">${esc(meta.join(' · '))}</span><span class="row-area">${esc(area)}</span></button>`;
   }
   function renderList(item) {
     const near = ORDER.filter((x) => x.group === 'near'), far = ORDER.filter((x) => x.group === 'far');
@@ -449,7 +451,7 @@
   function chipHtml(p) {
     const x = itemById(p.id); if (!x) return '';
     const pending = !x.records.length && !x.sensitive; // 기록이 아직 없는 곳은 활성 기능처럼 보이지 않게
-    const tag = pending ? '<small class="chip-tag">준비 중</small>' : x.sensitive ? '<small class="chip-tag">열람 확인</small>' : '';
+    const tag = x.pick ? '<small class="chip-tag pick">농인 추천</small>' : pending ? '<small class="chip-tag">준비 중</small>' : x.sensitive ? '<small class="chip-tag">열람 확인</small>' : '';
     return `<button type="button" class="spot-btn${pending ? ' pending' : ''}" data-spot="${esc(x.id)}" aria-pressed="false" title="${esc(x.full || x.name)}${pending ? ' · 기록 준비 중' : ''}"><span class="thumb" style="${thumbStyle(p)}"></span><span class="spot-name">${esc(p.label)}</span>${tag}</button>`;
   }
   function buildMenus() {
