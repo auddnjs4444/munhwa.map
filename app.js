@@ -1335,7 +1335,7 @@ function loadRegions() {
 }
 
 /* ---------- 데이터 로드 ---------- */
-fetch('data/places.json?v=20261102')
+fetch('data/places.json?v=20261103')
   .then((res) => res.json())
   .then((places) => {
     placesData = places;

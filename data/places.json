@@ -83,6 +83,14 @@
     "lat": 35.1339,
     "lng": 127.0044,
     "video_youtube_id": null,
+    "videos": [
+      {
+        "label": "수어",
+        "src": "media/mudeungsan.mp4",
+        "poster": "media/mudeungsan.jpg",
+        "ratio": 0.75
+      }
+    ],
     "origin_text": "[예시] 실제 인터뷰 후 교체하세요.",
     "memory_text": "",
     "tags": [
